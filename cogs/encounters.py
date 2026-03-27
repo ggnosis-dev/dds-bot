@@ -26,7 +26,8 @@ PRONOUNS = {
 }
 
 class Demon:
-	def __init__(self, name, race, pronouns: Pronouns, colour, personality_type: Personality, image_url):
+	def __init__(self, id, name, race, pronouns: Pronouns, colour, personality_type: Personality, image_url):
+		self.id = id
 		self.name = name
 		self.race = race
 		self.pronouns = pronouns
@@ -44,6 +45,7 @@ def load_demons(file_path: str) -> list[Demon]:
 		reader = csv.DictReader(f)
 		for row in reader:
 			demon = Demon(
+				id = int(row['id']),
 				name = row['name'],
 				race = row['race'],
 				pronouns = PRONOUNS[row['pronouns']],
@@ -54,7 +56,8 @@ def load_demons(file_path: str) -> list[Demon]:
 			demons.append(demon)
 	return demons
 
-DEMONS = load_demons("compendium.csv")
+# Load demons from the compendium CSV file and create a dictionary for easy access by ID.
+DEMONS = {demon.id: demon for demon in load_demons("compendium.csv")}
 
 EMOTES = {
 	'1': '\u0031\ufe0f\u20e3',
@@ -147,14 +150,22 @@ class Encounters(commands.Cog):
 		self.encounter_threshold = random.randint(1, 2)
 
 	
-	async def start_encounter(self, send_to_channel: int):
+	async def start_encounter(self, send_to_channel: int, force_demon_id: int | None = None):
 		'''
 		Starts an encounter by selecting a demon and organising the embed and view.
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
 		channel if necessary.
 		'''
 		print(f'Starting encounter in channel {send_to_channel}')
-		demon = random.choice(DEMONS)
+
+		demon = random.choice(list(DEMONS.values()))
+
+		if force_demon_id is not None:
+			forced = DEMONS.get(force_demon_id)
+			
+			if forced is not None:
+				demon = forced
+
 		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
 
