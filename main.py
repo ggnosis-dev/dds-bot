@@ -21,10 +21,6 @@ async def on_ready():
 	print(f'{bot.user} has connected to Discord!')
 
 
-@bot.command(name='test', aliases=["t"], help='This is a test command.')
-async def command_name(ctx):
-	await ctx.send("This is a test")
-
 @bot.command(name='start', help="Sets up the player to start playing.")
 async def start_command(ctx):
 	'''
@@ -42,6 +38,12 @@ async def start_command(ctx):
 		encounters_cog = bot.get_cog('Encounters')
 
 		await encounters_cog.start_tutorial_encounter(ctx.channel.id, ctx.author)
+
+
+@bot.command(name='test', help="Spawns a test tutorial encounter in the current channel.")
+async def test_spawn_command(ctx):
+	encounters_cog = bot.get_cog('Encounters')
+	await encounters_cog.start_tutorial_encounter(ctx.channel.id, ctx.author)
 
 
 async def load_cogs():

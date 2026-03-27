@@ -7,6 +7,7 @@ connection = sqlite3.connect('players.db')
 cursor = connection.cursor()
 
 # party and compendium are json
+# https://www.sqlitetutorial.net/sqlite-json/
 cursor.execute('''
 	CREATE TABLE IF NOT EXISTS players (
 		id INTEGER,
@@ -95,6 +96,43 @@ class Players(commands.Cog):
 		''', (json.dumps({'id': demon_id, 'rank': demon_rank}), player_id, server_id))
 		conn.commit()
 		conn.close()
+
+		print(f'INFO: Added demon with id {demon_id} and rank {demon_rank} to player {player_id} party on server {server_id}.')
+
+
+	async def add_demon_to_compendium(self, player_id: int, server_id: int, demon_id: int, demon_rank: int) -> bool:
+		conn = sqlite3.connect('players.db')
+		cursor = conn.cursor()
+
+		# Fetch the compendium.
+		cursor.execute('''
+			SELECT compendium FROM players 
+				WHERE id = ? AND server_id = ?
+		''', (player_id, server_id))
+		row = cursor.fetchone()
+
+		if row:
+			comp = json.loads(row[0])
+
+			# Check each entry.
+			for entry in comp:
+				# If demon is already in compendium, exit with False.
+				if entry['id'] == demon_id:
+					print(f'INFO: Demon with id {demon_id} already in player {player_id} compendium on server {server_id}.')
+					conn.close()
+					return False
+
+		cursor.execute('''
+			UPDATE players
+				SET compendium = json_insert(compendium, '$[#]', json(?))
+				WHERE id = ? AND server_id = ?
+		''', (json.dumps({'id': demon_id, 'rank': demon_rank}), player_id, server_id))
+		conn.commit()
+		conn.close()
+
+		print(f'INFO: Added demon with id {demon_id} and rank {demon_rank} to player {player_id} compendium on server {server_id}.')
+
+		return True
 
 
 async def setup(bot):

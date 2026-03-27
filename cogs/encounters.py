@@ -126,7 +126,6 @@ class EncounterView(discord.ui.View):
 
 		print('Created encounter view with buttons')
 	
-
 	def button_callback(self, label: str, happiness_change: dict):
 		'''
 		Callback sends a message exclusively to the user who clicked the button, confirming their choice.
@@ -221,6 +220,10 @@ class Encounters(commands.Cog):
 	async def join_player_party(self, player_id: int, server_id: int, demon: Demon):
 		players_cog = self.bot.get_cog('Players')
 		await players_cog.add_demon_to_party(player_id, server_id, demon.id, demon.rank)
+
+		new_entry = await players_cog.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
+		if new_entry:
+			print(f'INFO: Added {demon.name} to player {player_id} compendium on server {server_id}.')
 
 
 	@commands.Cog.listener()
