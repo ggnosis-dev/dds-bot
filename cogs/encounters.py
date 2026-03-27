@@ -26,10 +26,11 @@ PRONOUNS = {
 }
 
 class Demon:
-	def __init__(self, id, name, race, pronouns: Pronouns, colour, personality_type: Personality, image_url):
+	def __init__(self, id, name, race, rank, pronouns: Pronouns, colour, personality_type: Personality, image_url):
 		self.id = id
 		self.name = name
 		self.race = race
+		self.rank = rank
 		self.pronouns = pronouns
 		self.colour = colour
 		self.personality_type = personality_type
@@ -48,6 +49,7 @@ def load_demons(file_path: str) -> list[Demon]:
 				id = int(row['id']),
 				name = row['name'],
 				race = row['race'],
+				rank = int(row['rank']),
 				pronouns = PRONOUNS[row['pronouns']],
 				colour = int(row['colour'], 16),
 				personality_type = Personality[row['personality']],
@@ -77,16 +79,17 @@ dedicated_channel = 1486290442877407333
 
 
 class EncounterEmbed(discord.Embed):
-	def __init__(self, demon: Demon, dialogue_options):
+	def __init__(self, demon: Demon, intro_message, dialogue_options, user_exclusive_to: int | None = None):
 		super().__init__(
 			title=f"{EMOTES['icon']}", 
 			color=demon.colour
 		)
 
-		print(f'Creating encounter embed for {demon.name} with colour {demon.colour}')
-		print(f'Encounter dialogue options: {dialogue_options}')
-
-		self.add_field(name=f"{demon.race} {demon.name}!", value=f"Hey, what's going on?\n{EMOTES['blank']}", inline=False)
+		self.add_field(
+			name=f"{demon.race} {demon.name}!", 
+			value=f'{intro_message}\n{EMOTES['blank']}', 
+			inline=False
+		)
 		
 		# Cycle through dialogue options and add them as fields to the embed.
 		for i, option in enumerate(dialogue_options):
@@ -139,6 +142,36 @@ class EncounterView(discord.ui.View):
 		return callback
 
 
+class EncounterTutorialView(EncounterView):
+	def __init__(
+		self, 
+		demon: Demon, 
+		dialogue_options: list[dict], 
+		happiness_val: int,
+		user_exclusive_to: discord.User,
+		encounters_cog
+	):
+		super().__init__(demon, dialogue_options, happiness_val)
+		self.user_exclusive_to = user_exclusive_to
+		self.encounters_cog = encounters_cog
+
+
+	def button_callback(self, label: str, happiness_change: dict):
+		
+		async def callback(interaction: discord.Interaction):
+			# If user isn't the one who the encounter is for, exit early.
+			if interaction.user != self.user_exclusive_to : return
+			
+			await interaction.response.send_message(
+				f"You're interesting, Mister! I think I'll stick around...", 
+				ephemeral=True, 
+			)
+
+			# Add the demon to the player's party.
+			await self.encounters_cog.join_player_party(interaction.user.id, interaction.guild_id, self.demon)
+		return callback
+
+
 class Encounters(commands.Cog):
 	'''
 	Cog handles random encounters. It currently listens to messages and after a number of them,
@@ -150,7 +183,7 @@ class Encounters(commands.Cog):
 		self.encounter_threshold = random.randint(1, 2)
 
 	
-	async def start_encounter(self, send_to_channel: int, force_demon_id: int | None = None):
+	async def start_encounter(self, send_to_channel: int):
 		'''
 		Starts an encounter by selecting a demon and organising the embed and view.
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
@@ -159,21 +192,35 @@ class Encounters(commands.Cog):
 		print(f'Starting encounter in channel {send_to_channel}')
 
 		demon = random.choice(list(DEMONS.values()))
-
-		if force_demon_id is not None:
-			forced = DEMONS.get(force_demon_id)
-			
-			if forced is not None:
-				demon = forced
-
 		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
 
-		embed = EncounterEmbed(demon, dialogue_options)
-		view = EncounterView(demon, dialogue_options, happiness_val)
+		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options)
+		view 	= EncounterView(demon, dialogue_options, happiness_val)
 
-		await self.bot.get_channel(send_to_channel).send(embed=embed, view=view)
+		await self.bot.get_channel(send_to_channel).send(embed = embed, view = view)
 		print(f'Sent encounter in channel {send_to_channel}')
+
+
+	async def start_tutorial_encounter(self, send_to_channel: int, user):
+		'''
+		Starts a forced encounter with a specific demon.
+		'''
+		print(f'Starting tutorial encounter in channel {send_to_channel} for user {user}')
+		demon = DEMONS[1]
+		happiness_val = 80
+		dialogue_options = DIALOGUE_OPTIONS
+		print(f'Creating tutorial encounter embed and view for user {user}')
+
+		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options)
+		view 	= EncounterTutorialView(demon, dialogue_options, happiness_val, user, self)
+
+		await self.bot.get_channel(send_to_channel).send(embed = embed, view = view)
+
+
+	async def join_player_party(self, player_id: int, server_id: int, demon: Demon):
+		players_cog = self.bot.get_cog('Players')
+		await players_cog.add_demon_to_party(player_id, server_id, demon.id, demon.rank)
 
 
 	@commands.Cog.listener()

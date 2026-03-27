@@ -31,21 +31,17 @@ async def start_command(ctx):
 	Setup the player using a new PlayerData object. We'll then start and 'personal' encounter that is
 	only available to the player, acting as a sort of tutorial and introduction.
 	'''
-	print(f'Setting up player {ctx.author} with id {ctx.author.id} on server {ctx.guild} with id {ctx.guild.id}')
+
+	print(f'INFO: Setting up new player {ctx.author} with id {ctx.author.id} on server {ctx.guild.id}.')
+	
 	players_cog = bot.get_cog('Players')
 
-	if players_cog is None:
-		await ctx.send("Sorry, there was an error setting up your profile. Please try again later.")
-		return
-
+	# If player setup is successful, begin the tutorial encounter.
 	if await players_cog.setup_player(ctx):
+		await ctx.send("Starting your first encounter...")
 		encounters_cog = bot.get_cog('Encounters')
 
-		if encounters_cog is None:
-			await ctx.send("Sorry, there was an error starting your encounter. Please try again later.")
-			return
-
-		await encounters_cog.start_encounter(ctx.channel.id, force_demon_id=1)
+		await encounters_cog.start_tutorial_encounter(ctx.channel.id, ctx.author)
 
 
 async def load_cogs():

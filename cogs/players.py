@@ -1,7 +1,27 @@
-import discord
+import json
 from discord.ext import commands
-from enum import Enum
 import csv
+import sqlite3
+
+connection = sqlite3.connect('players.db')
+cursor = connection.cursor()
+
+# party and compendium are json
+cursor.execute('''
+	CREATE TABLE IF NOT EXISTS players (
+		id INTEGER,
+		server_id INTEGER,
+		party TEXT,
+		compendium TEXT,
+		CONSTRAINT player_server_id PRIMARY KEY (id, server_id)
+	)
+''')
+
+# Empty database for testing.
+cursor.execute('DELETE FROM players')
+
+connection.commit()
+connection.close()
 
 
 class PlayerData:
@@ -17,7 +37,6 @@ class Players(commands.Cog):
 		self.bot = bot
 
 	async def setup_player(self, ctx) -> bool:
-		print('GOT HERE')
 		id = ctx.author.id
 		server_id = ctx.guild.id
 		player_data = PlayerData(id, server_id, [], [])
@@ -28,10 +47,11 @@ class Players(commands.Cog):
 		
 		await ctx.send(f"Welcome to the bot {ctx.author.mention}! Setting up your profile now...")
 
-		self.save_to_csv(player_data)
+		self.save_player_to_db(player_data)
 		
 		await ctx.send("Your profile has been set up! You can now start playing.")
 		return True
+
 
 	def save_to_csv(self, player: PlayerData):
 		with open("players.csv", 'a', newline='', encoding='utf-8') as f:
@@ -39,18 +59,43 @@ class Players(commands.Cog):
 			writer.writerow([player.id, player.server_id, player.party, player.compendium])
 
 
+	def save_player_to_db(self, player: PlayerData):
+		print(f'INFO: Saving player {player.id} on server {player.server_id} to database.')
+		conn = sqlite3.connect('players.db')
+		cursor = conn.cursor()
+		cursor.execute('''
+			INSERT INTO players (id, server_id, party, compendium) 
+				 VALUES (?, ?, ?, ?)
+		''', (player.id, player.server_id, json.dumps(player.party), json.dumps(player.compendium)))
+		conn.commit()
+		conn.close()
+		print(f'INFO: Successfully saved player {player.id} on server {player.server_id} to database.')
+
+
 	def check_player_exists(self, player: PlayerData) -> bool:
-		'''
-		This whole function is why I want to use SQLite...
-		'''
-		with open("players.csv", newline='', encoding='utf-8') as f:
-			reader = csv.DictReader(f)
-			for row in reader:
-				if row['id'] == '' or row['server_id'] == '':
-					continue
-				if int(row['id']) == player.id and int(row['server_id']) == player.server_id:
-					return True
-		return False
+		conn = sqlite3.connect('players.db')
+		cursor = conn.cursor()
+		cursor.execute('''
+			SELECT * FROM players 
+				WHERE id = ? AND server_id = ?
+		''', (player.id, player.server_id))
+		result = cursor.fetchone()
+		conn.close()
+
+		return result != None
+	
+
+	async def add_demon_to_party(self, player_id: int, server_id: int, demon_id: int, demon_rank: int):
+		conn = sqlite3.connect('players.db')
+		cursor = conn.cursor()
+		cursor.execute('''
+			UPDATE players
+				SET party = json_insert(party, '$[#]', json(?))
+				WHERE id = ? AND server_id = ?
+		''', (json.dumps({'id': demon_id, 'rank': demon_rank}), player_id, server_id))
+		conn.commit()
+		conn.close()
+
 
 async def setup(bot):
 	await bot.add_cog(Players(bot))
