@@ -180,8 +180,6 @@ class Encounters(commands.Cog):
 			self.message_counter = 0
 			self.encounter_threshold = random.randint(1, 2)
 
-		await self.bot.process_commands(message)
-
 
 # Add the cog to the bot.
 async def setup(bot):
