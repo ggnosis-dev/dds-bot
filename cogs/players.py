@@ -1,7 +1,7 @@
 import json
-from discord.ext import commands
-import csv
 import sqlite3
+
+from discord.ext import commands
 
 connection = sqlite3.connect('players.db')
 cursor = connection.cursor()
@@ -34,10 +34,14 @@ class PlayerData:
 
 
 class Players(commands.Cog):
-	def __init__(self, bot):
+	def __init__(self, bot: commands.Bot):
 		self.bot = bot
 
-	async def setup_player(self, ctx) -> bool:
+	async def setup_player(self, ctx: commands.Context) -> bool:
+		if ctx.guild is None:
+			await ctx.send("ERROR: Could not determine server ID. How did you even get here?")
+			return False
+
 		id = ctx.author.id
 		server_id = ctx.guild.id
 		player_data = PlayerData(id, server_id, [], [])
@@ -54,14 +58,7 @@ class Players(commands.Cog):
 		return True
 
 
-	def save_to_csv(self, player: PlayerData):
-		with open("players.csv", 'a', newline='', encoding='utf-8') as f:
-			writer = csv.writer(f)
-			writer.writerow([player.id, player.server_id, player.party, player.compendium])
-
-
 	def save_player_to_db(self, player: PlayerData):
-		print(f'INFO: Saving player {player.id} on server {player.server_id} to database.')
 		conn = sqlite3.connect('players.db')
 		cursor = conn.cursor()
 		cursor.execute('''
@@ -70,6 +67,7 @@ class Players(commands.Cog):
 		''', (player.id, player.server_id, json.dumps(player.party), json.dumps(player.compendium)))
 		conn.commit()
 		conn.close()
+
 		print(f'INFO: Successfully saved player {player.id} on server {player.server_id} to database.')
 
 
@@ -118,7 +116,7 @@ class Players(commands.Cog):
 			for entry in comp:
 				# If demon is already in compendium, exit with False.
 				if entry['id'] == demon_id:
-					print(f'INFO: Demon with id {demon_id} already in player {player_id} compendium on server {server_id}.')
+					print(f'WARN: Demon with id {demon_id} already in player {player_id} compendium on server {server_id}.')
 					conn.close()
 					return False
 
@@ -135,5 +133,5 @@ class Players(commands.Cog):
 		return True
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
 	await bot.add_cog(Players(bot))

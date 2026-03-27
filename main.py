@@ -33,17 +33,17 @@ async def start_command(ctx):
 	players_cog = bot.get_cog('Players')
 
 	# If player setup is successful, begin the tutorial encounter.
-	if await players_cog.setup_player(ctx):
+	if await players_cog.setup_player(ctx):										# type: ignore
 		await ctx.send("Starting your first encounter...")
 		encounters_cog = bot.get_cog('Encounters')
 
-		await encounters_cog.start_tutorial_encounter(ctx.channel.id, ctx.author)
+		await encounters_cog.start_tutorial_encounter(ctx.channel, ctx.author)	# type: ignore
 
 
 @bot.command(name='test', help="Spawns a test tutorial encounter in the current channel.")
 async def test_spawn_command(ctx):
 	encounters_cog = bot.get_cog('Encounters')
-	await encounters_cog.start_tutorial_encounter(ctx.channel.id, ctx.author)
+	await encounters_cog.start_tutorial_encounter(ctx.channel, ctx.author)		# type: ignore
 
 
 async def load_cogs():

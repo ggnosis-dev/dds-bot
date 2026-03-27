@@ -1,37 +1,21 @@
-import discord
-from discord.ext import commands
-import random
-from enum import Enum
 import csv
+import discord
+import random
 
+from discord.ext import commands
+from enum import Enum
 
 class Personality(Enum): 
 	CHEERFUL = 1
 	SHY = 2
 	AGGRESSIVE = 3
 
-class Pronouns:
-	def __init__(self, subject, object, possessive_adjective, possessive_pronoun, reflexive):
-		self.they = subject
-		self.them = object
-		self.their = possessive_adjective
-		self.theirs = possessive_pronoun
-		self.themselves = reflexive
-
-PRONOUNS = {
-	"he/him"	: Pronouns("he", "him", "his", "his", "himself"),
-	"she/her"	: Pronouns("she", "her", "her", "hers", "herself"),
-	"they/them"	: Pronouns("they", "them", "their", "theirs", "themselves"),
-	"it/its"	: Pronouns("it", "it", "its", "its", "itself")
-}
-
 class Demon:
-	def __init__(self, id, name, race, rank, pronouns: Pronouns, colour, personality_type: Personality, image_url):
+	def __init__(self, id: int, name: str, race: str, rank: int, colour: int, personality_type: Personality, image_url: str):
 		self.id = id
 		self.name = name
 		self.race = race
 		self.rank = rank
-		self.pronouns = pronouns
 		self.colour = colour
 		self.personality_type = personality_type
 		self.image_url = image_url
@@ -50,13 +34,13 @@ def load_demons(file_path: str) -> list[Demon]:
 				name = row['name'],
 				race = row['race'],
 				rank = int(row['rank']),
-				pronouns = PRONOUNS[row['pronouns']],
 				colour = int(row['colour'], 16),
 				personality_type = Personality[row['personality']],
 				image_url = row['image_url'],
 			)
 			demons.append(demon)
 	return demons
+
 
 # Load demons from the compendium CSV file and create a dictionary for easy access by ID.
 DEMONS = {demon.id: demon for demon in load_demons("compendium.csv")}
@@ -79,7 +63,7 @@ dedicated_channel = 1486290442877407333
 
 
 class EncounterEmbed(discord.Embed):
-	def __init__(self, demon: Demon, intro_message, dialogue_options, user_exclusive_to: int | None = None):
+	def __init__(self, demon: Demon, intro_message: str, dialogue_options: list[dict]):
 		super().__init__(
 			title=f"{EMOTES['icon']}", 
 			color=demon.colour
@@ -98,8 +82,6 @@ class EncounterEmbed(discord.Embed):
 		self.set_image(url=demon.image_url)
 		self.set_thumbnail(url=demon.image_url)
 		self.set_footer(text="What will you do?")
-
-		print(f'Created encounter embed for {demon.name}')
 
 
 class EncounterView(discord.ui.View):
@@ -124,7 +106,6 @@ class EncounterView(discord.ui.View):
 			button.callback = self.button_callback(e, self.dialogue_options[i]['happiness_change'])
 			self.add_item(button)
 
-		print('Created encounter view with buttons')
 	
 	def button_callback(self, label: str, happiness_change: dict):
 		'''
@@ -143,12 +124,12 @@ class EncounterView(discord.ui.View):
 
 class EncounterTutorialView(EncounterView):
 	def __init__(
-		self, 
+		self: EncounterTutorialView, 
 		demon: Demon, 
 		dialogue_options: list[dict], 
 		happiness_val: int,
 		user_exclusive_to: discord.User,
-		encounters_cog
+		encounters_cog: Encounters
 	):
 		super().__init__(demon, dialogue_options, happiness_val)
 		self.user_exclusive_to = user_exclusive_to
@@ -176,66 +157,74 @@ class Encounters(commands.Cog):
 	Cog handles random encounters. It currently listens to messages and after a number of them,
 	will trigger an encounter. The encounter is represented as an embed with options as buttons.
 	'''
-	def __init__(self, bot):
+	def __init__(self, bot: commands.Bot):
 		self.bot = bot
 		self.message_counter = 2
 		self.encounter_threshold = random.randint(1, 2)
 
 	
-	async def start_encounter(self, send_to_channel: int):
+	async def start_encounter(self, send_to_channel: discord.TextChannel):
 		'''
 		Starts an encounter by selecting a demon and organising the embed and view.
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
 		channel if necessary.
 		'''
-		print(f'Starting encounter in channel {send_to_channel}')
-
 		demon = random.choice(list(DEMONS.values()))
 		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
-
+		
 		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options)
 		view 	= EncounterView(demon, dialogue_options, happiness_val)
 
-		await self.bot.get_channel(send_to_channel).send(embed = embed, view = view)
-		print(f'Sent encounter in channel {send_to_channel}')
+		await send_to_channel.send(embed = embed, view = view)
+
+		print(f'INFO: Sent encounter in channel {send_to_channel.id}')
 
 
-	async def start_tutorial_encounter(self, send_to_channel: int, user):
+	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User):
 		'''
 		Starts a forced encounter with a specific demon.
 		'''
-		print(f'Starting tutorial encounter in channel {send_to_channel} for user {user}')
 		demon = DEMONS[1]
 		happiness_val = 80
 		dialogue_options = DIALOGUE_OPTIONS
-		print(f'Creating tutorial encounter embed and view for user {user}')
 
 		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options)
 		view 	= EncounterTutorialView(demon, dialogue_options, happiness_val, user, self)
 
-		await self.bot.get_channel(send_to_channel).send(embed = embed, view = view)
+		await send_to_channel.send(embed = embed, view = view)
+
+		print(f'INFO: Sent tutorial encounter in channel {send_to_channel.id} for user {user.id}')
 
 
-	async def join_player_party(self, player_id: int, server_id: int, demon: Demon):
+	async def join_player_party(self, player_id: int, server_id: int | None, demon: Demon):
 		players_cog = self.bot.get_cog('Players')
-		await players_cog.add_demon_to_party(player_id, server_id, demon.id, demon.rank)
+		await players_cog.add_demon_to_party(player_id, server_id, demon.id, demon.rank)					# type: ignore
 
-		new_entry = await players_cog.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
+		new_entry = await players_cog.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)	# type: ignore
 		if new_entry:
-			print(f'INFO: Added {demon.name} to player {player_id} compendium on server {server_id}.')
+			# Edit the embed to say that the demon has been added to the compendium.
+			pass
+		# Edit the embed to say that the demon has been added to the party.
+		pass
 
 
 	@commands.Cog.listener()
-	async def on_message(self, message):
+	async def on_message(self, message: discord.Message):
 		if message.author == self.bot.user:
 			return
 		
 		self.message_counter += 2
 
 		if self.message_counter >= self.encounter_threshold:
-			send_to_channel: int = dedicated_channel if dedicated_channel != None else message.channel
-			await self.start_encounter(send_to_channel)
+
+			send_to_channel_id = dedicated_channel if dedicated_channel else message.channel.id
+			channel = self.bot.get_channel(send_to_channel_id)
+
+			if not isinstance(channel, discord.TextChannel):
+				return
+
+			await self.start_encounter(channel)
 
 			# Reset message counter.
 			self.message_counter = 0
@@ -243,5 +232,5 @@ class Encounters(commands.Cog):
 
 
 # Add the cog to the bot.
-async def setup(bot):
+async def setup(bot: commands.Bot):
 	await bot.add_cog(Encounters(bot))
