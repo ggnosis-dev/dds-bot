@@ -92,6 +92,9 @@ class EncounterView(discord.ui.View):
 	def __init__(self, demon: Demon, dialogue_options: list[dict], happiness_val: int):
 		# Initialize the view with a timeout of 60 seconds.
 		super().__init__(timeout=60)
+		# Reference to the message which will let us edit the embed later on if necessary.
+		self.message: discord.Message | None = None
+
 		self.demon = demon
 		self.dialogue_options = dialogue_options
 		self.happiness_val = happiness_val
@@ -148,7 +151,7 @@ class EncounterTutorialView(EncounterView):
 			)
 
 			# Add the demon to the player's party.
-			await self.encounters_cog.join_player_party(interaction.user.id, interaction.guild_id, self.demon)
+			await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
 		return callback
 
 
@@ -176,7 +179,8 @@ class Encounters(commands.Cog):
 		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options)
 		view 	= EncounterView(demon, dialogue_options, happiness_val)
 
-		await send_to_channel.send(embed = embed, view = view)
+		message = await send_to_channel.send(embed = embed, view = view)
+		view.message = message
 
 		print(f'INFO: Sent encounter in channel {send_to_channel.id}')
 
@@ -192,21 +196,31 @@ class Encounters(commands.Cog):
 		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options)
 		view 	= EncounterTutorialView(demon, dialogue_options, happiness_val, user, self)
 
-		await send_to_channel.send(embed = embed, view = view)
+		message = await send_to_channel.send(embed = embed, view = view)
+		view.message = message
 
 		print(f'INFO: Sent tutorial encounter in channel {send_to_channel.id} for user {user.id}')
 
 
-	async def join_player_party(self, player_id: int, server_id: int | None, demon: Demon):
+	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: Demon, message: discord.Message | None):
 		players_cog = self.bot.get_cog('Players')
-		await players_cog.add_demon_to_party(player_id, server_id, demon.id, demon.rank)					# type: ignore
+		await players_cog.add_demon_to_party(player.id, server.id, demon.id, demon.rank)					# type: ignore
 
-		new_entry = await players_cog.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)	# type: ignore
+		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
+		
 		if new_entry:
-			# Edit the embed to say that the demon has been added to the compendium.
-			pass
-		# Edit the embed to say that the demon has been added to the party.
-		pass
+			if message is not None:
+				# Edit the embed to say that the demon has been added to the compendium.
+				embed = message.embeds[0]
+				embed.set_footer(text=f"{demon.race} {demon.name} was registered to {player.name}'s compendium!", icon_url=player.avatar.url if player.avatar else None)
+				# Remove buttons from view if it's done.
+				await message.edit(embed=embed, view=None)
+		else:
+			if message is not None:
+				# Edit the embed to say that the demon has been added to the party.
+				embed = message.embeds[0]
+				embed.set_footer(text=f"{demon.race} {demon.name} has joined {player.name}'s party!", icon_url=player.avatar.url if player.avatar else None)
+				await message.edit(embed=embed, view=None)
 
 
 	@commands.Cog.listener()
