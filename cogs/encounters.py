@@ -63,84 +63,122 @@ dedicated_channel = 1486290442877407333
 
 
 class EncounterEmbed(discord.Embed):
-	def __init__(self, demon: Demon, intro_message: str, dialogue_options: list[dict]):
+	def __init__(self, demon: Demon, intro_message: str, dialogue_options: list[dict], count: int = 0):
 		super().__init__(
-			title=f"{EMOTES['icon']}", 
-			color=demon.colour
+			title = (EMOTES['icon'] + " ") * count,
+			color = demon.colour
 		)
 
 		self.add_field(
-			name=f"{demon.race} {demon.name}!", 
-			value=f'{intro_message}\n{EMOTES['blank']}', 
-			inline=False
+			name 	= f"{demon.race} {demon.name}!", 
+			value 	= f'{intro_message}\n{EMOTES['blank']}', 
+			inline 	= False
 		)
-		
+
 		# Cycle through dialogue options and add them as fields to the embed.
 		for i, option in enumerate(dialogue_options):
-			self.add_field(name=f"Option {i + 1}", value=option['label'], inline=True)
+			self.add_field(name = f"Option {i + 1}", value = option['label'], inline = True)
 
-		self.set_image(url=demon.image_url)
-		self.set_thumbnail(url=demon.image_url)
-		self.set_footer(text="What will you do?")
+		self.set_image(url = demon.image_url)
+		# self.set_thumbnail(url = demon.image_url)
+		self.set_footer(text = "What will you do?")
 
 
 class EncounterView(discord.ui.View):
 	'''
 	A view is necessary to create interactive components like buttons.
 	Here, we're creating options for an encounter which should trigger a response when clicked.
+
+	Any edits to the embed after the initial message is sent is done here. We need a reference to the message first, hence why
+	the view is responsible for updating and editing the embed.
 	'''
-	def __init__(self, demon: Demon, dialogue_options: list[dict], happiness_val: int):
+	def __init__(
+		self, 
+		demon				: Demon, 
+		dialogue_options	: list[dict], 
+		happiness_val		: int,
+		encounters_cog		: Encounters,
+		count				: int = 1,
+		user_exclusive_to	: discord.User | None = None,
+	):
 		# Initialize the view with a timeout of 60 seconds.
-		super().__init__(timeout=60)
+		super().__init__(timeout = 60)
+
 		# Reference to the message which will let us edit the embed later on if necessary.
 		self.message: discord.Message | None = None
+		self.demon 				= demon
+		self.dialogue_options 	= dialogue_options
+		self.happiness_val 		= happiness_val
+		self.count 				= count
+		self.encounters_cog 	= encounters_cog
+		self.user_exclusive_to 	= user_exclusive_to
 
-		self.demon = demon
-		self.dialogue_options = dialogue_options
-		self.happiness_val = happiness_val
 
+	async def update_icon_count(self):
+		if self.message is None : return
+
+		self.count -= 1
+		embed = self.message.embeds[0]
+		embed.title = (EMOTES['icon'] + " ") * self.count
+		await self.message.edit(embed = embed)
+
+		if self.count <= 0:
+			# Remove buttons from view if it's done.
+			await self.message.edit(embed = embed, view = None)
+
+
+	def update_footer_message(self, message: str, icon_url: str | None = None):
+		if self.message is None : return
+
+		embed = self.message.embeds[0]
+		existing_footer = embed.footer.text or ""
+		new_footer = f"{existing_footer}\n{message}"
+
+		embed.set_footer(text = new_footer, icon_url = icon_url)
+
+
+	def create_default_button_view(self, tutorial: bool = False):
 		button_emotes = ['1', '2', '3']
 
 		for i, e in enumerate(button_emotes):
 			# Add a button for each option.
-			button = discord.ui.Button(emoji=EMOTES[e], style=discord.ButtonStyle.grey)
+			button = discord.ui.Button(emoji = EMOTES[e], style = discord.ButtonStyle.grey)
 
-			# Set what happens when button is clicked.
-			button.callback = self.button_callback(e, self.dialogue_options[i]['happiness_change'])
+			if tutorial:
+				button.callback = self.tutorial_button_callback()
+			else:
+				button.callback = self.button_callback(e, self.dialogue_options[i]['happiness_change'])
 			self.add_item(button)
 
-	
+
 	def button_callback(self, label: str, happiness_change: dict):
-		'''
-		Callback sends a message exclusively to the user who clicked the button, confirming their choice.
-		'''
 		async def callback(interaction: discord.Interaction):
+
 			self.happiness_val += happiness_change[self.demon.personality_type]
+
 			await interaction.response.send_message(
 				f"You chose {label.lower()}\n"
 				f"{self.demon.name}'s happiness is now {self.happiness_val}!", 
 				ephemeral=True, 
-				# view=self
 			)
+
+			if self.happiness_val >= 80:
+				await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
+				await self.update_icon_count()
+			elif self.happiness_val <= 20:
+				# Edit the embed to say that the demon has left.
+				d_name = self.demon.name
+				d_race = self.demon.race
+				icon_url = interaction.user.avatar.url if interaction.user.avatar else None
+				user_name = interaction.user.name
+
+				self.update_footer_message(f"{d_race} {d_name} has fled from {user_name}!", icon_url)
+				await self.update_icon_count()
+
 		return callback
+	
 
-
-class EncounterTutorialView(EncounterView):
-	def __init__(
-		self: EncounterTutorialView, 
-		demon: Demon, 
-		dialogue_options: list[dict], 
-		happiness_val: int,
-		user_exclusive_to: discord.User,
-		encounters_cog: Encounters
-	):
-		super().__init__(demon, dialogue_options, happiness_val)
-		self.user_exclusive_to = user_exclusive_to
-		self.encounters_cog = encounters_cog
-
-
-	def button_callback(self, label: str, happiness_change: dict):
-		
+	def tutorial_button_callback(self):
 		async def callback(interaction: discord.Interaction):
 			# If user isn't the one who the encounter is for, exit early.
 			if interaction.user != self.user_exclusive_to : return
@@ -152,6 +190,7 @@ class EncounterTutorialView(EncounterView):
 
 			# Add the demon to the player's party.
 			await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
+			await self.update_icon_count()
 		return callback
 
 
@@ -176,9 +215,10 @@ class Encounters(commands.Cog):
 		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
 		
-		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options)
-		view 	= EncounterView(demon, dialogue_options, happiness_val)
+		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, 3)
+		view 	= EncounterView(demon, dialogue_options, happiness_val, self, random.randint(1, 3))
 
+		view.create_default_button_view()
 		message = await send_to_channel.send(embed = embed, view = view)
 		view.message = message
 
@@ -193,9 +233,10 @@ class Encounters(commands.Cog):
 		happiness_val = 80
 		dialogue_options = DIALOGUE_OPTIONS
 
-		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options)
-		view 	= EncounterTutorialView(demon, dialogue_options, happiness_val, user, self)
+		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options, 1)
+		view 	= EncounterView(demon, dialogue_options, happiness_val, self, 1, user)
 
+		view.create_default_button_view(True)
 		message = await send_to_channel.send(embed = embed, view = view)
 		view.message = message
 
@@ -213,14 +254,12 @@ class Encounters(commands.Cog):
 				# Edit the embed to say that the demon has been added to the compendium.
 				embed = message.embeds[0]
 				embed.set_footer(text=f"{demon.race} {demon.name} was registered to {player.name}'s compendium!", icon_url=player.avatar.url if player.avatar else None)
-				# Remove buttons from view if it's done.
-				await message.edit(embed=embed, view=None)
 		else:
 			if message is not None:
 				# Edit the embed to say that the demon has been added to the party.
 				embed = message.embeds[0]
 				embed.set_footer(text=f"{demon.race} {demon.name} has joined {player.name}'s party!", icon_url=player.avatar.url if player.avatar else None)
-				await message.edit(embed=embed, view=None)
+				await message.edit(embed = embed, view = None)
 
 
 	@commands.Cog.listener()
