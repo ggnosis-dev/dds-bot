@@ -214,9 +214,10 @@ class Encounters(commands.Cog):
 		demon = random.choice(list(DEMONS.values()))
 		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
-		
-		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, 3)
-		view 	= EncounterView(demon, dialogue_options, happiness_val, self, random.randint(1, 3))
+		count = random.randint(1, 3)
+
+		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, count)
+		view 	= EncounterView(demon, dialogue_options, happiness_val, self, count)
 
 		view.create_default_button_view()
 		message = await send_to_channel.send(embed = embed, view = view)
@@ -232,9 +233,10 @@ class Encounters(commands.Cog):
 		demon = DEMONS[1]
 		happiness_val = 80
 		dialogue_options = DIALOGUE_OPTIONS
+		count = 1
 
-		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options, 1)
-		view 	= EncounterView(demon, dialogue_options, happiness_val, self, 1, user)
+		embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options, count)
+		view 	= EncounterView(demon, dialogue_options, happiness_val, self, count, user)
 
 		view.create_default_button_view(True)
 		message = await send_to_channel.send(embed = embed, view = view)
