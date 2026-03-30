@@ -1,4 +1,5 @@
 import csv
+import sqlite3
 import discord
 import random
 
@@ -21,29 +22,51 @@ class Demon:
 		self.image_url = image_url
 
 
-def load_demons(file_path: str) -> list[Demon]:
-	'''
-	Loads demons from a CSV file, returning a list of available demons.
-	'''
-	demons = []
-	with open(file_path, newline='', encoding='utf-8') as f:
-		reader = csv.DictReader(f)
-		for row in reader:
-			demon = Demon(
-				id = int(row['id']),
-				name = row['name'],
-				race = row['race'],
-				rank = int(row['rank']),
-				colour = int(row['colour'], 16),
-				personality_type = Personality[row['personality']],
-				image_url = row['image_url'],
-			)
-			demons.append(demon)
-	return demons
+def get_demon_by_id(demon_id: int) -> Demon | None:
+	conn = sqlite3.connect('compendium.db')
+	cursor = conn.cursor()
+	cursor.execute('''
+		SELECT id, name, race, rank, colour, personality, image_url FROM demons 
+			WHERE id = ?
+	''', (demon_id,))
+	row = cursor.fetchone()
+	conn.close()
+
+	if row:
+		return Demon(
+			id = row[0],
+			name = row[1],
+			race = row[2],
+			rank = row[3],
+			colour = row[4],
+			personality_type = Personality[row[5]],
+			image_url = row[6]
+		)
+	return None
 
 
-# Load demons from the compendium CSV file and create a dictionary for easy access by ID.
-DEMONS = {demon.id: demon for demon in load_demons("compendium.csv")}
+def get_random_demon() -> Demon | None:
+	conn = sqlite3.connect('compendium.db')
+	cursor = conn.cursor()
+	cursor.execute('''
+		SELECT id, name, race, rank, colour, personality, image_url FROM demons 
+			ORDER BY RANDOM() 
+			LIMIT 1
+	''')
+	row = cursor.fetchone()
+	conn.close()
+
+	if row:
+		return Demon(
+			id = row[0],
+			name = row[1],
+			race = row[2],
+			rank = row[3],
+			colour = row[4],
+			personality_type = Personality[row[5]],
+			image_url = row[6]
+		)
+	return None
 
 EMOTES = {
 	'1': '\u0031\ufe0f\u20e3',
@@ -228,7 +251,10 @@ class Encounters(commands.Cog):
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
 		channel if necessary.
 		'''
-		demon = random.choice(list(DEMONS.values()))
+		demon = get_random_demon()
+
+		if demon is None : return
+
 		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
 		count = random.randint(1, 3)
@@ -247,7 +273,10 @@ class Encounters(commands.Cog):
 		'''
 		Starts a forced encounter with a specific demon.
 		'''
-		demon = DEMONS[1]
+		demon = get_demon_by_id(1)
+
+		if demon is None : return
+
 		happiness_val = 80
 		dialogue_options = DIALOGUE_OPTIONS
 		count = 1
