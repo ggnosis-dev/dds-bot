@@ -117,6 +117,9 @@ class EncounterView(discord.ui.View):
 		# Set to keep track of the users who have interacted with the encounter to prevent multiple interactions.
 		self.interacted_users: set[int] = set()
 
+		# Keep track of user and their current happiness value.
+		self.interacting_users: dict[int, int] = {}
+
 
 	async def update_icon_count(self):
 		if self.message is None : return
@@ -161,20 +164,24 @@ class EncounterView(discord.ui.View):
 			# Check if user has already interacted.
 			if interaction.user.id in self.interacted_users : return
 
-			self.happiness_val += happiness_change[self.demon.personality_type]
+			if interaction.user.id not in self.interacting_users:
+				# Set initial happiness for user if they haven't interacted before.
+				self.interacting_users[interaction.user.id] = self.happiness_val
+
+			self.interacting_users[interaction.user.id] += happiness_change[self.demon.personality_type]
 
 			await interaction.response.send_message(
 				f"You chose {label.lower()}\n"
-				f"{self.demon.name}'s happiness is now {self.happiness_val}!", 
+				f"{self.demon.name}'s happiness is now {self.interacting_users[interaction.user.id]}!", 
 				ephemeral=True, 
 			)
 
 			# TODO: Update this so it's reusable and nicer.
-			if self.happiness_val >= 80:
+			if self.interacting_users[interaction.user.id] >= 80:
 				await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
 				await self.update_icon_count()
 				self.interacted_users.add(interaction.user.id)
-			elif self.happiness_val <= 20:
+			elif self.interacting_users[interaction.user.id] <= 20:
 				# Edit the embed to say that the demon has left.
 				d_name = self.demon.name
 				d_race = self.demon.race
