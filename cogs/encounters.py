@@ -86,8 +86,8 @@ class EncounterEmbed(discord.Embed):
 
 class EncounterView(discord.ui.View):
 	'''
-	A view is necessary to create interactive components like buttons.
-	Here, we're creating options for an encounter which should trigger a response when clicked.
+	A view will persist for the duration of the encounter. It holds the state of the encounter. It is necessary to create 
+	interactive components like buttons. 
 
 	Any edits to the embed after the initial message is sent is done here. We need a reference to the message first, hence why
 	the view is responsible for updating and editing the embed.
@@ -104,14 +104,18 @@ class EncounterView(discord.ui.View):
 		# Initialize the view with a timeout of 60 seconds.
 		super().__init__(timeout = 60)
 
-		# Reference to the message which will let us edit the embed later on if necessary.
-		self.message: discord.Message | None = None
 		self.demon 				= demon
 		self.dialogue_options 	= dialogue_options
 		self.happiness_val 		= happiness_val
 		self.count 				= count
 		self.encounters_cog 	= encounters_cog
 		self.user_exclusive_to 	= user_exclusive_to
+
+		# Reference to the message which will let us edit the embed later on if necessary.
+		self.message: discord.Message | None = None
+
+		# Set to keep track of the users who have interacted with the encounter to prevent multiple interactions.
+		self.interacted_users: set[int] = set()
 
 
 	async def update_icon_count(self):
@@ -154,6 +158,9 @@ class EncounterView(discord.ui.View):
 	def button_callback(self, label: str, happiness_change: dict):
 		async def callback(interaction: discord.Interaction):
 
+			# Check if user has already interacted.
+			if interaction.user.id in self.interacted_users : return
+
 			self.happiness_val += happiness_change[self.demon.personality_type]
 
 			await interaction.response.send_message(
@@ -162,9 +169,11 @@ class EncounterView(discord.ui.View):
 				ephemeral=True, 
 			)
 
+			# TODO: Update this so it's reusable and nicer.
 			if self.happiness_val >= 80:
 				await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
 				await self.update_icon_count()
+				self.interacted_users.add(interaction.user.id)
 			elif self.happiness_val <= 20:
 				# Edit the embed to say that the demon has left.
 				d_name = self.demon.name
@@ -174,6 +183,7 @@ class EncounterView(discord.ui.View):
 
 				self.update_footer_message(f"{d_race} {d_name} has fled from {user_name}!", icon_url)
 				await self.update_icon_count()
+				self.interacted_users.add(interaction.user.id)
 
 		return callback
 	
@@ -261,7 +271,6 @@ class Encounters(commands.Cog):
 				# Edit the embed to say that the demon has been added to the party.
 				embed = message.embeds[0]
 				embed.set_footer(text=f"{demon.race} {demon.name} has joined {player.name}'s party!", icon_url=player.avatar.url if player.avatar else None)
-				await message.edit(embed = embed, view = None)
 
 
 	@commands.Cog.listener()
