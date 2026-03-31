@@ -13,7 +13,6 @@ class Party(commands.Cog):
 
 	@commands.command(name='party', help="Displays the player's current party.")
 	async def party_command(self, ctx: commands.Context, user_id: int = -1):
-		print(f'INFO: Displaying party for player {ctx.author} with id {user_id} on server {ctx.guild}.')
 		if ctx.guild is None : return
 
 		guild_id = ctx.guild.id
@@ -35,68 +34,21 @@ class Party(commands.Cog):
 
 
 	async def check_party(self, user_id: int, guild_id: int) -> list[dict] | None:
-		print(f'INFO: Checking party for player with id {user_id} on server {guild_id}.')
-		conn = sqlite3.connect('players.db')
-		cursor = conn.cursor()
+		with sqlite3.connect('players.db') as conn:
+			# Attach the demon database to gain access to their data.
+			conn.execute("ATTACH DATABASE 'compendium.db' AS demons_db")
+			cursor = conn.cursor()
 
-		cursor.execute('''
-			SELECT party FROM players 
-				WHERE id = ? AND server_id = ?
-		''', (user_id, guild_id))
-		result = cursor.fetchone()
-		
-		if result is None: 
-			conn.close()
-			return None
-
-		party_object = json.loads(result[0])
-
-		if len(party_object) == 0:
-			conn.close()
-			return None
-		
-		print(f'INFO: Retrieved party JSON for player with id {user_id} on server {guild_id}: {party_object}')
-		
-		# Create tuple of the demon IDs.
-		demon_ids = tuple(entry['id'] for entry in party_object)
-		
-		# Create a string of question marks for the SQL query.
-		query_placeholders = ','.join('?' * len(demon_ids))
-
-		print(demon_ids)
-
-		print(f'DEBUG: query_placeholders={query_placeholders}, demon_ids={demon_ids}')
-		cursor.execute(f'''
-			SELECT id, race, name FROM demons 
-				WHERE id IN ({query_placeholders})
-		''', demon_ids)
-
-		demon_data = cursor.fetchall()
-		print(demon_data)
-		conn.close()
-
-		name_map = {}
-		for row in demon_data:
-			demon_id = row[0]
-			demon_race = row[1]
-			demon_name = row[2]
-			name_map[demon_id] = (demon_race, demon_name)
-		
-		party = []
-		for entry in party_object:
-			demon_id = entry['id']
-			demon_rank = entry['rank']
-			demon_race, demon_name = name_map.get(demon_id, ('Unknown', 'Unknown'))
-			party.append({
-				'id': demon_id,
-				'race': demon_race,
-				'name': demon_name,
-				'rank': demon_rank,
-			})
-
-		print(f'INFO: Retrieved party for player with id {user_id} on server {guild_id}: {party}')
-
-		return party
+			# Retrieve the player's party.
+			result = cursor.execute('''
+				SELECT d.id, d.name, d.race, pd.stored_rank
+				FROM player_demons pd
+				JOIN demons_db.demons d ON pd.demon_id = d.id
+				WHERE pd.player_id = ? AND pd.server_id = ? AND pd.in_party = 1
+				ORDER BY d.race ASC, d.id ASC
+			''', (user_id, guild_id)).fetchall()
+			
+			return result if result else None
 
 class PartyEmbed(discord.Embed):
 	def __init__(self, user_name: str, list: list[dict], page: int = 1, colour: int = 0xE93700):
@@ -109,18 +61,21 @@ class PartyEmbed(discord.Embed):
 
 
 	def create_party_embed(self):
-		print(f'INFO: Creating party embed for {self.user_name} with party {self.list}.')
+		line_break = '\u23AF\u23AF\u23AF#\u23AF\u23AF\u23AF'
 
 		self.title = f"{self.user_name}'s Party"
+		self.add_field(name = '', value = line_break, inline = False)
 
 		for entry in self.list:
+			name, race, rank = entry[1], entry[2], entry[3]
+
 			self.add_field(
 				name = '', 
-				value = f"{entry['id']}\t`{entry['rank']}`", 
+				value = f"{EMOTES['icon']}\u000B\u000B{race}\u000B{name}\u000B\u000B`{rank}`", 
 				inline = False
 			)
 
-		# self.set_image(url = small_image_url)
+		self.add_field(name = '', value = line_break)
 		self.set_footer(text = f'Page {self.page}')
 
 

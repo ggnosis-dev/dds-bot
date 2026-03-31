@@ -27,9 +27,6 @@ async def start_command(ctx):
 	Setup the player using a new PlayerData object. We'll then start and 'personal' encounter that is
 	only available to the player, acting as a sort of tutorial and introduction.
 	'''
-
-	print(f'INFO: Setting up new player {ctx.author} with id {ctx.author.id} on server {ctx.guild.id}.')
-	
 	players_cog = bot.get_cog('Players')
 
 	# If player setup is successful, begin the tutorial encounter.
@@ -50,6 +47,7 @@ async def load_cogs():
 	async with bot:
 		await bot.load_extension('cogs.players')
 		await bot.load_extension('cogs.encounters')
+		await bot.load_extension('cogs.party')
 
 		if token != None:
 			await bot.start(token)

@@ -20,7 +20,7 @@ with sqlite3.connect('players.db') as conn:
 			server_id 		INTEGER,
 			demon_id		INTEGER,
 			stored_rank		INTEGER,
-			in_party		INTEGER CHECK (in_party IN (0, 1))
+			in_party		INTEGER CHECK (in_party IN (0, 1)),
 			UNIQUE(player_id, server_id, demon_id)
 		)
 	''')
@@ -31,16 +31,14 @@ with sqlite3.connect('players.db') as conn:
 	''')
 
 	# Empty database for testing.
-	cursor.execute('DELETE FROM players')
-	cursor.execute('DELETE FROM player_demons')
+	# cursor.execute('DELETE FROM players')
+	# cursor.execute('DELETE FROM player_demons')
 
 
 class PlayerData:
 	def __init__(self, id: int, server_id: int):
 		self.id = id
 		self.server_id = server_id
-		# self.party = party
-		# self.compendium = compendium
 
 
 class Players(commands.Cog):
