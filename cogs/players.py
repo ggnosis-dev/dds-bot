@@ -2,40 +2,36 @@ import sqlite3
 
 from discord.ext import commands
 
-connection = sqlite3.connect('players.db')
-cursor = connection.cursor()
 
-# party and compendium are json
 # https://www.sqlitetutorial.net/sqlite-json/
-cursor.execute('''
-	CREATE TABLE IF NOT EXISTS players (
-		player_id 		INTEGER,
-		server_id 		INTEGER,
-		CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
-	)
-''')
+with sqlite3.connect('players.db') as conn:
+	cursor = conn.cursor()
+	cursor.execute('''
+		CREATE TABLE IF NOT EXISTS players (
+			player_id 		INTEGER,
+			server_id 		INTEGER,
+			CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
+		)
+	''')
+	
+	cursor.execute('''		   
+		CREATE TABLE IF NOT EXISTS player_demons (
+			player_id 		INTEGER,
+			server_id 		INTEGER,
+			demon_id		INTEGER,
+			stored_rank		INTEGER,
+			in_party		INTEGER CHECK (in_party IN (0, 1))
+		)
+	''')
 
-cursor.execute('''		   
-	CREATE TABLE IF NOT EXISTS player_demons (
-		player_id 		INTEGER,
-		server_id 		INTEGER,
-		demon_id		INTEGER,
-		stored_rank		INTEGER,
-		in_party		INTEGER CHECK (in_party IN (0, 1))
-	)
-''')
+	# Index for faster lookup of player's parties and compendiums.
+	cursor.execute('''
+		CREATE INDEX IF NOT EXISTS idx_player_demons ON player_demons(player_id, server_id)
+	''')
 
-# Index for faster lookup of player's parties and compendiums.
-cursor.execute('''
-	CREATE INDEX IF NOT EXISTS idx_player_demons ON player_demons(player_id, server_id)
-''')
-
-# Empty database for testing.
-cursor.execute('DELETE FROM players')
-cursor.execute('DELETE FROM player_demons')
-
-connection.commit()
-connection.close()
+	# Empty database for testing.
+	cursor.execute('DELETE FROM players')
+	cursor.execute('DELETE FROM player_demons')
 
 
 class PlayerData:
