@@ -13,7 +13,7 @@ with sqlite3.connect('players.db') as conn:
 			CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
 		)
 	''')
-	
+
 	cursor.execute('''		   
 		CREATE TABLE IF NOT EXISTS player_demons (
 			player_id 		INTEGER,
@@ -21,6 +21,7 @@ with sqlite3.connect('players.db') as conn:
 			demon_id		INTEGER,
 			stored_rank		INTEGER,
 			in_party		INTEGER CHECK (in_party IN (0, 1))
+			UNIQUE(player_id, server_id, demon_id)
 		)
 	''')
 
