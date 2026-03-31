@@ -22,12 +22,12 @@ class Compendium(commands.Cog):
 
 		comp_list = await self.check_compendium(user_id, guild_id)
 		
-		embed = CompendiumEmbed(ctx.author.name, comp_list or [])
+		embed = CompendiumEmbed(ctx.author.name, comp_list)
 		embed.create_compendium_embed()
 		await ctx.send(embed = embed)
 		
 
-	async def check_compendium(self, user_id: int, guild_id: int) -> list[dict] | None:
+	async def check_compendium(self, user_id: int, guild_id: int) -> list[dict]:
 		with sqlite3.connect('players.db') as conn:
 			# Attach the demon database to gain access to their data.
 			conn.execute("ATTACH DATABASE 'compendium.db' AS demons_db")
@@ -42,7 +42,7 @@ class Compendium(commands.Cog):
 				ORDER BY d.race ASC, d.id ASC
 			''', (user_id, guild_id)).fetchall()
 
-			return result if result else None
+			return result
 
 class CompendiumEmbed(discord.Embed):
 	def __init__(self, user_name: str, list: list[dict], page: int = 1, colour: int = 0xE93700):
@@ -72,7 +72,6 @@ class CompendiumEmbed(discord.Embed):
 					value = f"{emote}\u000B\u000B{race}\u000B\u000B{name}\u000B\u000B\u000B\u000B`{rank}`\u000B\u000B{personality.title()}", 
 					inline = False
 				)
-				print(f'INFO: Added encountered demon to embed for {self.user_name}: {entry}.')
 			else:
 				self.add_field(
 					name = '', 
@@ -81,10 +80,6 @@ class CompendiumEmbed(discord.Embed):
 				)
 		self.add_field(name = '', value = line_break)
 		self.set_footer(text = f'Page {self.page}')
-
-
-	def create_empty_party_embed(self):
-		self.set_author(name = "Your party is empty!")
 
 
 # Add the cog to the bot.
