@@ -48,6 +48,7 @@ async def load_cogs():
 		await bot.load_extension('cogs.players')
 		await bot.load_extension('cogs.encounters')
 		await bot.load_extension('cogs.party')
+		await bot.load_extension('cogs.compendium')
 
 		if token != None:
 			await bot.start(token)
