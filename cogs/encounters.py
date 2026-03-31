@@ -1,7 +1,6 @@
-import csv
-import sqlite3
 import discord
 import random
+import sqlite3
 
 from discord.ext import commands
 from enum import Enum
@@ -292,10 +291,15 @@ class Encounters(commands.Cog):
 
 
 	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: Demon, message: discord.Message | None):
-		players_cog = self.bot.get_cog('Players')
-		await players_cog.add_demon_to_party(player.id, server.id, demon.id, demon.rank)					# type: ignore
+		'''
+		Function for when a demon JOINS the player's party from an encounter. If it is a new demon, it will be added to the compendium and a unique message
+		will appear. If it exists in it already, join the party at the default rank with a different message.
+		'''
+		if server is None : return
 
+		players_cog = self.bot.get_cog('Players')
 		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
+		await players_cog.add_demon_to_party(player.id, server.id, demon.id)								# type: ignore
 		
 		if new_entry:
 			if message is not None:

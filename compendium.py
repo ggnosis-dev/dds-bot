@@ -1,6 +1,7 @@
 import sqlite3
 
 demon_data = [
+	# Name 			Race		Rank	Colour		Personality		Image URL
 	('Pixie', 		'Fairy', 	5, 		0xE93700,	'CHEERFUL', 	'https://static.wikia.nocookie.net/megamitensei/images/b/b8/Pixie.GIF'),
 	('Jack Frost',	'Fairy',	10, 	0x2A58CC, 	'CHEERFUL', 	'https://static.wikia.nocookie.net/megamitensei/images/a/ab/Jack_Frost.GIF'),
 	('Harpy', 		'Fairy', 	15, 	0x9396E6, 	'AGGRESSIVE', 	'https://static.wikia.nocookie.net/megamitensei/images/e/ee/Harpy2.GIF')
