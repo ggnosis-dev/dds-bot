@@ -2,7 +2,7 @@ import discord
 import sqlite3
 
 from discord.ext import commands
-from shared_enums import Emotes
+from shared_enums import DemonRegistration, Emotes
 
 class Party(commands.Cog):
 	def __init__(self, bot: commands.Bot):
@@ -36,18 +36,17 @@ class Party(commands.Cog):
 		
 		demon_name = demon_name.title()
 		demon_cog = self.bot.get_cog('Demon')
-		demon_id = demon_cog.get_demon_id_by_name(demon_name)										# type: ignore
+		demon_id = demon_cog.get_demon_id_by_name(demon_name)											# type: ignore
 
 		# Check if the demon is in the party before release to give a more informative message.
-		in_party = await self.check_demon_id_in_party(ctx.author.id, ctx.guild.id, demon_id)		# type: ignore
+		players_cog = self.bot.get_cog('Players')
+		in_party = await players_cog.check_demon_registration(ctx.author.id, ctx.guild.id, demon_id)	# type: ignore
 
-		if not in_party or demon_id == -1:
+		if in_party != DemonRegistration.IN_PARTY or demon_id == -1:
 			await ctx.send(f"The demon {demon_name} was not found in your party. Did you spell their name correctly?")
 			return
 
-		players_cog = self.bot.get_cog('Players')
-
-		await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, False)			# type: ignore
+		await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, False)				# type: ignore
 		await ctx.send(f"You have released {demon_name} from your party...")
 		return
 	
@@ -70,15 +69,6 @@ class Party(commands.Cog):
 			
 			return result if result else None
 		
-
-	async def check_demon_id_in_party(self, user_id: int, guild_id: int, demon_id: int) -> bool:
-		with sqlite3.connect('players.db') as conn:
-			cursor = conn.cursor()
-			result = cursor.execute('''
-				SELECT in_party FROM player_demons 
-				WHERE player_id = ? AND server_id = ? AND demon_id = ?
-			''', (user_id, guild_id, demon_id)).fetchone()
-			return result[0] == 1
 
 class PartyEmbed(discord.Embed):
 	def __init__(self, user_name: str, list: list[dict], page: int = 1, colour: int = 0xE93700):

@@ -2,7 +2,7 @@ import discord
 import sqlite3
 
 from discord.ext import commands
-from shared_enums import Emotes
+from shared_enums import DemonRegistration, Emotes
 
 class Compendium(commands.Cog):
 	def __init__(self, bot: commands.Bot):
@@ -26,29 +26,26 @@ class Compendium(commands.Cog):
 
 	@commands.command(name = 'summon', aliases = ['s'], help = "Summon a demon from the player's compendium.")
 	async def summon_command(self, ctx, *, demon_name):
-		# Check the player has the demon in compendium. 
-		# Make sure it's not in the party already. This only really is an issue when we introduce money.
-		# Use set_demon_in_party to True
 		if ctx.guild is None : return
 		
 		demon_name = demon_name.title()
 		demon_cog = self.bot.get_cog('Demon')
 		demon_id = demon_cog.get_demon_id_by_name(demon_name)	# type: ignore
 
-		in_comp = await self.check_demon_in_compendium(ctx.author.id, ctx.guild.id, demon_id)
+		players_cog = self.bot.get_cog('Players')
+		in_comp = await players_cog.check_demon_registration(ctx.author.id, ctx.guild.id, demon_id)		# type: ignore
 
-		if not in_comp or demon_id == -1:
+		if in_comp == DemonRegistration.UNREGISTERED or demon_id == -1:
 			await ctx.send(f"A demon with the name {demon_name} was not found in your compendium.")
+			return
+		
+		if in_comp == DemonRegistration.IN_PARTY:
+			await ctx.send(f"You already have {demon_name} in your party...")
 			return
 
 		if demon_id != -1:
-			players_cog = self.bot.get_cog('Players')
-			success = await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, True)		# type: ignore
-
-			if success:
-				await ctx.send(f"You have summoned {demon_name} to your party...")
-				return
-			await ctx.send(f"You already have {demon_name} in your party...")
+			await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, True)		# type: ignore
+			await ctx.send(f"You have summoned {demon_name} to your party...")
 
 
 	async def check_compendium(self, user_id: int, guild_id: int) -> list[dict]:
@@ -68,15 +65,6 @@ class Compendium(commands.Cog):
 
 			return result
 		
-	
-	async def check_demon_in_compendium(self, user_id: int, guild_id: int, demon_id: int) -> bool:
-		with sqlite3.connect('players.db') as conn:
-			cursor = conn.cursor()
-			result = cursor.execute('''
-				SELECT stored_rank FROM player_demons 
-				WHERE player_id = ? AND server_id = ? AND demon_id = ?
-			''', (user_id, guild_id, demon_id)).fetchone()
-			return result is not None
 
 class CompendiumEmbed(discord.Embed):
 	def __init__(self, user_name: str, list: list[dict], page: int = 1, colour: int = 0xE93700):

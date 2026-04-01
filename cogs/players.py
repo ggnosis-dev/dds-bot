@@ -1,6 +1,7 @@
 import sqlite3
 
 from discord.ext import commands
+from shared_enums import DemonRegistration
 
 
 # https://www.sqlitetutorial.net/sqlite-json/
@@ -120,6 +121,23 @@ class Players(commands.Cog):
 			''', (player_id, server_id, demon_id, demon_rank))
 
 			return True
+		
+	async def check_demon_registration(self, user_id: int, guild_id: int, demon_id: int) -> DemonRegistration:
+		'''
+		Check if a demon is in the player's party or compendium. Function will return True if in the party,
+		False if it's in the compendium but not the party, and None if it doesn't have an entry at all.
+		'''
+		with sqlite3.connect('players.db') as conn:
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT in_party FROM player_demons 
+				WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			''', (user_id, guild_id, demon_id)).fetchone()
+
+		match result:
+			case (1,) 	: return DemonRegistration.IN_PARTY
+			case (0,)	: return DemonRegistration.IN_COMP
+			case _		: return DemonRegistration.UNREGISTERED
 
 
 async def setup(bot: commands.Bot):

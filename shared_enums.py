@@ -11,3 +11,8 @@ class Personality(Enum):
 	CHEERFUL = 1
 	SHY = 2
 	AGGRESSIVE = 3
+
+class DemonRegistration(Enum):
+	IN_PARTY = 1
+	IN_COMP = 2
+	UNREGISTERED = 3
