@@ -33,6 +33,23 @@ class Party(commands.Cog):
 		await ctx.send(embed = embed)
 
 
+	@commands.command(name = 'release', aliases = ['r'], help = "Release a demon from your party.")
+	async def release_command(self, ctx: commands.Context, *, demon_name: str):
+		if ctx.guild is None : return
+		
+		demon_name = demon_name.title()
+		demon_cog = self.bot.get_cog('Demon')
+		demon_id = demon_cog.get_demon_id_by_name(demon_name)	# type: ignore
+
+		if demon_id != -1:
+			players_cog = self.bot.get_cog('Players')
+
+			await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, False)	# type: ignore
+			await ctx.send(f"You have released {demon_name} from your party...")
+			return
+		await ctx.send(f"The demon {demon_name} was not found in your party. Did you spell their name correctly?")
+
+
 	async def check_party(self, user_id: int, guild_id: int) -> list[dict] | None:
 		with sqlite3.connect('players.db') as conn:
 			# Attach the demon database to gain access to their data.
@@ -71,7 +88,7 @@ class PartyEmbed(discord.Embed):
 
 			self.add_field(
 				name = '', 
-				value = f"{EMOTES['icon']}\u000B\u000B{race}\u000B{name}\u000B\u000B`{rank}`", 
+				value = f"{EMOTES['icon']}\u000B\u000B{race}\u000B\u000B{name}\u000B\u000B\u000B\u000B`{rank}`", 
 				inline = False
 			)
 

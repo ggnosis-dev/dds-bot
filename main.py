@@ -37,18 +37,13 @@ async def start_command(ctx):
 		await encounters_cog.start_tutorial_encounter(ctx.channel, ctx.author)	# type: ignore
 
 
-@bot.command(name='test', help="Spawns a test tutorial encounter in the current channel.")
-async def test_spawn_command(ctx):
-	encounters_cog = bot.get_cog('Encounters')
-	await encounters_cog.start_tutorial_encounter(ctx.channel, ctx.author)		# type: ignore
-
-
 async def load_cogs():
 	async with bot:
 		await bot.load_extension('cogs.players')
 		await bot.load_extension('cogs.encounters')
 		await bot.load_extension('cogs.party')
 		await bot.load_extension('cogs.compendium')
+		await bot.load_extension('cogs.demons')
 
 		if token != None:
 			await bot.start(token)

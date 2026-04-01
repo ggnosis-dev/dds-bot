@@ -25,7 +25,27 @@ class Compendium(commands.Cog):
 		embed = CompendiumEmbed(ctx.author.name, comp_list)
 		embed.create_compendium_embed()
 		await ctx.send(embed = embed)
+	
+
+	@commands.command(name = 'summon', aliases = ['s'], help = "Summon a demon from the player's compendium.")
+	async def summon_command(self, ctx, *, demon_name):
+		# Check the player has the demon in compendium. 
+		# Make sure it's not in the party already. This only really is an issue when we introduce money.
+		# Use set_demon_in_party to True
+		if ctx.guild is None : return
 		
+		demon_name = demon_name.title()
+		demon_cog = self.bot.get_cog('Demon')
+		demon_id = demon_cog.get_demon_id_by_name(demon_name)	# type: ignore
+
+		if demon_id != -1:
+			players_cog = self.bot.get_cog('Players')
+
+			await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, True)	# type: ignore
+			await ctx.send(f"You have summoned {demon_name} to your party...")
+			return
+		await ctx.send(f"A demon with the name {demon_name} was not found in your compendium.")
+
 
 	async def check_compendium(self, user_id: int, guild_id: int) -> list[dict]:
 		with sqlite3.connect('players.db') as conn:
