@@ -8,7 +8,7 @@ class Party(commands.Cog):
 	def __init__(self, bot: commands.Bot):
 		self.bot = bot
 
-	@commands.command(name='party', help="Displays the player's current party.")
+	@commands.command(name = 'party', aliases = ['p'], help = "Displays the player's current party.")
 	async def party_command(self, ctx: commands.Context, user_id: int = -1):
 		if ctx.guild is None : return
 
@@ -36,15 +36,21 @@ class Party(commands.Cog):
 		
 		demon_name = demon_name.title()
 		demon_cog = self.bot.get_cog('Demon')
-		demon_id = demon_cog.get_demon_id_by_name(demon_name)	# type: ignore
+		demon_id = demon_cog.get_demon_id_by_name(demon_name)										# type: ignore
 
-		if demon_id != -1:
-			players_cog = self.bot.get_cog('Players')
+		# Check if the demon is in the party before release to give a more informative message.
+		in_party = await self.check_demon_id_in_party(ctx.author.id, ctx.guild.id, demon_id)		# type: ignore
 
-			await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, False)	# type: ignore
-			await ctx.send(f"You have released {demon_name} from your party...")
+		if not in_party or demon_id == -1:
+			await ctx.send(f"The demon {demon_name} was not found in your party. Did you spell their name correctly?")
 			return
-		await ctx.send(f"The demon {demon_name} was not found in your party. Did you spell their name correctly?")
+
+		players_cog = self.bot.get_cog('Players')
+
+		await players_cog.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, False)			# type: ignore
+		await ctx.send(f"You have released {demon_name} from your party...")
+		return
+	
 
 
 	async def check_party(self, user_id: int, guild_id: int) -> list[dict] | None:
@@ -63,6 +69,16 @@ class Party(commands.Cog):
 			''', (user_id, guild_id)).fetchall()
 			
 			return result if result else None
+		
+
+	async def check_demon_id_in_party(self, user_id: int, guild_id: int, demon_id: int) -> bool:
+		with sqlite3.connect('players.db') as conn:
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT in_party FROM player_demons 
+				WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			''', (user_id, guild_id, demon_id)).fetchone()
+			return result[0] == 1
 
 class PartyEmbed(discord.Embed):
 	def __init__(self, user_name: str, list: list[dict], page: int = 1, colour: int = 0xE93700):

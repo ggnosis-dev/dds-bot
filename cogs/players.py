@@ -88,13 +88,15 @@ class Players(commands.Cog):
 			return result is not None
 	
 
-	async def set_demon_in_party(self, player_id: int, server_id: int, demon_id: int, party_add: bool = True):
+	async def set_demon_in_party(self, player_id: int, server_id: int, demon_id: int, party_add: bool = True) -> bool:
 		with sqlite3.connect('players.db') as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
-				UPDATE player_demons SET in_party = ? 
-				WHERE player_id = ? AND server_id = ? AND demon_id = ?
-			''', (party_add, player_id, server_id, demon_id))
+				UPDATE player_demons 
+				SET in_party = ? 
+				WHERE player_id = ? AND server_id = ? AND demon_id = ? AND in_party != ?
+			''', (party_add, player_id, server_id, demon_id, party_add))
+
 			# Returns True if a row was updated, False otherwise.
 			return cursor.rowcount > 0
 
