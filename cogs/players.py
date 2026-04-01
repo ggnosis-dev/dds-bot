@@ -30,9 +30,10 @@ with sqlite3.connect('players.db') as conn:
 		CREATE INDEX IF NOT EXISTS idx_player_demons ON player_demons(player_id, server_id)
 	''')
 
-	# Empty database for testing.
+	# TESTS:
 	# cursor.execute('DELETE FROM players')
 	# cursor.execute('DELETE FROM player_demons')
+	# cursor.execute('UPDATE player_demons SET in_party = 0')
 
 
 class PlayerData:
@@ -87,13 +88,15 @@ class Players(commands.Cog):
 			return result is not None
 	
 
-	async def add_demon_to_party(self, player_id: int, server_id: int, demon_id: int):
+	async def set_demon_in_party(self, player_id: int, server_id: int, demon_id: int, party_add: bool = True):
 		with sqlite3.connect('players.db') as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
-				UPDATE player_demons SET in_party = 1 
+				UPDATE player_demons SET in_party = ? 
 				WHERE player_id = ? AND server_id = ? AND demon_id = ?
-			''', (player_id, server_id, demon_id))
+			''', (party_add, player_id, server_id, demon_id))
+			# Returns True if a row was updated, False otherwise.
+			return cursor.rowcount > 0
 
 
 	async def add_demon_to_compendium(self, player_id: int, server_id: int, demon_id: int, demon_rank: int) -> bool:

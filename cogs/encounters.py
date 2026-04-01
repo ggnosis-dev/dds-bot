@@ -1,71 +1,9 @@
 import discord
 import random
-import sqlite3
 
+from cogs.demons import DemonData
 from discord.ext import commands
-from enum import Enum
-
-class Personality(Enum): 
-	CHEERFUL = 1
-	SHY = 2
-	AGGRESSIVE = 3
-
-class Demon:
-	def __init__(self, id: int, name: str, race: str, rank: int, colour: int, personality_type: Personality, image_url: str):
-		self.id = id
-		self.name = name
-		self.race = race
-		self.rank = rank
-		self.colour = colour
-		self.personality_type = personality_type
-		self.image_url = image_url
-
-
-def get_demon_by_id(demon_id: int) -> Demon | None:
-	conn = sqlite3.connect('compendium.db')
-	cursor = conn.cursor()
-	cursor.execute('''
-		SELECT id, name, race, rank, colour, personality, image_url FROM demons 
-			WHERE id = ?
-	''', (demon_id,))
-	row = cursor.fetchone()
-	conn.close()
-
-	if row:
-		return Demon(
-			id = row[0],
-			name = row[1],
-			race = row[2],
-			rank = row[3],
-			colour = row[4],
-			personality_type = Personality[row[5]],
-			image_url = row[6]
-		)
-	return None
-
-
-def get_random_demon() -> Demon | None:
-	conn = sqlite3.connect('compendium.db')
-	cursor = conn.cursor()
-	cursor.execute('''
-		SELECT id, name, race, rank, colour, personality, image_url FROM demons 
-			ORDER BY RANDOM() 
-			LIMIT 1
-	''')
-	row = cursor.fetchone()
-	conn.close()
-
-	if row:
-		return Demon(
-			id = row[0],
-			name = row[1],
-			race = row[2],
-			rank = row[3],
-			colour = row[4],
-			personality_type = Personality[row[5]],
-			image_url = row[6]
-		)
-	return None
+from shared_enums import Personality
 
 EMOTES = {
 	'1': '\u0031\ufe0f\u20e3',
@@ -75,17 +13,17 @@ EMOTES = {
 	'blank': '<:__:1486236397508628510>',
 }
 
+dedicated_channel = 1486290442877407333
+
 DIALOGUE_OPTIONS = [
 	{"label": "Cheerful", "happiness_change": { Personality.CHEERFUL: 25, Personality.SHY: 0, Personality.AGGRESSIVE: -25 }},
 	{"label": "Shy", "happiness_change": { Personality.CHEERFUL: 0, Personality.SHY: 25, Personality.AGGRESSIVE: -25 }},
 	{"label": "Aggressive", "happiness_change": { Personality.CHEERFUL: -25, Personality.SHY: -25, Personality.AGGRESSIVE: 25 }},
 ]
 
-dedicated_channel = 1486290442877407333
-
 
 class EncounterEmbed(discord.Embed):
-	def __init__(self, demon: Demon, intro_message: str, dialogue_options: list[dict], count: int = 0):
+	def __init__(self, demon: DemonData, intro_message: str, dialogue_options: list[dict], count: int = 0):
 		super().__init__(
 			title = (EMOTES['icon'] + " ") * count,
 			color = demon.colour
@@ -116,7 +54,7 @@ class EncounterView(discord.ui.View):
 	'''
 	def __init__(
 		self, 
-		demon				: Demon, 
+		demon				: DemonData, 
 		dialogue_options	: list[dict], 
 		happiness_val		: int,
 		encounters_cog		: Encounters,
@@ -182,7 +120,6 @@ class EncounterView(discord.ui.View):
 
 	def button_callback(self, label: str, happiness_change: dict):
 		async def callback(interaction: discord.Interaction):
-
 			# Check if user has already interacted.
 			if interaction.user.id in self.interacted_users : return
 
@@ -190,7 +127,15 @@ class EncounterView(discord.ui.View):
 				# Set initial happiness for user if they haven't interacted before.
 				self.interacting_users[interaction.user.id] = self.happiness_val
 
+			print(f"INTERESTING USERS: {self.interacting_users}")
+			print(f"DEMON: {self.demon.personality_type}")
+			print("DEMON TYPE:", type(self.demon.personality_type), id(type(self.demon.personality_type)))
+			print("KEY TYPES:", [(type(k), id(type(k))) for k in happiness_change.keys()])
+			print("HAS KEY:", self.demon.personality_type in happiness_change)
+			# self.interacting_users[interaction.user.id]
+			print(f"HAPPINESS CHANGE: {happiness_change[self.demon.personality_type]}")
 			self.interacting_users[interaction.user.id] += happiness_change[self.demon.personality_type]
+			print(f"NEW VALUE FOR INTERACTING USERS: {self.interacting_users}")
 
 			await interaction.response.send_message(
 				f"You chose {label.lower()}\n"
@@ -250,7 +195,8 @@ class Encounters(commands.Cog):
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
 		channel if necessary.
 		'''
-		demon = get_random_demon()
+		demon_cog = self.bot.get_cog('Demon')
+		demon = demon_cog.get_random_demon()	# type: ignore
 
 		if demon is None : return
 
@@ -272,7 +218,8 @@ class Encounters(commands.Cog):
 		'''
 		Starts a forced encounter with a specific demon.
 		'''
-		demon = get_demon_by_id(1)
+		demon_cog = self.bot.get_cog('Demon')
+		demon = demon_cog.get_demon_by_id(1)	# type: ignore
 
 		if demon is None : return
 
@@ -290,7 +237,7 @@ class Encounters(commands.Cog):
 		print(f'INFO: Sent tutorial encounter in channel {send_to_channel.id} for user {user.id}')
 
 
-	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: Demon, message: discord.Message | None):
+	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: DemonData, message: discord.Message | None):
 		'''
 		Function for when a demon JOINS the player's party from an encounter. If it is a new demon, it will be added to the compendium and a unique message
 		will appear. If it exists in it already, join the party at the default rank with a different message.
@@ -299,7 +246,7 @@ class Encounters(commands.Cog):
 
 		players_cog = self.bot.get_cog('Players')
 		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
-		await players_cog.add_demon_to_party(player.id, server.id, demon.id)								# type: ignore
+		await players_cog.set_demon_in_party(player.id, server.id, demon.id)								# type: ignore
 		
 		if new_entry:
 			if message is not None:
