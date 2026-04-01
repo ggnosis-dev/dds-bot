@@ -3,15 +3,7 @@ import random
 
 from cogs.demons import DemonData
 from discord.ext import commands
-from shared_enums import Personality
-
-EMOTES = {
-	'1': '\u0031\ufe0f\u20e3',
-	'2': '\u0032\ufe0f\u20e3',
-	'3': '\u0033\ufe0f\u20e3',
-	'icon': '<:__:1486233309078884493>',
-	'blank': '<:__:1486236397508628510>',
-}
+from shared_enums import Emotes, Personality
 
 dedicated_channel = 1486290442877407333
 
@@ -25,13 +17,13 @@ DIALOGUE_OPTIONS = [
 class EncounterEmbed(discord.Embed):
 	def __init__(self, demon: DemonData, intro_message: str, dialogue_options: list[dict], count: int = 0):
 		super().__init__(
-			title = (EMOTES['icon'] + " ") * count,
+			title = (Emotes.ICON.value + " ") * count,
 			color = demon.colour
 		)
 
 		self.add_field(
 			name 	= f"{demon.race} {demon.name}!", 
-			value 	= f'{intro_message}\n{EMOTES['blank']}', 
+			value 	= f'{intro_message}\n{Emotes.BLANK.value}', 
 			inline 	= False
 		)
 
@@ -86,7 +78,7 @@ class EncounterView(discord.ui.View):
 
 		self.count -= 1
 		embed = self.message.embeds[0]
-		embed.title = (EMOTES['icon'] + " ") * self.count
+		embed.title = (Emotes.ICON.value + " ") * self.count
 		await self.message.edit(embed = embed)
 
 		if self.count <= 0:
@@ -105,16 +97,16 @@ class EncounterView(discord.ui.View):
 
 
 	def create_default_button_view(self, tutorial: bool = False):
-		button_emotes = ['1', '2', '3']
+		button_emotes = [Emotes.ONE, Emotes.TWO, Emotes.THREE]
 
 		for i, e in enumerate(button_emotes):
 			# Add a button for each option.
-			button = discord.ui.Button(emoji = EMOTES[e], style = discord.ButtonStyle.grey)
+			button = discord.ui.Button(emoji = e.value, style = discord.ButtonStyle.grey)
 
 			if tutorial:
 				button.callback = self.tutorial_button_callback()
 			else:
-				button.callback = self.button_callback(e, self.dialogue_options[i]['happiness_change'])
+				button.callback = self.button_callback(e.value, self.dialogue_options[i]['happiness_change'])
 			self.add_item(button)
 
 

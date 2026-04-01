@@ -1,11 +1,8 @@
 import discord
 import sqlite3
-import json
 
 from discord.ext import commands
-
-# TODO: Move this and import it here and in encounters.
-from cogs.encounters import EMOTES
+from shared_enums import Emotes
 
 class Compendium(commands.Cog):
 	def __init__(self, bot: commands.Bot):
@@ -85,7 +82,7 @@ class CompendiumEmbed(discord.Embed):
 
 			# This will exist if the player has encountered.
 			if rank is not None:
-				emote = EMOTES['icon'] if in_party else EMOTES['blank']
+				emote = Emotes.ICON.value if in_party else Emotes.BLANK.value
 
 				self.add_field(
 					name = '', 
@@ -95,7 +92,7 @@ class CompendiumEmbed(discord.Embed):
 			else:
 				self.add_field(
 					name = '', 
-					value = f"{EMOTES['blank']}\u000B\u000B{race}\u000B\u000B?????\u000B\u000B\u000B\u000B`???`\u000B\u000B?????", 
+					value = f"{Emotes.BLANK.value}\u000B\u000B{race}\u000B\u000B?????\u000B\u000B\u000B\u000B`???`\u000B\u000B?????", 
 					inline = False
 				)
 		self.add_field(name = '', value = line_break)

@@ -1,11 +1,8 @@
 import discord
 import sqlite3
-import json
 
 from discord.ext import commands
-
-# TODO: Move this and import it here and in encounters.
-from cogs.encounters import EMOTES
+from shared_enums import Emotes
 
 class Party(commands.Cog):
 	def __init__(self, bot: commands.Bot):
@@ -88,7 +85,7 @@ class PartyEmbed(discord.Embed):
 
 			self.add_field(
 				name = '', 
-				value = f"{EMOTES['icon']}\u000B\u000B{race}\u000B\u000B{name}\u000B\u000B\u000B\u000B`{rank}`", 
+				value = f"{Emotes.ICON.value}\u000B\u000B{race}\u000B\u000B{name}\u000B\u000B\u000B\u000B`{rank}`", 
 				inline = False
 			)
 
