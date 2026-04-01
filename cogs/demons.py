@@ -55,7 +55,6 @@ class Demon(commands.Cog):
 
 
 	def get_random_demon(self) -> DemonData | None:
-		print("HERE")
 		conn = sqlite3.connect('compendium.db')
 		cursor = conn.cursor()
 		cursor.execute('''

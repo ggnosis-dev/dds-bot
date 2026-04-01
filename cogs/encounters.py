@@ -127,15 +127,7 @@ class EncounterView(discord.ui.View):
 				# Set initial happiness for user if they haven't interacted before.
 				self.interacting_users[interaction.user.id] = self.happiness_val
 
-			print(f"INTERESTING USERS: {self.interacting_users}")
-			print(f"DEMON: {self.demon.personality_type}")
-			print("DEMON TYPE:", type(self.demon.personality_type), id(type(self.demon.personality_type)))
-			print("KEY TYPES:", [(type(k), id(type(k))) for k in happiness_change.keys()])
-			print("HAS KEY:", self.demon.personality_type in happiness_change)
-			# self.interacting_users[interaction.user.id]
-			print(f"HAPPINESS CHANGE: {happiness_change[self.demon.personality_type]}")
 			self.interacting_users[interaction.user.id] += happiness_change[self.demon.personality_type]
-			print(f"NEW VALUE FOR INTERACTING USERS: {self.interacting_users}")
 
 			await interaction.response.send_message(
 				f"You chose {label.lower()}\n"
@@ -211,8 +203,6 @@ class Encounters(commands.Cog):
 		message = await send_to_channel.send(embed = embed, view = view)
 		view.message = message
 
-		print(f'INFO: Sent encounter in channel {send_to_channel.id}')
-
 
 	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User):
 		'''
@@ -233,8 +223,6 @@ class Encounters(commands.Cog):
 		view.create_default_button_view(True)
 		message = await send_to_channel.send(embed = embed, view = view)
 		view.message = message
-
-		print(f'INFO: Sent tutorial encounter in channel {send_to_channel.id} for user {user.id}')
 
 
 	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: DemonData, message: discord.Message | None):
