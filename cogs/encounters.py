@@ -3,6 +3,7 @@ import random
 
 from cogs.demons import DemonData
 from discord.ext import commands
+from discord.ui import Select
 from shared_enums import Emotes, Personality
 
 dedicated_channel = 1486290442877407333
@@ -162,6 +163,36 @@ class EncounterView(discord.ui.View):
 		return callback
 
 
+class EncounterLayoutView(discord.ui.LayoutView):
+	def __init__(self, demon: DemonData):
+		super().__init__()
+
+		container = discord.ui.Container(accent_color=demon.colour)
+
+		print("Creating layout view")
+		select = discord.ui.ActionRow(
+			Select(
+				min_values=1,
+				max_values=2,
+				placeholder="Choose an option...",
+				options=[
+					discord.SelectOption(label="Test", emoji=Emotes.ONE.value, description="Test description"),
+					discord.SelectOption(label="Test 2", emoji=Emotes.TWO.value, description="Test 2 description"),
+			])
+		)
+
+		container.add_item(
+			discord.ui.TextDisplay(f"TEST"),
+		)
+
+		container.add_item(discord.ui.Separator())
+		self.add_item(container)
+		self.add_item(select)
+		self.add_item(
+			discord.ui.TextDisplay(f"TEST2" ),
+		)
+		print("Completed layout view init")
+
 class Encounters(commands.Cog):
 	'''
 	Cog handles random encounters. It currently listens to messages and after a number of them,
@@ -188,12 +219,17 @@ class Encounters(commands.Cog):
 		dialogue_options = DIALOGUE_OPTIONS
 		count = random.randint(1, 3)
 
-		embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, count)
-		view 	= EncounterView(demon, dialogue_options, happiness_val, self, count)
+		# embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, count)
+		# view 	= EncounterView(demon, dialogue_options, happiness_val, self, count)
+		view = EncounterLayoutView(demon)
 
-		view.create_default_button_view()
-		message = await send_to_channel.send(embed = embed, view = view)
-		view.message = message
+		# view.create_default_button_view()
+		try: 
+			await send_to_channel.send(view=view)
+		except Exception as e:
+			print(f"Error sending encounter message: {e}")
+			return
+		# view.message = message
 
 
 	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User):
