@@ -16,3 +16,8 @@ class DemonRegistration(Enum):
 	IN_PARTY = 1
 	IN_COMP = 2
 	UNREGISTERED = 3
+
+class ResponseType(Enum):
+	GOOD = 1
+	NEUTRAL = 2
+	BAD = 3

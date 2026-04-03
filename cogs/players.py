@@ -116,8 +116,8 @@ class Players(commands.Cog):
 			if exists_in_comp : return False
 			
 			cursor.execute('''
-				INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank)
-				VALUES (?, ?, ?, ?)
+				INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank, in_party)
+				VALUES (?, ?, ?, ?, 0)
 			''', (player_id, server_id, demon_id, demon_rank))
 
 			return True

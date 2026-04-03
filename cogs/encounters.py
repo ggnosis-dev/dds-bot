@@ -3,15 +3,14 @@ import random
 
 from cogs.demons import DemonData
 from discord.ext import commands
-from discord.ui import Select
-from shared_enums import Emotes, Personality
+from shared_enums import Emotes, Personality, ResponseType
 
 dedicated_channel = 1486290442877407333
 
 DIALOGUE_OPTIONS = [
-	{"label": "Cheerful", "happiness_change": { Personality.CHEERFUL: 25, Personality.SHY: 0, Personality.AGGRESSIVE: -25 }},
-	{"label": "Shy", "happiness_change": { Personality.CHEERFUL: 0, Personality.SHY: 25, Personality.AGGRESSIVE: -25 }},
-	{"label": "Aggressive", "happiness_change": { Personality.CHEERFUL: -25, Personality.SHY: -25, Personality.AGGRESSIVE: 25 }},
+	{"label": "Cheerful", "response": { Personality.CHEERFUL: ResponseType.GOOD, Personality.SHY: ResponseType.NEUTRAL, Personality.AGGRESSIVE: ResponseType.BAD }},
+	{"label": "Shy", "response": { Personality.CHEERFUL: ResponseType.NEUTRAL, Personality.SHY: ResponseType.GOOD, Personality.AGGRESSIVE: ResponseType.BAD }},
+	{"label": "Aggressive", "response": { Personality.CHEERFUL: ResponseType.BAD, Personality.SHY: ResponseType.BAD, Personality.AGGRESSIVE: ResponseType.GOOD }},
 ]
 
 
@@ -107,11 +106,11 @@ class EncounterView(discord.ui.View):
 			if tutorial:
 				button.callback = self.tutorial_button_callback()
 			else:
-				button.callback = self.button_callback(e.value, self.dialogue_options[i]['happiness_change'])
+				button.callback = self.button_callback(e.value, self.dialogue_options[i]['response'])
 			self.add_item(button)
 
 
-	def button_callback(self, label: str, happiness_change: dict):
+	def button_callback(self, label: str, response: dict):
 		async def callback(interaction: discord.Interaction):
 			# Check if user has already interacted.
 			if interaction.user.id in self.interacted_users : return
@@ -120,7 +119,7 @@ class EncounterView(discord.ui.View):
 				# Set initial happiness for user if they haven't interacted before.
 				self.interacting_users[interaction.user.id] = self.happiness_val
 
-			self.interacting_users[interaction.user.id] += happiness_change[self.demon.personality_type]
+			self.interacting_users[interaction.user.id] += response[self.demon.personality_type]
 
 			await interaction.response.send_message(
 				f"You chose {label.lower()}\n"
@@ -130,7 +129,7 @@ class EncounterView(discord.ui.View):
 
 			# TODO: Update this so it's reusable and nicer.
 			if self.interacting_users[interaction.user.id] >= 80:
-				await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
+				await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon)
 				await self.update_icon_count()
 				self.interacted_users.add(interaction.user.id)
 			elif self.interacting_users[interaction.user.id] <= 20:
@@ -158,40 +157,168 @@ class EncounterView(discord.ui.View):
 			)
 
 			# Add the demon to the player's party.
-			await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon, self.message)
+			await self.encounters_cog.join_player_party(interaction.user, interaction.guild, self.demon)
 			await self.update_icon_count()
 		return callback
 
 
-class EncounterLayoutView(discord.ui.LayoutView):
-	def __init__(self, demon: DemonData):
+class BaseEncounterView(discord.ui.LayoutView):
+	# row = discord.ui.ActionRow()
+
+	def __init__(
+		self, 
+		demon: DemonData,
+		encounters_cog: Encounters,
+	):
 		super().__init__()
 
-		container = discord.ui.Container(accent_color=demon.colour)
+		self.demon = demon
+		self.encounters_cog = encounters_cog
 
-		print("Creating layout view")
-		select = discord.ui.ActionRow(
-			Select(
-				min_values=1,
-				max_values=2,
-				placeholder="Choose an option...",
-				options=[
-					discord.SelectOption(label="Test", emoji=Emotes.ONE.value, description="Test description"),
-					discord.SelectOption(label="Test 2", emoji=Emotes.TWO.value, description="Test 2 description"),
-			])
-		)
+		# Reference to the message which will let us edit the embed later on if necessary.
+		self.message: discord.Message | None = None
 
-		container.add_item(
-			discord.ui.TextDisplay(f"TEST"),
-		)
+		# Set to keep track of the users who have interacted with the encounter to prevent multiple interactions.
+		self.interacted_users: set[int] = set()
 
-		container.add_item(discord.ui.Separator())
+		# Keep track of user and their current happiness value.
+		self.interacting_users: dict[int, int] = {}
+
+		self.consecutive_bad_interactions: dict[int, int] = {}
+
+		self.status_display: discord.ui.TextDisplay | None = None
+	
+
+	def _build_option_buttons(self, container: discord.ui.Container, dialogue_options: list[dict]):
+		# Store dialogue options in the view to access them in the callbacks.
+		self.dialogue_options = dialogue_options
+		self._option_sections = []
+		button_emotes = [Emotes.ONE, Emotes.TWO, Emotes.THREE]
+
+		for i, option in enumerate(dialogue_options):
+			button = discord.ui.Button(
+				emoji = button_emotes[i].value,
+				style = discord.ButtonStyle.grey,
+			)
+			button.callback = self._make_dialogue_callback(i)
+
+			new_section = discord.ui.Section(accessory = button)
+			new_section.add_item(discord.ui.TextDisplay(f"Option {i + 1}: {option['label']}"))
+
+			container.add_item(new_section)
+			self._option_sections.append(new_section)
+
+
+	def _make_dialogue_callback(self, option_index: int):
+		async def callback(interaction: discord.Interaction):
+			
+			option = self.dialogue_options[option_index]
+			outcome = option['response'][self.demon.personality_type]
+
+			match outcome:
+				case ResponseType.GOOD:
+
+					# Send ephemeral message that demon will join, edit the footer.
+					await self._encounter_successful(interaction)
+					pass
+				case ResponseType.BAD:
+					pass
+				case ResponseType.NEUTRAL, _:
+					pass
+			
+		return callback
+	
+
+	async def _encounter_successful(self, interaction: discord.Interaction):
+		user = interaction.user
+		d_name = self.demon.name
+		d_race = self.demon.race
+
+		new_entry = await self.encounters_cog.join_player_party(
+			user, interaction.guild, self.demon
+		)	
+
+		if new_entry:
+			status = f"{d_race} {d_name} was registered to {user.name}'s compendium!"
+		else:
+			status = f"{d_race} {d_name} has joined {user.name}'s party!"
+		
+		await self._handle_demon_interacted(interaction, status)
+
+
+	async def _encounter_followup(self, interaction: discord.Interaction):
+		user = interaction.user
+		d_name = self.demon.name
+		d_race = self.demon.race
+
+		await interaction.followup.send(f"Try again {d_race} {d_name}!", ephemeral=True)
+
+
+	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str):
+		# - Send a ephemeral message to the user.
+		# - Add a line to the container's status display with outcome.
+		# - Add the user to the set of interacted users to prevent multiple interactions.
+		# - Add demon to player's party
+		if self.status_display is not None:
+			self.status_display.content = self.status_display.content + f"\n-# *{status_message}*"
+		await interaction.response.edit_message(view = self)
+		await interaction.followup.send(status_message, ephemeral=True)
+
+
+class InitialEncounterView(BaseEncounterView):
+	def __init__(self, demon: DemonData, encounters_cog: Encounters, count: int = 1, user_exclusive_to: discord.User | None = None):
+		super().__init__(demon, encounters_cog)
+
+		self.count = count
+		self.user_exclusive_to = user_exclusive_to
+		self.interacted_users: set[int] = set()
+
+		self._build_layout("Hey, what's going on?", DIALOGUE_OPTIONS)
+
+
+	def _build_layout(self, intro_message: str, dialogue_options: list[dict]):
+		ui = discord.ui
+		container = ui.Container(accent_color = self.demon.colour)
+
+		container.add_item(ui.TextDisplay((Emotes.ICON.value + " ") * self.count))
+		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {intro_message}\n"))
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		self._build_option_buttons(container, dialogue_options)
+
+		container.add_item(ui.MediaGallery().add_item(media=self.demon.image_url))
+
+		self.status_display = ui.TextDisplay(f"-# *What will you do?*")
+		container.add_item(self.status_display)
+
 		self.add_item(container)
-		self.add_item(select)
-		self.add_item(
-			discord.ui.TextDisplay(f"TEST2" ),
-		)
-		print("Completed layout view init")
+
+	def _make_dialogue_callback(self, option_index: int):
+		# Explicitly build the callback, not just use super().
+		base_callback = BaseEncounterView._make_dialogue_callback(self, option_index)
+	
+		async def callback(interaction: discord.Interaction):
+			user = interaction.user
+
+			# Check if user has already interacted.
+			if user.id in self.interacted_users: 
+				await interaction.response.defer()
+				return
+			
+			# If user isn't the one who the encounter is for (when option exists), exit early.
+			if self.user_exclusive_to and user != self.user_exclusive_to:
+				await interaction.response.defer()
+				return
+			
+			# We only want the user to be able to interact once with the box, 
+			# if it's a multi-option encounter, an ephemeral message will be sent next.
+			self.interacted_users.add(user.id)
+
+			await base_callback(interaction)
+
+		return callback
+
+
 
 class Encounters(commands.Cog):
 	'''
@@ -215,13 +342,12 @@ class Encounters(commands.Cog):
 
 		if demon is None : return
 
-		happiness_val = 50
 		dialogue_options = DIALOGUE_OPTIONS
 		count = random.randint(1, 3)
 
 		# embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, count)
 		# view 	= EncounterView(demon, dialogue_options, happiness_val, self, count)
-		view = EncounterLayoutView(demon)
+		view = InitialEncounterView(demon, self, count)
 
 		# view.create_default_button_view()
 		try: 
@@ -253,28 +379,16 @@ class Encounters(commands.Cog):
 		view.message = message
 
 
-	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: DemonData, message: discord.Message | None):
+	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: DemonData) -> bool:
 		'''
-		Function for when a demon JOINS the player's party from an encounter. If it is a new demon, it will be added to the compendium and a unique message
-		will appear. If it exists in it already, join the party at the default rank with a different message.
+		Function for when a demon JOINS the player's party from an encounter. If it is a new demon, it will be added to the compendium and return True.
+		If it exists in it already, join the party at the default rank and return with False.
 		'''
-		if server is None : return
-
 		players_cog = self.bot.get_cog('Players')
 		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
 		await players_cog.set_demon_in_party(player.id, server.id, demon.id)								# type: ignore
-		
-		if new_entry:
-			if message is not None:
-				# Edit the embed to say that the demon has been added to the compendium.
-				embed = message.embeds[0]
-				embed.set_footer(text=f"{demon.race} {demon.name} was registered to {player.name}'s compendium!", icon_url=player.avatar.url if player.avatar else None)
-		else:
-			if message is not None:
-				# Edit the embed to say that the demon has been added to the party.
-				embed = message.embeds[0]
-				embed.set_footer(text=f"{demon.race} {demon.name} has joined {player.name}'s party!", icon_url=player.avatar.url if player.avatar else None)
-
+		return new_entry
+	
 
 	@commands.Cog.listener()
 	async def on_message(self, message: discord.Message):
