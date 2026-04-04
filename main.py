@@ -20,7 +20,7 @@ async def on_ready():
 	print(f'{bot.user} has connected to Discord!')
 
 
-@bot.command(name='start', help="Sets up the player to start playing.")
+@bot.command(name = 'start', help = "Sets up the player to start playing.")
 async def start_command(ctx):
 	'''
 	Setup the player using a new PlayerData object. We'll then start and 'personal' encounter that is
@@ -34,6 +34,12 @@ async def start_command(ctx):
 		encounters_cog = bot.get_cog('Encounters')
 
 		await encounters_cog.start_tutorial_encounter(ctx.channel, ctx.author)	# type: ignore
+
+
+@bot.command(name = 'encounter', aliases = ['e'], help = "Start a test encounter with a random demon.")
+async def encounter_command(ctx):
+	encounters_cog = bot.get_cog('Encounters')
+	await encounters_cog.start_encounter(ctx.channel)	# type: ignore
 
 
 async def load_cogs():

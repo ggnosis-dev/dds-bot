@@ -21,6 +21,7 @@ class BaseEncounterView(discord.ui.LayoutView):
 		encounters_cog: Encounters,
 		consecutive_bad: int = 0,
 		message: discord.Message | None = None,
+		tutorial: bool = False
 	):
 		super().__init__()
 
@@ -28,6 +29,7 @@ class BaseEncounterView(discord.ui.LayoutView):
 		self.encounters_cog = encounters_cog
 		self.consecutive_bad_interactions = consecutive_bad
 		self.message = message
+		self.tutorial = tutorial
 		self.status_display: discord.ui.TextDisplay | None = None
 	
 
@@ -77,11 +79,11 @@ class BaseEncounterView(discord.ui.LayoutView):
 					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction)
 				case ResponseType.BAD:
-					print(f"INFO: Bad outcome for {interaction.user.name}, current bad count: {self.consecutive_bad_interactions + 1}")
 					# Send followup message with new options.
 					bad_count = self.consecutive_bad_interactions + 1
 
-					if bad_count >= 2:
+					print(f"INFO: Bad outcome for {interaction.user.name}, consecutive bad interactions: {bad_count}. Tutorial mode: {self.tutorial}")
+					if bad_count >= 2 and self.tutorial == False:
 						await self._encounter_flee(interaction)
 					else:
 						await self._encounter_followup(interaction)
@@ -121,14 +123,17 @@ class BaseEncounterView(discord.ui.LayoutView):
 			demon = self.demon,
 			encounters_cog = self.encounters_cog,
 			parent_view = parent_view,
-			consecutive_bad = self.consecutive_bad_interactions + 1
+			consecutive_bad = self.consecutive_bad_interactions + 1,
+			tutorial = self.tutorial
 		)
 
 		# On consecutive followups, we want to make sure buttons will get disabled. First followup we don't want to disable any buttons.
 		if isinstance(self, FollowupEncounterView):
 			# Edit the existing ephemeral message to disable buttons, then send the next one.
 			await interaction.response.edit_message(view = self)
-		await interaction.response.send_message(view = followup_emph_view, ephemeral = True)
+			await interaction.followup.send(view = followup_emph_view, ephemeral = True)
+		else: 
+			await interaction.response.send_message(view = followup_emph_view, ephemeral = True)
 
 
 	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str):
@@ -234,9 +239,10 @@ class FollowupEncounterView(BaseEncounterView):
 		demon: DemonData, 
 		encounters_cog: Encounters, 
 		parent_view: BaseEncounterView, 
-		consecutive_bad: int = 0
+		consecutive_bad: int = 0,
+		tutorial = False
 	):
-		super().__init__(demon, encounters_cog, consecutive_bad)
+		super().__init__(demon, encounters_cog, consecutive_bad, tutorial = tutorial)
 
 		self.parent_view = parent_view
 		self.interacted = False
@@ -277,13 +283,13 @@ class Encounters(commands.Cog):
 	'''
 	def __init__(self, bot: commands.Bot):
 		self.bot = bot
-		self.message_counter = 2
-		self.encounter_threshold = random.randint(1, 2)
+		# self.message_counter = 2
+		# self.encounter_threshold = random.randint(1, 2)
 
 	
 	async def start_encounter(self, send_to_channel: discord.TextChannel):
 		'''
-		Starts an encounter by selecting a demon and organising the embed and view.
+		Starts an encounter by selecting a demon and creating a layout view.
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
 		channel if necessary.
 		'''
@@ -298,8 +304,16 @@ class Encounters(commands.Cog):
 
 	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User):
 		'''
-		Starts a forced encounter with a specific demon.
+		Starts a forced encounter with a Pixie (ID 1) that acts as a tutorial.
 		'''
+		demon_cog 	= self.bot.get_cog('Demon')
+		demon 		= demon_cog.get_demon_by_id(1)	# type: ignore
+		view		= InitialEncounterView(demon, self)
+		message		= await send_to_channel.send(view = view)
+
+		view.user_exclusive_to = user
+		view.message = message
+		view.tutorial = True
 		# demon_cog = self.bot.get_cog('Demon')
 		# demon = demon_cog.get_demon_by_id(1)	# type: ignore
 
@@ -329,26 +343,26 @@ class Encounters(commands.Cog):
 		return new_entry
 	
 
-	@commands.Cog.listener()
-	async def on_message(self, message: discord.Message):
-		if message.author == self.bot.user:
-			return
+	# @commands.Cog.listener()
+	# async def on_message(self, message: discord.Message):
+	# 	if message.author == self.bot.user:
+	# 		return
 		
-		self.message_counter += 2
+	# 	self.message_counter += 2
 
-		if self.message_counter >= self.encounter_threshold:
+	# 	if self.message_counter >= self.encounter_threshold:
 
-			send_to_channel_id = dedicated_channel if dedicated_channel else message.channel.id
-			channel = self.bot.get_channel(send_to_channel_id)
+	# 		send_to_channel_id = dedicated_channel if dedicated_channel else message.channel.id
+	# 		channel = self.bot.get_channel(send_to_channel_id)
 
-			if not isinstance(channel, discord.TextChannel):
-				return
+	# 		if not isinstance(channel, discord.TextChannel):
+	# 			return
 
-			await self.start_encounter(channel)
+	# 		await self.start_encounter(channel)
 
-			# Reset message counter.
-			self.message_counter = 0
-			self.encounter_threshold = random.randint(1, 2)
+	# 		# Reset message counter.
+	# 		self.message_counter = 0
+	# 		self.encounter_threshold = random.randint(1, 2)
 
 
 # Add the cog to the bot.
