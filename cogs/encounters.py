@@ -20,21 +20,24 @@ class BaseEncounterView(discord.ui.LayoutView):
 		demon: DemonData,
 		encounters_cog: Encounters,
 		consecutive_bad: int = 0,
+		message: discord.Message | None = None,
 	):
 		super().__init__()
 
 		self.demon = demon
 		self.encounters_cog = encounters_cog
 		self.consecutive_bad_interactions = consecutive_bad
-
-		# Reference to the message which will let us edit the embed later on if necessary.
-		self.message: discord.Message | None = None
-
+		self.message = message
 		self.status_display: discord.ui.TextDisplay | None = None
 	
 
 	def update_icon_count(self):
 		"""Override in subclasses that have icon displays."""
+		pass
+
+
+	def _build_layout(self, message: str, dialogue_options: list[dict]):
+		"""Override in subclasses to build the layout of the encounter."""
 		pass
 
 
@@ -121,10 +124,11 @@ class BaseEncounterView(discord.ui.LayoutView):
 			consecutive_bad = self.consecutive_bad_interactions + 1
 		)
 
-		await interaction.response.send_message(
-			view = followup_emph_view, 
-		)
-
+		# On consecutive followups, we want to make sure buttons will get disabled. First followup we don't want to disable any buttons.
+		if isinstance(self, FollowupEncounterView):
+			# Edit the existing ephemeral message to disable buttons, then send the next one.
+			await interaction.response.edit_message(view = self)
+		await interaction.response.send_message(view = followup_emph_view, ephemeral = True)
 
 
 	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str):
@@ -135,12 +139,27 @@ class BaseEncounterView(discord.ui.LayoutView):
 		if target_view.status_display is not None:
 			target_view.status_display.content = target_view.status_display.content + f"\n-# *{status_message}*"
 		
-		await interaction.response.edit_message(view = target_view)
-		await interaction.followup.send(status_message, ephemeral = True)
+		# If this is a followup view...
+		if isinstance(self, FollowupEncounterView) and target_view.message is not None:
+			# Update the original message with the new view that has the updated icon count and status message.
+			await target_view.message.edit(view = target_view)
+			await interaction.response.edit_message(view = self)
+			await interaction.followup.send(status_message, ephemeral = True)
+		else:
+			# For the initial view, edit the message with any changes to icon count and status.
+			await interaction.response.edit_message(view = target_view)
+			await interaction.response.defer()
+			await interaction.followup.send(status_message, ephemeral = True)
 
 
 class InitialEncounterView(BaseEncounterView):
-	def __init__(self, demon: DemonData, encounters_cog: Encounters, count: int = 1, user_exclusive_to: discord.User | None = None):
+	def __init__(
+		self, 
+		demon: DemonData, 
+		encounters_cog: Encounters, 
+		count: int = 1, 
+		user_exclusive_to: discord.User | None = None,
+	):
 		super().__init__(demon, encounters_cog)
 
 		self.count = count
@@ -154,12 +173,12 @@ class InitialEncounterView(BaseEncounterView):
 		self._build_layout("Hey, what's going on?", DIALOGUE_OPTIONS)
 
 
-	def _build_layout(self, intro_message: str, dialogue_options: list[dict]):
+	def _build_layout(self, message: str, dialogue_options: list[dict]):
 		ui = discord.ui
 		container = ui.Container(accent_color = self.demon.colour)
 
 		container.add_item(self.icon_display)
-		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {intro_message}\n"))
+		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {message}\n"))
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		self._build_option_buttons(container, dialogue_options)
@@ -170,6 +189,7 @@ class InitialEncounterView(BaseEncounterView):
 		container.add_item(self.status_display)
 
 		self.add_item(container)
+
 
 	def _make_dialogue_callback(self, option_index: int):
 		# Explicitly build the callback, not just use super().
@@ -209,19 +229,45 @@ class InitialEncounterView(BaseEncounterView):
 
 
 class FollowupEncounterView(BaseEncounterView):
-	def __init__(self, demon: DemonData, encounters_cog: Encounters, parent_view: BaseEncounterView, consecutive_bad: int = 0):
+	def __init__(
+		self, 
+		demon: DemonData, 
+		encounters_cog: Encounters, 
+		parent_view: BaseEncounterView, 
+		consecutive_bad: int = 0
+	):
 		super().__init__(demon, encounters_cog, consecutive_bad)
 
 		self.parent_view = parent_view
+		self.interacted = False
 
+		self._build_layout("seems disinterested...", DIALOGUE_OPTIONS)
+
+
+	def _build_layout(self, message: str, dialogue_options: list[dict]):
 		ui = discord.ui
 		container = ui.Container(accent_color = self.demon.colour)
 
-		container.add_item(ui.TextDisplay(f'## {self.demon.race} {self.demon.name} seems disinterested...'))
+		container.add_item(ui.TextDisplay(f'## {self.demon.race} {self.demon.name} {message}'))
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 
-		self._build_option_buttons(container, DIALOGUE_OPTIONS)
+		self._build_option_buttons(container, dialogue_options)
 		self.add_item(container)
+
+
+	def _make_dialogue_callback(self, option_index: int):
+		base_callback = BaseEncounterView._make_dialogue_callback(self, option_index)
+
+		async def callback(interaction: discord.Interaction):
+			if self.interacted:
+				await interaction.response.defer()
+				return
+			
+			self.interacted = True
+			self._disable_buttons()
+			await base_callback(interaction)
+		
+		return callback
 
 
 class Encounters(commands.Cog):
@@ -241,25 +287,13 @@ class Encounters(commands.Cog):
 		It will send the encounter to the specified channel, which can be configured to a dedicated 
 		channel if necessary.
 		'''
-		demon_cog = self.bot.get_cog('Demon')
-		demon = demon_cog.get_random_demon()	# type: ignore
+		demon_cog 	= self.bot.get_cog('Demon')
+		demon 		= demon_cog.get_random_demon()	# type: ignore
+		count 		= random.randint(1, 3)
+		view		= InitialEncounterView(demon, self, count)
+		message		= await send_to_channel.send(view = view)
 
-		if demon is None : return
-
-		dialogue_options = DIALOGUE_OPTIONS
-		count = random.randint(1, 3)
-
-		# embed 	= EncounterEmbed(demon, "Hey, what's going on?", dialogue_options, count)
-		# view 	= EncounterView(demon, dialogue_options, happiness_val, self, count)
-		view = InitialEncounterView(demon, self, count)
-
-		# view.create_default_button_view()
-		try: 
-			await send_to_channel.send(view=view)
-		except Exception as e:
-			print(f"Error sending encounter message: {e}")
-			return
-		# view.message = message
+		view.message = message
 
 
 	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User):
