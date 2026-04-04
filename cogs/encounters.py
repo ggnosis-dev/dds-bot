@@ -163,28 +163,20 @@ class EncounterView(discord.ui.View):
 
 
 class BaseEncounterView(discord.ui.LayoutView):
-	# row = discord.ui.ActionRow()
-
 	def __init__(
 		self, 
 		demon: DemonData,
 		encounters_cog: Encounters,
+		consecutive_bad: int = 0,
 	):
 		super().__init__()
 
 		self.demon = demon
 		self.encounters_cog = encounters_cog
+		self.consecutive_bad_interactions = consecutive_bad
 
 		# Reference to the message which will let us edit the embed later on if necessary.
 		self.message: discord.Message | None = None
-
-		# Set to keep track of the users who have interacted with the encounter to prevent multiple interactions.
-		self.interacted_users: set[int] = set()
-
-		# Keep track of user and their current happiness value.
-		self.interacting_users: dict[int, int] = {}
-
-		self.consecutive_bad_interactions: dict[int, int] = {}
 
 		self.status_display: discord.ui.TextDisplay | None = None
 	
@@ -217,15 +209,21 @@ class BaseEncounterView(discord.ui.LayoutView):
 
 			match outcome:
 				case ResponseType.GOOD:
-
 					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction)
-					pass
 				case ResponseType.BAD:
-					pass
+					print(f"INFO: Bad outcome for {interaction.user.name}, current bad count: {self.consecutive_bad_interactions + 1}")
+					# Send followup message with new options.
+					bad_count = self.consecutive_bad_interactions + 1
+
+					if bad_count >= 2:
+						await self._encounter_flee(interaction)
+					else:
+						await self._encounter_followup(interaction)
 				case ResponseType.NEUTRAL, _:
-					pass
-			
+					print(f"INFO: Neutral outcome for {interaction.user.name}, no changes to encounter state.")
+					await self._encounter_followup(interaction)
+		
 		return callback
 	
 
@@ -246,23 +244,33 @@ class BaseEncounterView(discord.ui.LayoutView):
 		await self._handle_demon_interacted(interaction, status)
 
 
-	async def _encounter_followup(self, interaction: discord.Interaction):
-		user = interaction.user
-		d_name = self.demon.name
-		d_race = self.demon.race
+	async def _encounter_flee(self, interaction: discord.Interaction):
+		await self._handle_demon_interacted(interaction, f"{self.demon.race} {self.demon.name} has fled from {interaction.user.name}...")
 
-		await interaction.followup.send(f"Try again {d_race} {d_name}!", ephemeral=True)
+
+	async def _encounter_followup(self, interaction: discord.Interaction):
+		parent_view = self.parent_view if isinstance(self, FollowupEncounterView) else self
+
+		followup_emph_view = FollowupEncounterView(
+			demon = self.demon,
+			encounters_cog = self.encounters_cog,
+			parent_view = parent_view,
+			consecutive_bad = self.consecutive_bad_interactions + 1
+		)
+
+		await interaction.response.send_message(
+			view = followup_emph_view, 
+		)
+
 
 
 	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str):
-		# - Send a ephemeral message to the user.
-		# - Add a line to the container's status display with outcome.
-		# - Add the user to the set of interacted users to prevent multiple interactions.
-		# - Add demon to player's party
-		if self.status_display is not None:
-			self.status_display.content = self.status_display.content + f"\n-# *{status_message}*"
-		await interaction.response.edit_message(view = self)
-		await interaction.followup.send(status_message, ephemeral=True)
+		target_view = self.parent_view if isinstance(self, FollowupEncounterView) else self
+
+		if target_view.status_display is not None:
+			target_view.status_display.content = target_view.status_display.content + f"\n-# *{status_message}*"
+		await interaction.response.edit_message(view = target_view)
+		await interaction.followup.send(status_message, ephemeral = True)
 
 
 class InitialEncounterView(BaseEncounterView):
@@ -271,6 +279,9 @@ class InitialEncounterView(BaseEncounterView):
 
 		self.count = count
 		self.user_exclusive_to = user_exclusive_to
+		self.parent_view = self
+
+		# Set to keep track of the users who have interacted with the encounter to prevent multiple interactions.
 		self.interacted_users: set[int] = set()
 
 		self._build_layout("Hey, what's going on?", DIALOGUE_OPTIONS)
@@ -318,6 +329,20 @@ class InitialEncounterView(BaseEncounterView):
 
 		return callback
 
+class FollowupEncounterView(BaseEncounterView):
+	def __init__(self, demon: DemonData, encounters_cog: Encounters, parent_view: BaseEncounterView, consecutive_bad: int = 0):
+		super().__init__(demon, encounters_cog, consecutive_bad)
+
+		self.parent_view = parent_view
+
+		ui = discord.ui
+		container = ui.Container(accent_color = self.demon.colour)
+
+		container.add_item(ui.TextDisplay(f'## {self.demon.race} {self.demon.name} seems disinterested...'))
+		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
+
+		self._build_option_buttons(container, DIALOGUE_OPTIONS)
+		self.add_item(container)
 
 
 class Encounters(commands.Cog):
