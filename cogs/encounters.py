@@ -82,13 +82,11 @@ class BaseEncounterView(discord.ui.LayoutView):
 					# Send followup message with new options.
 					bad_count = self.consecutive_bad_interactions + 1
 
-					print(f"INFO: Bad outcome for {interaction.user.name}, consecutive bad interactions: {bad_count}. Tutorial mode: {self.tutorial}")
 					if bad_count >= 2 and self.tutorial == False:
 						await self._encounter_flee(interaction)
 					else:
 						await self._encounter_followup(interaction)
 				case _:
-					print(f"INFO: Neutral outcome for {interaction.user.name}, no changes to encounter state.")
 					await self._encounter_followup(interaction)
 		
 		return callback
