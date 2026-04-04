@@ -102,15 +102,15 @@ class BaseEncounterView(discord.ui.LayoutView):
 		)	
 
 		if new_entry:
-			status = f"{d_race} {d_name} was registered to {user.name}'s compendium!"
+			status = f"{d_race} {d_name} was registered to {user.mention}'s compendium!"
 		else:
-			status = f"{d_race} {d_name} has joined {user.name}'s party!"
+			status = f"{d_race} {d_name} has joined {user.mention}'s party!"
 		
 		await self._handle_demon_interacted(interaction, status)
 
 
 	async def _encounter_flee(self, interaction: discord.Interaction):
-		await self._handle_demon_interacted(interaction, f"{self.demon.race} {self.demon.name} has fled from {interaction.user.name}...")
+		await self._handle_demon_interacted(interaction, f"{self.demon.race} {self.demon.name} has fled from {interaction.user.mention}...")
 
 
 	async def _encounter_followup(self, interaction: discord.Interaction):
@@ -137,7 +137,7 @@ class BaseEncounterView(discord.ui.LayoutView):
 		target_view.update_icon_count()
 
 		if target_view.status_display is not None:
-			target_view.status_display.content = target_view.status_display.content + f"\n-# *{status_message}*"
+			target_view.status_display.content = target_view.status_display.content + f"\n-# > *{status_message}*"
 		
 		# If this is a followup view...
 		if isinstance(self, FollowupEncounterView) and target_view.message is not None:
