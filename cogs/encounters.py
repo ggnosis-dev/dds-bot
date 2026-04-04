@@ -13,13 +13,76 @@ DIALOGUE_OPTIONS = [
 	{"label": "Aggressive", "response": { Personality.CHEERFUL: ResponseType.BAD, Personality.SHY: ResponseType.BAD, Personality.AGGRESSIVE: ResponseType.GOOD }},
 ]
 
+class Encounters(commands.Cog):
+	'''Cog handles standard type demon encounters. Encounter is represented as a layout view with options as buttons.'''
+	def __init__(self, bot: commands.Bot):
+		self.bot = bot
+		# self.message_counter = 2
+		# self.encounter_threshold = random.randint(1, 2)
+
+	async def start_encounter(self, send_to_channel: discord.TextChannel) -> None:
+		'''
+		Starts an encounter by selecting a demon and creating a layout view. It will send the encounter to the 
+		specified channel, which can be configured to a dedicated channel if necessary.
+
+		Args:
+			send_to_channel (discord.TextChannel): Channel to send the encounter to.
+		'''
+		demon_cog 	= self.bot.get_cog('Demon')
+		demon 		= demon_cog.get_random_demon()	# type: ignore
+		count 		= random.randint(1, 3)
+		view		= InitialEncounterView(demon, self, count)
+		message		= await send_to_channel.send(view = view)
+
+		view.message = message
+
+	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User) -> None:
+		'''
+		Starts a forced encounter with a Pixie (ID 1) that acts as a tutorial.
+
+		Args:
+			send_to_channel (discord.TextChannel): Channel to send the encounter to.
+			user (discord.User): User that the encounter is exclusive to.
+		'''
+		demon_cog 	= self.bot.get_cog('Demon')
+		demon 		= demon_cog.get_demon_by_id(1)	# type: ignore
+		view		= InitialEncounterView(demon, self)
+		message		= await send_to_channel.send(view = view)
+
+		view.user_exclusive_to = user
+		view.message = message
+		view.tutorial = True
+
+	async def join_player_party(
+		self, 
+		player: discord.User | discord.Member, 
+		server: discord.Guild | None, 
+		demon: DemonData
+	) -> bool:
+		'''
+		Sends a request to the Players cog to add a demon to the player's party and comp. 
+
+		Args: 
+			player (discord.User | discord.Member): Player to add the demon for.
+			server (discord.Guild | None): Server the player is in.
+			demon (DemonData): Demon's data to be added.
+		
+		Returns:
+			bool: True if the demon was NEWLY ADDED to the compendium, False if it was just added to the party.
+		'''
+		players_cog = self.bot.get_cog('Players')
+		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
+		await players_cog.set_demon_in_party(player.id, server.id, demon.id)								# type: ignore
+		return new_entry
+
 
 class BaseEncounterView(discord.ui.LayoutView):
+	'''Base layout view for encounters. Has shared logic for handling dialogue options and interactions.'''
 	def __init__(
 		self, 
 		demon: DemonData,
 		encounters_cog: Encounters,
-		consecutive_bad: int = 0,
+		consecutive_bad_interactions: int = 0,
 		message: discord.Message | None = None,
 		tutorial: bool = False
 	):
@@ -27,7 +90,7 @@ class BaseEncounterView(discord.ui.LayoutView):
 
 		self.demon = demon
 		self.encounters_cog = encounters_cog
-		self.consecutive_bad_interactions = consecutive_bad
+		self.consecutive_bad_interactions = consecutive_bad_interactions
 		self.message = message
 		self.tutorial = tutorial
 		self.status_display: discord.ui.TextDisplay | None = None
@@ -274,71 +337,7 @@ class FollowupEncounterView(BaseEncounterView):
 		return callback
 
 
-class Encounters(commands.Cog):
-	'''
-	Cog handles random encounters. It currently listens to messages and after a number of them,
-	will trigger an encounter. The encounter is represented as an embed with options as buttons.
-	'''
-	def __init__(self, bot: commands.Bot):
-		self.bot = bot
-		# self.message_counter = 2
-		# self.encounter_threshold = random.randint(1, 2)
 
-	
-	async def start_encounter(self, send_to_channel: discord.TextChannel):
-		'''
-		Starts an encounter by selecting a demon and creating a layout view.
-		It will send the encounter to the specified channel, which can be configured to a dedicated 
-		channel if necessary.
-		'''
-		demon_cog 	= self.bot.get_cog('Demon')
-		demon 		= demon_cog.get_random_demon()	# type: ignore
-		count 		= random.randint(1, 3)
-		view		= InitialEncounterView(demon, self, count)
-		message		= await send_to_channel.send(view = view)
-
-		view.message = message
-
-
-	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User):
-		'''
-		Starts a forced encounter with a Pixie (ID 1) that acts as a tutorial.
-		'''
-		demon_cog 	= self.bot.get_cog('Demon')
-		demon 		= demon_cog.get_demon_by_id(1)	# type: ignore
-		view		= InitialEncounterView(demon, self)
-		message		= await send_to_channel.send(view = view)
-
-		view.user_exclusive_to = user
-		view.message = message
-		view.tutorial = True
-		# demon_cog = self.bot.get_cog('Demon')
-		# demon = demon_cog.get_demon_by_id(1)	# type: ignore
-
-		# if demon is None : return
-
-		# happiness_val = 80
-		# dialogue_options = DIALOGUE_OPTIONS
-		# count = 1
-
-		# embed 	= EncounterEmbed(demon, f"Hey {user.mention}, what's going on?", dialogue_options, count)
-		# view 	= EncounterView(demon, dialogue_options, happiness_val, self, count, user)
-
-		# view.create_default_button_view(True)
-		# message = await send_to_channel.send(embed = embed, view = view)
-		# view.message = message
-		pass
-
-
-	async def join_player_party(self, player: discord.User | discord.Member, server: discord.Guild | None, demon: DemonData) -> bool:
-		'''
-		Function for when a demon JOINS the player's party from an encounter. If it is a new demon, it will be added to the compendium and return True.
-		If it exists in it already, join the party at the default rank and return with False.
-		'''
-		players_cog = self.bot.get_cog('Players')
-		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
-		await players_cog.set_demon_in_party(player.id, server.id, demon.id)								# type: ignore
-		return new_entry
 	
 
 	# @commands.Cog.listener()
@@ -363,6 +362,6 @@ class Encounters(commands.Cog):
 	# 		self.encounter_threshold = random.randint(1, 2)
 
 
-# Add the cog to the bot.
-async def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot) -> None:
+	'''Add the Encounters cog to the bot.'''
 	await bot.add_cog(Encounters(bot))
