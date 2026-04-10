@@ -361,6 +361,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 		container.add_item(ui.MediaGallery().add_item(media = self.demon.image_url))
 
+		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.small))
 		self.status_display = ui.TextDisplay(f"-# *What will you do?*")
 		container.add_item(self.status_display)
 
