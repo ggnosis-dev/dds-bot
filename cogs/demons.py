@@ -1,6 +1,6 @@
 import sqlite3
 
-from discord.ext import commands
+from database_paths import DEMONS_DB_PATH
 from shared_enums import Personality
 
 
@@ -28,13 +28,8 @@ class DemonData:
 		self.image_url = image_url
 
 
-class Demon(commands.Cog):
-	'''Cog for handling demon data retrieval and management.'''
-	def __init__(self, bot: commands.Bot):
-		'''Initialise the Demon cog with a reference to the bot instance.'''
-		self.bot = bot
-
-
+class Demons:
+	'''Class for managing demon data retrieval from the database.'''
 	def _convert_row_to_demon_data(self, row: tuple) -> DemonData:
 		'''
 		Convert retrieved DB row into a DemonData object.
@@ -64,7 +59,7 @@ class Demon(commands.Cog):
 		Returns:
 			DemonData | None: Demon's data if found, otherwise None.
 		'''
-		with sqlite3.connect('compendium.db') as conn:
+		with sqlite3.connect(DEMONS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute('''
 				SELECT id, name, race, rank, colour, personality, image_url 
@@ -86,7 +81,7 @@ class Demon(commands.Cog):
 		Returns:
 			int: Demon's ID if found, otherwise -1.
 		'''
-		with sqlite3.connect('compendium.db') as conn:
+		with sqlite3.connect(DEMONS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			response = cursor.execute('''
 				SELECT id FROM demons 
@@ -102,10 +97,8 @@ class Demon(commands.Cog):
 		
 		Returns:
 			DemonData: Random demon's data.
-		Raises:
-			RuntimeError: If DB is empty.
 		'''
-		with sqlite3.connect('compendium.db') as conn:
+		with sqlite3.connect(DEMONS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute('''
 				SELECT id, name, race, rank, colour, personality, image_url 
@@ -118,9 +111,3 @@ class Demon(commands.Cog):
 			raise RuntimeError("ERROR: No demons found in the database.")
 
 		return self._convert_row_to_demon_data(row)
-
-
-# Add the cog to the bot.
-async def setup(bot: commands.Bot):
-	'''Add the Demon cog to the bot.'''
-	await bot.add_cog(Demon(bot))

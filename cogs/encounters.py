@@ -2,9 +2,11 @@ import discord
 import random
 
 from abc import ABC, abstractmethod
-from cogs.demons import DemonData
+from cogs.demons import Demons, DemonData
+from cogs.players import Players
 from discord.ext import commands
 from shared_enums import Emotes, Personality, ResponseType
+
 
 dedicated_channel = 1486290442877407333
 
@@ -24,10 +26,36 @@ class Encounters(commands.Cog):
 			bot (commands.Bot): The bot instance to access other cogs and send messages.
 		'''
 		self.bot = bot
-		# self.message_counter = 2
-		# self.encounter_threshold = random.randint(1, 2)
+		self.demon_db = Demons()
+		self.player_db = Players()
 
-	async def start_encounter(self, send_to_channel: discord.TextChannel) -> None:
+
+	@commands.command(name = 'encounter', aliases = ['e'], help = "Start a test encounter with a random demon.")
+	async def test_encounter_command(self, ctx) -> None:
+		'''Command to start a test encounter with a random demon.'''
+		await self._start_encounter(ctx.channel)
+
+
+	@commands.command(name = 'start', help = "Sets up the player to start playing.")
+	async def start_tutorial_command(self, ctx) -> None:
+		'''Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial.'''
+		if await self.player_db.setup_player(ctx):
+			send_to_channel = self.bot.get_channel(dedicated_channel) or ctx.channel
+			
+			if not isinstance(send_to_channel, discord.TextChannel):
+				raise RuntimeError("ERROR: Could not find the channel to send the encounter to.")
+
+			await ctx.send("Starting your first encounter...")
+			demon = self.demon_db.get_demon_by_id(1)
+
+			if demon is None:
+				raise RuntimeError("ERROR: Demon at ID 1 not found in the database.")
+
+			view = EncounterViewInitial(demon, self, user_exclusive_to = ctx.author, tutorial = True)
+			await send_to_channel.send(view = view)
+
+
+	async def _start_encounter(self, send_to_channel: discord.TextChannel) -> None:
 		'''
 		Starts an encounter by selecting a demon and creating a layout view. It will send the encounter to the 
 		specified channel, which can be configured to a dedicated channel if necessary.
@@ -35,28 +63,11 @@ class Encounters(commands.Cog):
 		Args:
 			send_to_channel (discord.TextChannel): Channel to send the encounter to.
 		'''
-		demon_cog 	= self.bot.get_cog('Demon')
-		demon 		= demon_cog.get_random_demon()	# type: ignore
-		count 		= random.randint(1, 3)
-		view		= EncounterViewInitial(demon, self, count)
-		message		= await send_to_channel.send(view = view)
+		demon = self.demon_db.get_random_demon()
+		count = random.randint(1, 3)
+		view = EncounterViewInitial(demon, self, count)
+		await send_to_channel.send(view = view)
 
-		view.message = message
-
-	async def start_tutorial_encounter(self, send_to_channel: discord.TextChannel, user: discord.User) -> None:
-		'''
-		Starts a forced encounter with a Pixie (ID 1) that acts as a tutorial.
-
-		Args:
-			send_to_channel (discord.TextChannel): Channel to send the encounter to.
-			user (discord.User): User that the encounter is exclusive to.
-		'''
-		demon_cog 	= self.bot.get_cog('Demon')
-		demon 		= demon_cog.get_demon_by_id(1)	# type: ignore
-		view		= EncounterViewInitial(demon, self, user_exclusive_to = user, tutorial = True)
-		message		= await send_to_channel.send(view = view)
-
-		view.message = message
 
 	async def join_player_party(
 		self, 
@@ -74,9 +85,13 @@ class Encounters(commands.Cog):
 		Returns:
 			bool: True if the demon was NEWLY ADDED to the compendium, False if it was just added to the party.
 		'''
-		players_cog = self.bot.get_cog('Players')
-		new_entry = await players_cog.add_demon_to_compendium(player.id, server.id, demon.id, demon.rank)	# type: ignore
-		await players_cog.set_demon_in_party(player.id, server.id, demon.id)								# type: ignore
+		server_id = server.id if server else None
+
+		if server_id is None:
+			raise RuntimeError("ERROR: Server ID is None.")
+
+		new_entry = await self.player_db.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
+		await self.player_db.set_demon_in_party(player.id, server_id, demon.id)
 		return new_entry
 
 
@@ -118,7 +133,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 
 	@property
-	def root_view(self) -> EncounterViewTemplate:
+	def _root_view(self) -> EncounterViewTemplate:
 		'''Helper property to get the parent view that has the icon count and status display.'''
 		parent = self.parent_view or self
 		return parent
@@ -243,7 +258,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			interaction (discord.Interaction): The Discord interaction object from the button press.
 		'''
 		# For followup encounters, keep track of the parent view.
-		parent_view = self.root_view
+		parent_view = self._root_view
 
 		followup_view = EncounterViewFollowup(
 			demon = self.demon,
@@ -272,7 +287,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			status_message (str): The message to display in the status of the parent view after interaction.
 		'''
 		# For finished encounters, update the parent_view if we've had a followup.
-		parent_view = self.root_view
+		parent_view = self._root_view
 		parent_view._update_icon_count()
 
 		if parent_view.status_display is not None:
@@ -312,7 +327,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 			encounters_cog (Encounters): The Encounters cog instance to call functions on.
 			count (int, optional): The number of interactions before encounter ends. Defaults to 1.
 			user_exclusive_to (discord.User | None, optional): If set, only this user can interact with the encounter. Defaults to None.
-			tutorial (bool, optional): If set to True, the encounter is in tutorial mode. Defaults to False.
+			tutorial (bool, optional): If set to True, the encounter can't be failed. Defaults to False.
 		'''
 		super().__init__(demon, encounters_cog, tutorial = tutorial)
 
@@ -340,11 +355,11 @@ class EncounterViewInitial(EncounterViewTemplate):
 		
 		container.add_item(self.icon_display)
 		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {message}\n"))
-		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 
 		self._build_option_buttons(container, dialogue_options)
 
-		container.add_item(ui.MediaGallery().add_item(media=self.demon.image_url))
+		container.add_item(ui.MediaGallery().add_item(media = self.demon.image_url))
 
 		self.status_display = ui.TextDisplay(f"-# *What will you do?*")
 		container.add_item(self.status_display)
@@ -482,28 +497,5 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		return callback
 
 
-	# @commands.Cog.listener()
-	# async def on_message(self, message: discord.Message):
-	# 	if message.author == self.bot.user:
-	# 		return
-		
-	# 	self.message_counter += 2
-
-	# 	if self.message_counter >= self.encounter_threshold:
-
-	# 		send_to_channel_id = dedicated_channel if dedicated_channel else message.channel.id
-	# 		channel = self.bot.get_channel(send_to_channel_id)
-
-	# 		if not isinstance(channel, discord.TextChannel):
-	# 			return
-
-	# 		await self.start_encounter(channel)
-
-	# 		# Reset message counter.
-	# 		self.message_counter = 0
-	# 		self.encounter_threshold = random.randint(1, 2)
-
-
 async def setup(bot: commands.Bot) -> None:
-	'''Add the Encounters cog to the bot.'''
 	await bot.add_cog(Encounters(bot))

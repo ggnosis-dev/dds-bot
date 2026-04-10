@@ -1,8 +1,10 @@
+import asyncio
 import discord
+import os
+
+from cogs.players import Players
 from discord.ext import commands
 from dotenv import load_dotenv
-import os
-import asyncio
 
 # Load the environment variables from the .env file.
 load_dotenv()
@@ -20,35 +22,11 @@ async def on_ready():
 	print(f'{bot.user} has connected to Discord!')
 
 
-@bot.command(name = 'start', help = "Sets up the player to start playing.")
-async def start_command(ctx):
-	'''
-	Setup the player using a new PlayerData object. We'll then start and 'personal' encounter that is
-	only available to the player, acting as a sort of tutorial and introduction.
-	'''
-	players_cog = bot.get_cog('Players')
-
-	# If player setup is successful, begin the tutorial encounter.
-	if await players_cog.setup_player(ctx):										# type: ignore
-		await ctx.send("Starting your first encounter...")
-		encounters_cog = bot.get_cog('Encounters')
-
-		await encounters_cog.start_tutorial_encounter(ctx.channel, ctx.author)	# type: ignore
-
-
-@bot.command(name = 'encounter', aliases = ['e'], help = "Start a test encounter with a random demon.")
-async def encounter_command(ctx):
-	encounters_cog = bot.get_cog('Encounters')
-	await encounters_cog.start_encounter(ctx.channel)	# type: ignore
-
-
 async def load_cogs():
 	async with bot:
-		await bot.load_extension('cogs.players')
 		await bot.load_extension('cogs.encounters')
 		await bot.load_extension('cogs.party')
 		await bot.load_extension('cogs.compendium')
-		await bot.load_extension('cogs.demons')
 
 		if token != None:
 			await bot.start(token)

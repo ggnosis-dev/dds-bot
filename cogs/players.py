@@ -1,76 +1,60 @@
 import sqlite3
 
+from database_paths import DEMONS_DB_PATH, PLAYERS_DB_PATH
 from discord.ext import commands
 from shared_enums import DemonRegistration
 
 
-# https://www.sqlitetutorial.net/sqlite-json/
-with sqlite3.connect('players.db') as conn:
-	cursor = conn.cursor()
-	cursor.execute('''
-		CREATE TABLE IF NOT EXISTS players (
-			player_id 		INTEGER,
-			server_id 		INTEGER,
-			CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
-		)
-	''')
-
-	cursor.execute('''		   
-		CREATE TABLE IF NOT EXISTS player_demons (
-			player_id 		INTEGER,
-			server_id 		INTEGER,
-			demon_id		INTEGER,
-			stored_rank		INTEGER,
-			in_party		INTEGER CHECK (in_party IN (0, 1)),
-			UNIQUE(player_id, server_id, demon_id)
-		)
-	''')
-
-	# Index for faster lookup of player's parties and compendiums.
-	cursor.execute('''
-		CREATE INDEX IF NOT EXISTS idx_player_demons ON player_demons(player_id, server_id)
-	''')
-
-	# TESTS:
-	# cursor.execute('DELETE FROM players')
-	# cursor.execute('DELETE FROM player_demons')
-	# cursor.execute('UPDATE player_demons SET in_party = 0')
-
-
 class PlayerData:
-	def __init__(self, id: int, server_id: int):
+	'''Data class for a player's information.'''
+	def __init__(self, id: int, server_id: int) -> None:
+		'''
+		Initialize a new PlayerData instance.
+		TODO: Add currencies.
+
+		Args:
+			id (int): The player's ID.
+			server_id (int): The server ID the player belongs to.
+		'''
 		self.id = id
 		self.server_id = server_id
 
 
-class Players(commands.Cog):
-	def __init__(self, bot: commands.Bot):
-		self.bot = bot
-
+class Players:
+	'''Class for querying player data and updates to the database.'''
 	async def setup_player(self, ctx: commands.Context) -> bool:
+		'''
+		Set up a new player in the database if they don't already have a profile.
+
+		Returns:
+			bool: True if a new profile was created, False if player already exists.
+		'''
 		if ctx.guild is None:
-			await ctx.send("ERROR: Could not determine server ID. How did you even get here?")
-			return False
+			raise RuntimeError("ERROR: Server ID could not be determined.")
 
 		id = ctx.author.id
 		server_id = ctx.guild.id
-		player_data = PlayerData(id, server_id)
 
-		# Exit with False if player exists.
-		if self.check_player_exists(player_data):
+		if self.check_player_exists(id, server_id):
 			await ctx.send("You already have a profile set up on this server!")
 			return False
 		
 		await ctx.send(f"Welcome to the bot {ctx.author.mention}! Setting up your profile now...")
-
+		player_data = PlayerData(id, server_id)
 		self.save_player_to_db(player_data)
-		
 		await ctx.send("Your profile has been set up!")
+
 		return True
 
 
-	def save_player_to_db(self, player: PlayerData):
-		with sqlite3.connect('players.db') as conn:
+	def save_player_to_db(self, player: PlayerData) -> None:
+		'''
+		Save a new player's data to the database.
+
+		Args:
+			player (PlayerData): Player's data that needs saving.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
 				INSERT INTO players (player_id, server_id) 
@@ -79,18 +63,44 @@ class Players(commands.Cog):
 			print(f'INFO: New player added: {player.id} | Server {player.server_id}.')
 
 
-	def check_player_exists(self, player: PlayerData) -> bool:
-		with sqlite3.connect('players.db') as conn:
+	def check_player_exists(self, player_id, player_server) -> bool:
+		'''
+		Check if a player already exists in the database.
+
+		Args:
+			player_id (int): Player ID.
+			player_server (int): Server ID the player belongs to.
+		Returns:
+			bool: True if the player exists, False otherwise.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			result = cursor.execute('''
 				SELECT * FROM players 
 					WHERE player_id = ? AND server_id = ?
-			''', (player.id, player.server_id)).fetchone()
+			''', (player_id, player_server)).fetchone()
 			return result is not None
 	
 
-	async def set_demon_in_party(self, player_id: int, server_id: int, demon_id: int, party_add: bool = True) -> bool:
-		with sqlite3.connect('players.db') as conn:
+	async def set_demon_in_party(
+		self, 
+		player_id: int, 
+		server_id: int, 
+		demon_id: int, 
+		party_add: bool = True
+	) -> bool:
+		'''
+		Manage whether to add or remove a demon from a player's party.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			demon_id (int): Demon's ID.
+			party_add (bool): True to add to party, False to remove from party.
+		Returns:
+			bool: True if the demon's status was updated, False otherwise.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
 				UPDATE player_demons 
@@ -98,12 +108,28 @@ class Players(commands.Cog):
 				WHERE player_id = ? AND server_id = ? AND demon_id = ? AND in_party != ?
 			''', (party_add, player_id, server_id, demon_id, party_add))
 
-			# Returns True if a row was updated, False otherwise.
 			return cursor.rowcount > 0
 
 
-	async def add_demon_to_compendium(self, player_id: int, server_id: int, demon_id: int, demon_rank: int) -> bool:
-		with sqlite3.connect('players.db') as conn:
+	async def add_demon_to_compendium(
+		self, 
+		player_id: int, 
+		server_id: int, 
+		demon_id: int, 
+		demon_rank: int
+	) -> bool:
+		'''
+		Add a demon to the player's compendium if it doesn't already exist.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			demon_id (int): Demon's ID.
+			demon_rank (int): Demon's rank.
+		Returns:
+			bool: True if the demon was added, False if it already exists.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 
 			# Check if demon is already in compendium.
@@ -122,17 +148,29 @@ class Players(commands.Cog):
 
 			return True
 		
-	async def check_demon_registration(self, user_id: int, guild_id: int, demon_id: int) -> DemonRegistration:
+
+	async def check_demon_registration(
+		self, 
+		user_id: int, 
+		server_id: int, 
+		demon_id: int
+	) -> DemonRegistration:
 		'''
-		Check if a demon is in the player's party or compendium. Function will return True if in the party,
-		False if it's in the compendium but not the party, and None if it doesn't have an entry at all.
+		Check a demon's current state of registration for a specific player. 
+
+		Args:
+			user_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			demon_id (int): Demon's ID.
+		Returns:
+			DemonRegistration: Enum indicating the demon's registration status.
 		'''
-		with sqlite3.connect('players.db') as conn:
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			result = cursor.execute('''
 				SELECT in_party FROM player_demons 
 				WHERE player_id = ? AND server_id = ? AND demon_id = ?
-			''', (user_id, guild_id, demon_id)).fetchone()
+			''', (user_id, server_id, demon_id)).fetchone()
 
 		match result:
 			case (1,) 	: return DemonRegistration.IN_PARTY
@@ -140,5 +178,50 @@ class Players(commands.Cog):
 			case _		: return DemonRegistration.UNREGISTERED
 
 
-async def setup(bot: commands.Bot):
-	await bot.add_cog(Players(bot))
+	async def check_party(self, user_id: int, server_id: int) -> list[dict]:
+		'''
+		Query the database for the player's current party. Joins the player_demons table with the demon database.
+
+		Returns:
+			list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			# Attach the demon database to gain access to its data.
+			conn.execute('ATTACH DATABASE ? AS demon_db', (str(DEMONS_DB_PATH),))
+			cursor = conn.cursor()
+
+			# Retrieve the player's party.
+			result = cursor.execute('''
+				SELECT d.id, d.name, d.race, pd.stored_rank
+				FROM player_demons pd
+				JOIN demon_db.demons d ON pd.demon_id = d.id
+				WHERE pd.player_id = ? AND pd.server_id = ? AND pd.in_party = 1
+				ORDER BY d.race ASC, d.id ASC
+			''', (user_id, server_id)).fetchall()
+			
+			return result if result else []
+	
+
+	async def check_compendium(self, user_id: int, server_id: int) -> list[dict]:
+		'''
+		Query the database for the player's encountered demons. Joins the player_demons table with the demon database.
+
+		Returns:
+			list[dict]: List of demons in the player's compendium. Includes ID, name, race, personality, stored_rank, and in_party status.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			# Attach the demon database to gain access to their data.
+			conn.execute('ATTACH DATABASE ? AS demons_db', (str(DEMONS_DB_PATH),))
+			cursor = conn.cursor()
+
+			# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
+			result = cursor.execute('''
+				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
+				FROM demons_db.demons d
+				LEFT JOIN player_demons pd ON pd.demon_id = d.id
+					AND pd.player_id = ? AND pd.server_id = ?
+				ORDER BY d.race ASC, d.id ASC
+			''', (user_id, server_id)).fetchall()
+
+			return result if result else []
+
