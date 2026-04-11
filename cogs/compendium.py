@@ -31,7 +31,7 @@ class Compendium(commands.Cog):
 		if user_id is None : user_id = ctx.author.id
 
 		comp_list = await self.player_db.check_compendium(user_id, server_id)
-		view = CompendiumEmbed(ctx.author.name, comp_list)
+		view = CompendiumView(ctx.author.name, comp_list)
 		await ctx.send(view = view)
 	
 
@@ -71,14 +71,14 @@ class Compendium(commands.Cog):
 			await ctx.send(f"You have summoned {demon_name} to your party...")
 		
 
-class CompendiumEmbed(discord.ui.LayoutView):
+class CompendiumView(discord.ui.LayoutView):
 	'''Custom view for displaying the player's viewed demons and hints at unseen ones.'''
 	def __init__(
 		self, 
 		user_name: str, 
 		list: list[dict], 
 		page: int = 1, 
-		colour: int = 0xE93700
+		colour: int = 0xE93700,
 	) -> None:
 		'''
 		Init for the compendium view.
@@ -88,6 +88,7 @@ class CompendiumEmbed(discord.ui.LayoutView):
 			list (list[dict]): List of demons in the player's compendium. Each dict should include ID, name, race, personality, rank, and in_party.
 			page (int): Current page number of the compendium view. Defaults to 1.
 			colour (int): Colour of the compendium view.
+			filtered_race (str): Race to filter the compendium view by. Defaults to 'all'.
 		'''
 		super().__init__()
 
@@ -95,20 +96,51 @@ class CompendiumEmbed(discord.ui.LayoutView):
 		self.list = list
 		self.page = page
 		self.colour = colour
+		self.filtered_race = 'all'
 
 		self._build_compendium_layout()
+
+	class RaceSelect(discord.ui.Select):
+		'''Custom select menu for filtering demons by race'''
+		def __init__(self, races: list[str]) -> None:
+			options = [discord.SelectOption(label = 'All', value = 'all')]
+
+			sorted_races = sorted(races)
+			for r in sorted_races:
+				options.append(discord.SelectOption(label = r, value = r.lower()))
+
+			super().__init__(
+				placeholder = 'Filter By Race',
+				options = options
+			)
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			'''Callback for when a race is selected from the filter menu.'''
+			if not isinstance(self.view, CompendiumView):
+				return
+			
+			view: CompendiumView = self.view
+			view.filtered_race = self.values[0]
+			view.clear_items()
+			view._build_compendium_layout()
+			await interaction.response.edit_message(view = view)
 
 
 	def _build_compendium_layout(self) -> None:
 		'''Function to build the compendium view layout.'''
 		ui = discord.ui
 		container = ui.Container(accent_color = self.colour)
+		race_select = self._build_race_filter()
 		
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Compendium"))
+		container.add_item(race_select)
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 
 		for entry in self.list:
 			_id, name, race, personality, rank, in_party = entry
+
+			if self.filtered_race != 'all' and race.lower() != self.filtered_race:
+				continue
 
 			# This will exist if the player has encountered.
 			if rank is not None:
@@ -125,6 +157,24 @@ class CompendiumEmbed(discord.ui.LayoutView):
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 		container.add_item(ui.TextDisplay(f'-# Page {self.page}'))
 		self.add_item(container)
+
+
+	def _build_race_filter(self) -> discord.ui.ActionRow:
+		'''
+		Helper to build the race filter select menu. Gathers distinct races from the comp list
+		and populates the options into the select menu.
+
+		Returns:
+			discord.ui.ActionRow: Action row containing the race filter select menu.
+		'''
+		# Set will prevent duplicates.
+		races = set()
+		for entry in self.list:
+			race = entry[2]
+			races.add(race)
+		race_select = self.RaceSelect(list(races))
+		return discord.ui.ActionRow(race_select)
+
 
 
 async def setup(bot: commands.Bot) -> None:
