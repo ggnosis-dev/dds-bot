@@ -5,6 +5,8 @@ from cogs.players import Players
 from discord.ext import commands
 from shared_enums import DemonRegistration, Emotes
 
+## Constants
+PAGE_SIZE = 5
 
 class Compendium(commands.Cog):
 	'''Cog for viewing and summoning from player compendiums.'''
@@ -101,7 +103,7 @@ class CompendiumView(discord.ui.LayoutView):
 		self._build_compendium_layout()
 
 	class RaceSelect(discord.ui.Select):
-		'''Custom select menu for filtering demons by race'''
+		'''Custom select menu for filtering demons by race.'''
 		def __init__(self, races: list[str]) -> None:
 			options = [discord.SelectOption(label = 'All', value = 'all')]
 
@@ -116,11 +118,39 @@ class CompendiumView(discord.ui.LayoutView):
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			'''Callback for when a race is selected from the filter menu.'''
-			if not isinstance(self.view, CompendiumView):
-				return
+			if not isinstance(self.view, CompendiumView) : return
 			
 			view: CompendiumView = self.view
 			view.filtered_race = self.values[0]
+			view.page = 1
+			view.clear_items()
+			view._build_compendium_layout()
+			await interaction.response.edit_message(view = view)
+
+
+	class PageButton(discord.ui.Button):
+		'''Custom button for navigating between pages of the compendium view.'''
+		def __init__(self, direction: str) -> None:
+			if direction == 'prev':
+				super().__init__(label = '<', style = discord.ButtonStyle.primary)
+			elif direction == 'next':
+				super().__init__(label = '>', style = discord.ButtonStyle.primary)
+			else:
+				raise ValueError("ERROR: Direction must be 'prev' or 'next'.")
+
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			'''Callback for when a page navigation button is clicked.'''
+			if not isinstance(self.view, CompendiumView) : return
+			
+			view: CompendiumView = self.view
+
+			if self.label == '<':
+				# Allow wrapping.
+				view.page = view.total_pages if view.page <= 1 else view.page - 1
+			elif self.label == '>':
+				view.page = 1 if view.page >= view.total_pages else view.page + 1
+
 			view.clear_items()
 			view._build_compendium_layout()
 			await interaction.response.edit_message(view = view)
@@ -128,15 +158,17 @@ class CompendiumView(discord.ui.LayoutView):
 
 	def _build_compendium_layout(self) -> None:
 		'''Function to build the compendium view layout.'''
-		ui = discord.ui
-		container = ui.Container(accent_color = self.colour)
-		race_select = self._build_race_filter()
+		ui 				= discord.ui
+		container 		= ui.Container(accent_color = self.colour)
+		race_select 	= self._build_race_filter()
+		page_entries	= self._get_page_entries()
+		page_nav 		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
 		
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Compendium"))
 		container.add_item(race_select)
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 
-		for entry in self.list:
+		for entry in page_entries:
 			_id, name, race, personality, rank, in_party = entry
 
 			if self.filtered_race != 'all' and race.lower() != self.filtered_race:
@@ -155,7 +187,8 @@ class CompendiumView(discord.ui.LayoutView):
 				))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
-		container.add_item(ui.TextDisplay(f'-# Page {self.page}'))
+		container.add_item(ui.TextDisplay(f'-# Page {self.page} of {self.total_pages}'))
+		container.add_item(page_nav)
 		self.add_item(container)
 
 
@@ -175,6 +208,32 @@ class CompendiumView(discord.ui.LayoutView):
 		race_select = self.RaceSelect(list(races))
 		return discord.ui.ActionRow(race_select)
 
+
+	def _get_page_entries(self) -> list[dict]:
+		'''
+		Helper function to get the entries to be displayed on the current page of the compendium view.
+		Sets self.total_pages based on the number of entries after filtering.
+
+		Returns:
+			list[dict]: List of demon entries to be displayed on the current page.
+		'''
+		page_list = []
+
+		for entry in self.list:
+			selected_race = entry[2].lower()
+
+			# Check filtered_race against selected race and only add to page list if it matches.
+			if self.filtered_race == 'all' or selected_race == self.filtered_race:
+				page_list.append(entry)
+
+		self.total_pages 	= int(max(1, (len(page_list) + PAGE_SIZE - 1) / PAGE_SIZE))
+		self.page		 	= max(1, min(self.page, self.total_pages))
+
+		start_index	= (self.page - 1) * PAGE_SIZE
+		end_index 	= start_index + PAGE_SIZE
+
+		# Use delimiter to slice out entries.
+		return page_list[start_index:end_index]
 
 
 async def setup(bot: commands.Bot) -> None:

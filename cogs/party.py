@@ -5,6 +5,8 @@ from cogs.players import Players
 from discord.ext import commands
 from shared_enums import DemonRegistration, Emotes
 
+## Constants
+PAGE_SIZE = 5
 
 class Party(commands.Cog):
 	'''Cog for viewing and managing player parties.'''
@@ -99,15 +101,45 @@ class PartyView(discord.ui.LayoutView):
 		self._build_party_layout() if list else self._build_party_empty_layout()
 
 
+	class PageButton(discord.ui.Button):
+		'''Custom button for navigating between pages of the party view.'''
+		def __init__(self, direction: str) -> None:
+			if direction == 'prev':
+				super().__init__(label = '<', style = discord.ButtonStyle.primary)
+			elif direction == 'next':
+				super().__init__(label = '>', style = discord.ButtonStyle.primary)
+			else:
+				raise ValueError("ERROR: Direction must be 'prev' or 'next'.")
+
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			'''Callback for when a page navigation button is clicked.'''
+			if not isinstance(self.view, PartyView) : return
+			
+			view: PartyView = self.view
+
+			if self.label == '<':
+				# Allow wrapping.
+				view.page = view.total_pages if view.page <= 1 else view.page - 1
+			elif self.label == '>':
+				view.page = 1 if view.page >= view.total_pages else view.page + 1
+
+			view.clear_items()
+			view._build_party_layout()
+			await interaction.response.edit_message(view = view)
+
+
 	def _build_party_layout(self) -> None:
 		'''Function to build the party view layout.'''
-		ui = discord.ui
-		container = ui.Container(accent_color = self.colour)
+		ui 				= discord.ui
+		container 		= ui.Container(accent_color = self.colour)
+		page_entries	= self._get_page_entries()
+		page_nav		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
 		
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Party"))
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 
-		for entry in self.list:
+		for entry in page_entries:
 			_id, name, race, rank = entry
 
 			container.add_item(ui.TextDisplay(
@@ -115,7 +147,8 @@ class PartyView(discord.ui.LayoutView):
 			))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
-		container.add_item(ui.TextDisplay(f'-# Page {self.page}'))
+		container.add_item(ui.TextDisplay(f'-# Page {self.page} of {self.total_pages}'))
+		container.add_item(page_nav)
 
 		self.add_item(container)
 
@@ -126,6 +159,24 @@ class PartyView(discord.ui.LayoutView):
 		container = ui.Container(accent_color = self.colour)
 		container.add_item(ui.TextDisplay(f'Your party is empty!'))
 		self.add_item(container)
+
+
+	def _get_page_entries(self) -> list[dict]:
+		'''
+		Helper function to get the entries to be displayed on the current page of the party view.
+		Sets self.total_pages based on the number of entries after filtering.
+
+		Returns:
+			list[dict]: List of demon entries to be displayed on the current page.
+		'''
+		self.total_pages 	= int(max(1, (len(self.list) + PAGE_SIZE - 1) / PAGE_SIZE))
+		self.page		 	= max(1, min(self.page, self.total_pages))
+
+		start_index	= (self.page - 1) * PAGE_SIZE
+		end_index 	= start_index + PAGE_SIZE
+
+		# Use delimiter to slice out entries.
+		return self.list[start_index:end_index]
 
 
 async def setup(bot: commands.Bot) -> None:
