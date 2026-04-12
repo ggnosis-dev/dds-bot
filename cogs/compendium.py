@@ -123,6 +123,7 @@ class CompendiumView(discord.ui.LayoutView):
 			view: CompendiumView = self.view
 			view.filtered_race = self.values[0]
 			view.page = 1
+			view.total_pages = 1
 			view.clear_items()
 			view._build_compendium_layout()
 			await interaction.response.edit_message(view = view)
@@ -159,6 +160,7 @@ class CompendiumView(discord.ui.LayoutView):
 		'''Function to build the compendium view layout.'''
 		ui 				= discord.ui
 		container 		= ui.Container(accent_color = self.colour)
+		tab 			= '\u2003'
 		race_select 	= self._build_race_filter()
 		page_entries	= self._get_page_entries()
 		page_nav 		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
@@ -166,6 +168,14 @@ class CompendiumView(discord.ui.LayoutView):
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Compendium"))
 		container.add_item(race_select)
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
+		container.add_item(ui.TextDisplay(
+			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank{tab * 3}Personality"
+		))
+
+		max_width_race = 8
+		max_width_name = 12
+		max_width_rank = 3
+		max_width_pers = 12
 
 		for entry in page_entries:
 			_id, name, race, personality, rank, in_party = entry
@@ -173,16 +183,14 @@ class CompendiumView(discord.ui.LayoutView):
 			if self.filtered_race != 'all' and race.lower() != self.filtered_race:
 				continue
 
-			# This will exist if the player has encountered.
 			if rank is not None:
 				emote = Emotes.ICON.value if in_party else Emotes.BLANK.value
-
 				container.add_item(ui.TextDisplay(
-					f"{emote}\u2003\u2003{race}\u2003\u2003{name}\u2003\u2003\u2003\u2003`{rank}`\u2003\u2003{personality.title()}", 
+					f"{emote}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{str(rank):>{max_width_rank}}`{tab}`{personality.title():^{max_width_pers}}`"
 				))
 			else:
 				container.add_item(ui.TextDisplay(
-					f"{Emotes.BLANK.value}\u2003\u2003{race}\u2003\u2003?????\u2003\u2003\u2003\u2003`???`\u2003\u2003?????", 
+					f"{Emotes.BLANK.value}{tab}`{'?????':^{max_width_race}}`{tab}`{'?????':^{max_width_name}}`{tab}`{'???':>{max_width_rank}}`{tab}`{'?????':^{max_width_pers}}`"
 				))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
