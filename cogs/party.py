@@ -132,17 +132,25 @@ class PartyView(discord.ui.LayoutView):
 		'''Function to build the party view layout.'''
 		ui 				= discord.ui
 		container 		= ui.Container(accent_color = self.colour)
+		tab 			= '\u2003'
 		page_entries	= self._get_page_entries()
 		page_nav		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
 		
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Party"))
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
+		container.add_item(ui.TextDisplay(
+			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank"
+		))
+
+		max_width_race = 8
+		max_width_name = 12
+		max_width_rank = 3
 
 		for entry in page_entries:
 			_id, name, race, rank = entry
 
 			container.add_item(ui.TextDisplay(
-				f"{Emotes.ICON.value}\u2003\u2003{race}\u2003\u2003{name}\u2003\u2003\u2003\u2003`{rank}`", 
+				f"{Emotes.ICON.value}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{rank:>{max_width_rank}}`", 
 			))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
@@ -163,7 +171,7 @@ class PartyView(discord.ui.LayoutView):
 	def _get_page_entries(self) -> list[dict]:
 		'''
 		Helper function to get the entries to be displayed on the current page of the party view.
-		Sets self.total_pages based on the number of entries after filtering.
+		Sets self.total_pages based on the number of entries.
 
 		Returns:
 			list[dict]: List of demon entries to be displayed on the current page.
