@@ -113,13 +113,12 @@ class PartyView(discord.ui.LayoutView):
 
 
 		async def callback(self, interaction: discord.Interaction) -> None:
-			'''Callback for when a page navigation button is clicked.'''
+			'''Callback for when a page navigation button is clicked. Allows wrapping around the pages.'''
 			if not isinstance(self.view, PartyView) : return
 			
 			view: PartyView = self.view
 
 			if self.label == '<':
-				# Allow wrapping.
 				view.page = view.total_pages if view.page <= 1 else view.page - 1
 			elif self.label == '>':
 				view.page = 1 if view.page >= view.total_pages else view.page + 1
