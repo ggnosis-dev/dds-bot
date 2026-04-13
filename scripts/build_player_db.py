@@ -27,6 +27,16 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		)
 	''')
 
+	cursor.execute('''
+		CREATE TABLE IF NOT EXISTS player_gems (
+			player_id 		INTEGER,
+			server_id 		INTEGER,
+			gem_name		TEXT,
+			quantity		INTEGER,
+			UNIQUE(player_id, server_id, gem_name)
+		)
+	''')
+
 	# Index for faster lookup of player's parties and compendiums.
 	cursor.execute('''
 		CREATE INDEX IF NOT EXISTS idx_player_demons ON player_demons(player_id, server_id)

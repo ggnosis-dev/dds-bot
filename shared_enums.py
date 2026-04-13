@@ -21,3 +21,20 @@ class ResponseType(Enum):
 	GOOD = 1
 	NEUTRAL = 2
 	BAD = 3
+
+class GemList(Enum):
+	AGATE = 0
+	AMETHYST = 1
+	AQUAMARINE = 2
+	CORAL = 3
+	DIAMOND = 4
+	EMERALD = 5
+	GARNET = 6
+	JADE = 7
+	ONYX = 8
+	OPAL = 9
+	PEARL = 10
+	RUBY = 11
+	SAPPHIRE = 12
+	TOPAZ = 13
+	TURQUOISE = 14
