@@ -2,7 +2,6 @@ import asyncio
 import discord
 import os
 
-from cogs.players import Players
 from discord.ext import commands
 from dotenv import load_dotenv
 

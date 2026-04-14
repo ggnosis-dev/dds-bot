@@ -3,8 +3,8 @@ import random
 
 from abc import ABC, abstractmethod
 from cogs.demons import Demons, DemonData
-from cogs.players import Players
 from discord.ext import commands
+from helpers.players import Players
 from shared_enums import Emotes, Personality, ResponseType
 
 

@@ -1,8 +1,8 @@
 import discord
 
 from cogs.demons import Demons
-from cogs.players import Players
 from discord.ext import commands
+from helpers.players import Players
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
