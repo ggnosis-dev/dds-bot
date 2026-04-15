@@ -11,6 +11,9 @@ class CheckHandler(commands.Cog):
 	async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
 		'''Global error handler for command errors.'''
 		match error:
+			case checks.IsDeveloperCheck():
+				# Fail silently.
+				pass
 			case checks.NotInServerCheck():
 				await ctx.reply(str(error), mention_author = False)
 			case checks.ProfileSetupCheck():

@@ -2,6 +2,10 @@ from discord.ext import commands
 from helpers.players import Players
 
 
+class IsDeveloperCheck(commands.CheckFailure):
+	'''Exception for specific developer.'''
+	pass
+
 class NotInServerCheck(commands.CheckFailure):
 	'''Custom exception for failed in-server check.'''
 	pass
@@ -10,6 +14,12 @@ class NotInServerCheck(commands.CheckFailure):
 class ProfileSetupCheck(commands.CheckFailure):
 	'''Custom exception for failed profile setup check.'''
 	pass
+
+
+def is_developer():
+	def predicate(ctx: commands.Context):
+		return ctx.author.id == 233142721819312128
+	return commands.check(predicate)
 
 
 def is_admin():

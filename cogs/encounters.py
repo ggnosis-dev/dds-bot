@@ -30,6 +30,7 @@ class Encounters(commands.Cog):
 		self.player_db = players.Players()
 
 
+	@checks.is_developer()
 	@checks.has_profile()
 	@commands.command(name = 'encounter', aliases = ['e'], help = "Start a test encounter with a random demon.")
 	async def test_encounter_command(self, ctx) -> None:
