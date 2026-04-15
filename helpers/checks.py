@@ -1,13 +1,14 @@
 from discord.ext import commands
 from helpers.players import Players
 
-class ProfileSetupCheck(commands.CheckFailure):
-	'''Custom exception for failed profile setup check.'''
-	pass
-
 
 class NotInServerCheck(commands.CheckFailure):
 	'''Custom exception for failed in-server check.'''
+	pass
+
+
+class ProfileSetupCheck(commands.CheckFailure):
+	'''Custom exception for failed profile setup check.'''
 	pass
 
 

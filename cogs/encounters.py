@@ -4,7 +4,7 @@ import random
 from abc import ABC, abstractmethod
 from cogs.demons import Demons, DemonData
 from discord.ext import commands
-from helpers.players import Players
+from helpers import checks, players
 from shared_enums import Emotes, Personality, ResponseType
 
 
@@ -27,9 +27,10 @@ class Encounters(commands.Cog):
 		'''
 		self.bot = bot
 		self.demon_db = Demons()
-		self.player_db = Players()
+		self.player_db = players.Players()
 
 
+	@checks.has_profile()
 	@commands.command(name = 'encounter', aliases = ['e'], help = "Start a test encounter with a random demon.")
 	async def test_encounter_command(self, ctx) -> None:
 		'''Command to start a test encounter with a random demon.'''
