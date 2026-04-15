@@ -1,22 +1,29 @@
 import discord
 
 from discord.ext import commands
-
+from helpers import checks, players 
 from shared_enums import Emotes
 
 
 class Gems(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
+		self.player_db = players.Players()
+
 
 	@commands.command(name = 'gems', aliases = ['g'], description = "Displays the player's current gem collection.")
 	async def gem_collection_command(self, ctx) -> None:
 		'''View player's current gem collection.'''
 		pass
 
+
+	@checks.has_profile()
 	@commands.Cog.listener()
-	async def on_message(self, message):
-		'''Listener for player messages to track progress towards finding a gem.'''
+	async def on_message(self, message: discord.Message) -> None:
+		'''
+		Listener for player messages to track progress towards finding a gem.
+		Only triggers if player has a profile.
+		'''
 		'''
 		1. Each message will add to a gem hunt meter.
 			1. Would it be easier to have rank add to the meter faster or have the meter determined by rank?
@@ -27,7 +34,21 @@ class Gems(commands.Cog):
 		3. Send a message when a gem is found.
 		4. Update player gem table in DB.
 		'''
-		pass
+		# Exit early if message is from bot or not in a server.
+		if message.author.bot or message.guild is None:
+			return
+		
+		ctx = await self.bot.get_context(message)
+
+		# This check will exit if the player uses a proper command.
+		if ctx.valid : return
+		
+		player_id = message.author.id
+		guild_id = message.guild.id
+		exp = 1
+
+		# Increase exp towards finding a gem.
+		await self.player_db.increase_gems(player_id, guild_id, 'AMETHYST', exp)
 
 
 class GemCollectionView(discord.ui.View):

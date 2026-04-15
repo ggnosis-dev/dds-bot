@@ -32,6 +32,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			player_id 		INTEGER,
 			server_id 		INTEGER,
 			gem_name		TEXT,
+			meter			INTEGER,
 			quantity		INTEGER,
 			UNIQUE(player_id, server_id, gem_name)
 		)

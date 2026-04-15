@@ -225,3 +225,81 @@ class Players:
 
 			return result if result else []
 
+
+	def add_gem_info(self, player_id: int, server_id: int, gem_name: str) -> None:
+		'''
+		Add an entry for the selected demon's gem information if it doesn't already exist.
+		TODO: Should be used when selecting a demon.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			gem_name (str): Name of the gem associated with selected demon.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			conn.execute('ATTACH DATABASE ? AS demons_db', (str(DEMONS_DB_PATH),))
+			cursor = conn.cursor()
+
+			cursor.execute('''
+				  INSERT OR IGNORE INTO player_gems (player_id, server_id, gem_name, meter)
+				  VALUES (?, ?, ?, 0)
+			''', (player_id, server_id, gem_name))
+
+
+	async def increase_gems(self, player_id: int, server_id: int, gem_name: str, exp: int) -> bool:
+		'''
+		Add to player's gem meter and add a gem to their count if over a threshold.
+		Return whether a gem has been found.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			gem_name (str): Name of the gem associated with the selected demon.
+			exp (int): Amount to increase the gem meter by.
+		Returns:
+			bool: True if gem was found, False otherwise.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+
+			# Increase gem meter by exp, returning meter value.
+			cursor.execute('''
+				UPDATE player_gems
+				SET meter = meter + ?
+				WHERE player_id = ? AND server_id = ? AND gem_name = ?
+				RETURNING meter
+			''', (exp, player_id, server_id, gem_name))
+
+			# Get the meter value after the update to check if a gem has been found.
+			meter_val = cursor.fetchone()[0]
+
+			# Add gem to count and reset meter if gem found.
+			if meter_val >= 100:
+				cursor.execute('''
+					UPDATE player_gems
+					SET meter = 0, quantity = quantity + 1
+					WHERE player_id = ? AND server_id = ? AND gem_name = ?
+				''', (player_id, server_id, gem_name))
+
+				return True
+			return False
+
+
+		# with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		# 	cursor = conn.cursor()
+
+		# 	# Check if demon is already in compendium.
+		# 	exists_in_comp = cursor.execute('''
+		# 		SELECT 1 FROM player_demons
+		# 		WHERE player_id = ? AND server_id = ? AND demon_id = ?
+		# 	''', (player_id, server_id, demon_id)).fetchone()
+
+		# 	# Return early if demon is already in compendium to avoid dupes.
+		# 	if exists_in_comp : return False
+			
+		# 	cursor.execute('''
+		# 		INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank, in_party)
+		# 		VALUES (?, ?, ?, ?, 0)
+		# 	''', (player_id, server_id, demon_id, demon_rank))
+
+		# 	return True
