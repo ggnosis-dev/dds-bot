@@ -1,8 +1,9 @@
 import discord
+import typing
 
 from cogs.demons import Demons
 from discord.ext import commands
-from helpers.players import Players
+from helpers import checks, players
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -14,29 +15,27 @@ class Compendium(commands.Cog):
 		'''Init the Compendium cog with reference to bot instance and database classes.'''
 		self.bot = bot
 		self.demon_db = Demons()
-		self.player_db = Players()
+		self.player_db = players.Players()
 
 
 	@commands.command(name = 'compendium', aliases = ['comp', 'c'], help = "Displays the player's compendium.")
-	async def compendium_command(self, ctx: commands.Context, user_id: int | None = None) -> None:
+	async def compendium_command(self, ctx: commands.Context, mentioned: discord.Member | None = None) -> None:
 		'''
 		Command to display player's seen demons which is stored in their compendium.
 
 		Args:
 			ctx (discord.Context): Context of the command call.
-			user_id (int | None): Optional user ID to check compendium for.
+			mentioned (discord.Member | None): Optional user to check compendium for.
 		'''
-		if ctx.guild is None : return
+		guild = typing.cast(discord.Guild, ctx.guild)
+		player = mentioned if mentioned is not None else ctx.author
 
-		server_id = ctx.guild.id
-
-		if user_id is None : user_id = ctx.author.id
-
-		comp_list = await self.player_db.check_compendium(user_id, server_id)
-		view = CompendiumView(ctx.author.name, comp_list)
+		comp_list = await self.player_db.check_compendium(player.id, guild.id)
+		view = CompendiumView(player.name, comp_list)
 		await ctx.send(view = view)
 	
 
+	@checks.has_profile()
 	@commands.command(name = 'summon', aliases = ['s'], help = "Summon a demon from the player's compendium.")
 	async def summon_command(self, ctx, *, demon_name) -> None:
 		'''
@@ -48,15 +47,15 @@ class Compendium(commands.Cog):
 			demon_name (str): Name of the demon to summon. The * before it in the arguments 
 				allows for multi-word demon names.
 		'''
-		if ctx.guild is None : return
-		
-		demon_name = demon_name.title()
-		demon_id = self.demon_db.get_demon_id_by_name(demon_name)	# type: ignore
+		guild 		= typing.cast(discord.Guild, ctx.guild)
+		player 		= ctx.author
+		demon_name 	= demon_name.title()
+		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
 		# Check if demon is in compendium before summoning to give a more informative message.
-		in_comp = await self.player_db.check_demon_registration(	# type: ignore
-			ctx.author.id,
-			ctx.guild.id,
+		in_comp = await self.player_db.check_demon_registration(
+			player.id,
+			guild.id,
 			demon_id
 		)		
 
@@ -69,7 +68,7 @@ class Compendium(commands.Cog):
 			return
 
 		if demon_id != -1:
-			await self.player_db.set_demon_in_party(ctx.author.id, ctx.guild.id, demon_id, True)		# type: ignore
+			await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
 			await ctx.send(f"You have summoned {demon_name} to your party...")
 		
 
@@ -118,9 +117,7 @@ class CompendiumView(discord.ui.LayoutView):
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			'''Callback for when a race is selected from the filter menu.'''
-			if not isinstance(self.view, CompendiumView) : return
-			
-			view: CompendiumView = self.view
+			view = typing.cast(CompendiumView, self.view)
 			view.filtered_race = self.values[0]
 			view.page = 1
 			view.total_pages = 1
@@ -141,10 +138,8 @@ class CompendiumView(discord.ui.LayoutView):
 
 
 		async def callback(self, interaction: discord.Interaction) -> None:
-			'''Callback for when a page navigation button is clicked. Allows wrapping around the pages.'''
-			if not isinstance(self.view, CompendiumView) : return
-			
-			view: CompendiumView = self.view
+			'''Callback for when a page navigation button is clicked. Allows wrapping around the pages.'''			
+			view = typing.cast(CompendiumView, self.view)
 
 			if self.label == '<':
 				view.page = view.total_pages if view.page <= 1 else view.page - 1

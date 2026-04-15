@@ -1,8 +1,9 @@
 import discord
+import typing
 
 from cogs.demons import Demons
 from discord.ext import commands
-from helpers.players import Players
+from helpers import checks, players
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -14,29 +15,28 @@ class Party(commands.Cog):
 		'''Init the Party cog with reference to bot instance and database classes.'''
 		self.bot = bot
 		self.demon_db = Demons()
-		self.player_db = Players()
+		self.player_db = players.Players()
 
 
+	@checks.has_profile()
 	@commands.command(name = 'party', aliases = ['p'], help = "Displays the player's current party.")
-	async def party_command(self, ctx: commands.Context, user_id: int | None = None) -> None:
+	async def party_command(self, ctx: commands.Context, mentioned: discord.Member | None = None) -> None:
 		'''
 		Command to display player's current party.
 
 		Args:
 			ctx (discord.Context): Context of the command call.
-			user_id (int | None): Optional user ID to check party for.
+			mentioned (discord.Member | None): Optional user to check party for.
 		'''
-		if ctx.guild is None : return
+		guild = typing.cast(discord.Guild, ctx.guild)
+		player = mentioned if mentioned is not None else ctx.author
 
-		server_id = ctx.guild.id
-
-		if user_id is None : user_id = ctx.author.id
-
-		party_list = await self.player_db.check_party(user_id, server_id)							# type: ignore
-		view = PartyView(ctx.author.name, party_list)
+		party_list = await self.player_db.check_party(player.id, guild.id)							# type: ignore
+		view = PartyView(player.name, party_list)
 		await ctx.send(view = view)
 
 
+	@checks.has_profile()
 	@commands.command(name = 'release', aliases = ['r'], help = "Release a demon from your party.")
 	async def release_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		'''
@@ -47,16 +47,15 @@ class Party(commands.Cog):
 			demon_name (str): Name of the demon to release from the party. The * before it in the arguments 
 				allows for multi-word demon names.
 		'''
-		if ctx.guild is None : return
-		
-		# Turn demon name to Title Case and get its ID.
-		demon_name = demon_name.title()
-		demon_id = self.demon_db.get_demon_id_by_name(demon_name)
+		guild 		= typing.cast(discord.Guild, ctx.guild)
+		player 		= ctx.author
+		demon_name 	= demon_name.title()
+		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
 		# Check if demon is in party before release to give a more informative message.
 		in_party = await self.player_db.check_demon_registration(							# type: ignore
-			ctx.author.id, 
-			ctx.guild.id, 
+			player.id, 
+			guild.id, 
 			demon_id
 		)
 
@@ -65,8 +64,8 @@ class Party(commands.Cog):
 			return
 
 		await self.player_db.set_demon_in_party(											# type: ignore
-			ctx.author.id, 
-			ctx.guild.id, 
+			player.id, 
+			guild.id, 
 			demon_id, 
 			party_add = False
 		)				
@@ -114,9 +113,7 @@ class PartyView(discord.ui.LayoutView):
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			'''Callback for when a page navigation button is clicked. Allows wrapping around the pages.'''
-			if not isinstance(self.view, PartyView) : return
-			
-			view: PartyView = self.view
+			view = typing.cast(PartyView, self.view)
 
 			if self.label == '<':
 				view.page = view.total_pages if view.page <= 1 else view.page - 1
