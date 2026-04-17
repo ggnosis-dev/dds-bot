@@ -1,7 +1,7 @@
 import discord
 import typing
 
-from cogs.demons import Demons
+from cogs.demons import DemonQueries
 from discord.ext import commands
 from helpers import checks, players
 from shared_enums import DemonRegistration, Emotes
@@ -14,7 +14,7 @@ class Compendium(commands.Cog):
 	def __init__(self, bot: commands.Bot) -> None:
 		'''Init the Compendium cog with reference to bot instance and database classes.'''
 		self.bot = bot
-		self.demon_db = Demons()
+		self.demon_db = DemonQueries()
 		self.player_db = players.Players()
 
 

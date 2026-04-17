@@ -1,6 +1,8 @@
 import sqlite3
 
-from database_paths import DEMONS_DB_PATH
+from discord.ext import commands
+from database_paths import PLAYERS_DB_PATH
+from helpers import checks, players
 from shared_enums import Personality
 
 
@@ -28,7 +30,29 @@ class DemonData:
 		self.image_url = image_url
 
 
-class Demons:
+class Demon(commands.Cog):
+	'''Cog for demon-related commands and functionality.'''
+	def __init__(self, bot):
+		self.bot = bot
+		self.demon_queries = DemonQueries()
+		self.player_queries = players.Players()
+
+
+	@checks.has_profile()
+	@commands.command(name = 'select', aliases = ['s'], description = "Select a demon to lead your party.")
+	async def select_demon_command(self, ctx, *, demon_name: str) -> None:
+		'''Select a demon to lead your party.'''
+		demon_id = self.demon_queries.get_demon_id_by_name(demon_name)
+		
+		if demon_id == -1:
+			await ctx.reply(f"It seems a {demon_name} is not in your party.")
+			return
+		
+		self.player_queries.set_selected_demon(ctx.author.id, ctx.guild.id, demon_id)
+
+
+
+class DemonQueries:
 	'''Class for managing demon data retrieval from the database.'''
 	def _convert_row_to_demon_data(self, row: tuple) -> DemonData:
 		'''
@@ -59,7 +83,7 @@ class Demons:
 		Returns:
 			DemonData | None: Demon's data if found, otherwise None.
 		'''
-		with sqlite3.connect(DEMONS_DB_PATH) as conn:
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute('''
 				SELECT id, name, race, rank, colour, personality, image_url 
@@ -81,7 +105,7 @@ class Demons:
 		Returns:
 			int: Demon's ID if found, otherwise -1.
 		'''
-		with sqlite3.connect(DEMONS_DB_PATH) as conn:
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			response = cursor.execute('''
 				SELECT id FROM demons 
@@ -98,7 +122,7 @@ class Demons:
 		Returns:
 			DemonData: Random demon's data.
 		'''
-		with sqlite3.connect(DEMONS_DB_PATH) as conn:
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute('''
 				SELECT id, name, race, rank, colour, personality, image_url 

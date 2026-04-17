@@ -1,6 +1,6 @@
 import sqlite3
 
-from database_paths import DEMONS_DB_PATH, PLAYERS_DB_PATH
+from database_paths import PLAYERS_DB_PATH
 from discord.ext import commands
 from shared_enums import DemonRegistration
 
@@ -186,15 +186,13 @@ class Players:
 			list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
 		'''
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			# Attach the demon database to gain access to its data.
-			conn.execute('ATTACH DATABASE ? AS demon_db', (str(DEMONS_DB_PATH),))
 			cursor = conn.cursor()
 
 			# Retrieve the player's party.
 			result = cursor.execute('''
 				SELECT d.id, d.name, d.race, pd.stored_rank
 				FROM player_demons pd
-				JOIN demon_db.demons d ON pd.demon_id = d.id
+				JOIN demons d ON pd.demon_id = d.id
 				WHERE pd.player_id = ? AND pd.server_id = ? AND pd.in_party = 1
 				ORDER BY d.race ASC, d.id ASC
 			''', (user_id, server_id)).fetchall()
@@ -210,20 +208,37 @@ class Players:
 			list[dict]: List of demons in the player's compendium. Includes ID, name, race, personality, stored_rank, and in_party status.
 		'''
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			# Attach the demon database to gain access to their data.
-			conn.execute('ATTACH DATABASE ? AS demons_db', (str(DEMONS_DB_PATH),))
 			cursor = conn.cursor()
 
 			# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 			result = cursor.execute('''
 				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
-				FROM demons_db.demons d
+				FROM demons d
 				LEFT JOIN player_demons pd ON pd.demon_id = d.id
 					AND pd.player_id = ? AND pd.server_id = ?
 				ORDER BY d.race ASC, d.id ASC
 			''', (user_id, server_id)).fetchall()
 
 			return result if result else []
+
+
+	def set_selected_demon(self, player_id: int, server_id: int, demon_id: int) -> None:
+		'''
+		Set the selected demon for the player. The player's selected demon will hunt for their gem type,
+		and have other uses in the future.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			demon_id (int): Demon's ID to set as selected.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+			cursor.execute('''
+				UPDATE player
+				SET selected_demon_id = ?
+				WHERE player_id = ? AND server_id = ?
+			''', (demon_id, player_id, server_id))
 
 
 	def add_gem_info(self, player_id: int, server_id: int, gem_name: str) -> None:
@@ -237,7 +252,6 @@ class Players:
 			gem_name (str): Name of the gem associated with selected demon.
 		'''
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			conn.execute('ATTACH DATABASE ? AS demons_db', (str(DEMONS_DB_PATH),))
 			cursor = conn.cursor()
 
 			cursor.execute('''

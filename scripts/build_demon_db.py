@@ -1,6 +1,6 @@
 import sqlite3
 
-from database_paths import DEMONS_DB_PATH, ensure_db_dir_exists
+from database_paths import PLAYERS_DB_PATH, ensure_db_dir_exists
 from shared_enums import GemList, Personality
 
 ensure_db_dir_exists()
@@ -20,7 +20,7 @@ demon_data = [
 	('Loki (Paradox)', 	'Vile', 	60, 	0x9396E6, 	Personality.CHEERFUL.name, 		GemList.AMETHYST.name, 		'https://static.wikia.nocookie.net/megamitensei/images/f/f2/Loki4.GIF'),
 ]
 
-with sqlite3.connect(DEMONS_DB_PATH) as conn:
+with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# Delete existing demon table in case changes to general structure.

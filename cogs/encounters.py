@@ -2,7 +2,7 @@ import discord
 import random
 
 from abc import ABC, abstractmethod
-from cogs.demons import Demons, DemonData
+from cogs.demons import DemonQueries, DemonData
 from discord.ext import commands
 from helpers import checks, players
 from shared_enums import Emotes, Personality, ResponseType
@@ -26,7 +26,7 @@ class Encounters(commands.Cog):
 			bot (commands.Bot): The bot instance to access other cogs and send messages.
 		'''
 		self.bot = bot
-		self.demon_db = Demons()
+		self.demon_db = DemonQueries()
 		self.player_db = players.Players()
 
 
