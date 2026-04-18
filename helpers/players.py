@@ -5,6 +5,10 @@ from discord.ext import commands
 from shared_enums import DemonRegistration
 
 
+GEM_EXP_MULTIPLIER = 0.01
+GEM_METER_FULL = 100
+
+
 class PlayerData:
 	'''Data class for a player's information.'''
 	def __init__(self, id: int, server_id: int) -> None:
@@ -220,7 +224,7 @@ class Players:
 
 			# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 			result = cursor.execute('''
-				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
+				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party, d.gem
 				FROM demons d
 				LEFT JOIN player_demons pd ON pd.demon_id = d.id
 					AND pd.player_id = ? AND pd.server_id = ?
@@ -269,27 +273,7 @@ class Players:
 			return result[0] if result else None
 
 
-	def get_demon_gem(self, demon_id: int) -> str | None:
-		'''
-		Get the name of the gem associated with a demon.
-
-		Args:
-			demon_id (int): Demon's ID.
-		Returns:
-			str: Name of the gem associated with the demon.
-		'''
-		with self.get_db_connection() as conn:
-			print(f"DEBUG: Fetching gem for demon ID {demon_id}.")
-			cursor = conn.cursor()
-			result = cursor.execute('''
-				SELECT gem FROM demons
-				WHERE id = ?
-			''', (demon_id,)).fetchone()
-
-			return result[0] if result else None
-
-
-	async def increase_gems(self, player_id: int, server_id: int, selected_demon_id: int, exp: int) -> bool:
+	async def increase_gems(self, player_id: int, server_id: int, demon_id: int) -> bool:
 		'''
 		Add to player's gem meter and add a gem to their count if over a threshold.
 		Return whether a gem has been found.
@@ -302,11 +286,19 @@ class Players:
 		Returns:
 			bool: True if gem was found, False otherwise.
 		'''
-		demon_gem = self.get_demon_gem(selected_demon_id)
-		if demon_gem is None : return False
-
 		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
+
+			# Get gem type and the player's stored rank for demon.
+			gem_name, stored_rank = cursor.execute('''
+				SELECT d.gem, pd.stored_rank FROM demons d
+				JOIN player_demons pd ON pd.demon_id = d.id
+				WHERE d.id = ?
+			''', (demon_id,)).fetchone()
+
+			if gem_name is None : return False
+
+			stored_rank = stored_rank * GEM_EXP_MULTIPLIER
 
 			# Increase gem meter by exp, returning meter value.
 			cursor.execute('''
@@ -315,18 +307,40 @@ class Players:
 				ON CONFLICT (player_id, server_id, gem_name) DO
 				UPDATE SET meter = meter + excluded.meter
 				RETURNING meter
-			''', (player_id, server_id, demon_gem, exp))
+			''', (player_id, server_id, gem_name, stored_rank))
 
 			# Get the meter value after the update to check if a gem has been found.
 			meter_val = cursor.fetchone()[0]
+			print(meter_val)
 
 			# Add gem to count and reset meter if gem found.
-			if meter_val >= 100:
+			if meter_val >= GEM_METER_FULL:
 				cursor.execute('''
 					UPDATE player_gems
 					SET meter = 0, quantity = quantity + 1
 					WHERE player_id = ? AND server_id = ? AND gem_name = ?
-				''', (player_id, server_id, demon_gem))
+				''', (player_id, server_id, gem_name))
 
 				return True
 			return False
+		
+
+	def get_player_gems(self, player_id: int, server_id: int) -> list[dict]:
+		'''
+		Get a player's gem collection.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+		Returns:
+			list[dict]: List of gems in the player's collection. Each gem is represented as a dictionary with 'gem_name' and 'quantity' keys.
+		'''
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT gem_name, quantity FROM player_gems
+				WHERE player_id = ? AND server_id = ?
+				ORDER BY gem_name ASC
+			''', (player_id, server_id)).fetchall()
+
+			return result if result else []

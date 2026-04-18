@@ -164,16 +164,16 @@ class CompendiumView(discord.ui.LayoutView):
 		container.add_item(race_select)
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 		container.add_item(ui.TextDisplay(
-			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank{tab * 3}Personality"
+			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank{tab * 3}Gemstone{tab * 4}Personality"
 		))
 
 		max_width_race = 8
 		max_width_name = 12
-		max_width_rank = 3
+		max_width_num = 3
 		max_width_pers = 12
 
 		for entry in page_entries:
-			_id, name, race, personality, rank, in_party = entry
+			_id, name, race, personality, rank, in_party, gem = entry
 
 			if self.filtered_race != 'all' and race.lower() != self.filtered_race:
 				continue
@@ -181,11 +181,11 @@ class CompendiumView(discord.ui.LayoutView):
 			if rank is not None:
 				emote = Emotes.ICON.value if in_party else Emotes.BLANK.value
 				container.add_item(ui.TextDisplay(
-					f"{emote}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{str(rank):>{max_width_rank}}`{tab}`{personality.title():^{max_width_pers}}`"
+					f"{emote}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{str(rank):>{max_width_num}}`{tab}`{gem.title():^{max_width_pers}}`{tab}`{personality.title():^{max_width_pers}}`"
 				))
 			else:
 				container.add_item(ui.TextDisplay(
-					f"{Emotes.BLANK.value}{tab}`{'?????':^{max_width_race}}`{tab}`{'?????':^{max_width_name}}`{tab}`{'???':>{max_width_rank}}`{tab}`{'?????':^{max_width_pers}}`"
+					f"{Emotes.BLANK.value}{tab}`{'?????':^{max_width_race}}`{tab}`{'?????':^{max_width_name}}`{tab}`{'???':>{max_width_num}}`{tab}`{'?????':^{max_width_pers}}`{tab}`{'?????':^{max_width_pers}}`"
 				))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))

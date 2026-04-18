@@ -14,7 +14,12 @@ class Gems(commands.Cog):
 	@commands.command(name = 'gems', aliases = ['g'], description = "Displays the player's current gem collection.")
 	async def gem_collection_command(self, ctx) -> None:
 		'''View player's current gem collection.'''
-		pass
+		player_id = ctx.author.id
+		server_id = ctx.guild.id
+
+		collected_gems = self.player_db.get_player_gems(player_id, server_id)
+		view = GemCollectionView(ctx.author.name, collected_gems)
+		await ctx.send(view = view)
 
 
 	@checks.has_profile()
@@ -52,19 +57,18 @@ class Gems(commands.Cog):
 		exp = 10
 
 		# Increase exp towards finding a gem.
-		gem_found = await self.player_db.increase_gems(player_id, guild_id, selected_demon_id, exp)
+		gem_found = await self.player_db.increase_gems(player_id, guild_id, selected_demon_id)
 		
 		if gem_found:
 			await message.channel.send(f"{message.author.mention} has found a gem!")
 
 
-class GemCollectionView(discord.ui.View):
-
+class GemCollectionView(discord.ui.LayoutView):
 	def __init__(
 		self, 
 		user_name: str, 
 		collected_gems: list[dict], 
-		colour: int
+		colour: int = 0xE93700
 	) -> None:
 		'''
 		View class for displaying a player's gem collection.
@@ -88,10 +92,10 @@ class GemCollectionView(discord.ui.View):
 		container = ui.Container(accent_color = self.colour)
 		tab = '\u2003'
 
-		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Gem Collection"))
+		container.add_item(ui.TextDisplay(f"### {self.user_name} Gems Collection"))
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 		container.add_item(ui.TextDisplay(
-			f"-# {Emotes.BLANK.value}{tab * 3}Gemstone{tab * 5}Quantity")
+			f"-# {Emotes.BLANK.value}{tab * 3}Gemstone{tab * 3}Quantity")
 		)
 
 		max_width_name = 12
@@ -100,10 +104,10 @@ class GemCollectionView(discord.ui.View):
 		for entry in self.collected_gems:
 			name, qty = entry
 			# emote = Emotes[name].value
-			emote = Emotes.ICON.value
+			emote = Emotes.BLANK.value
 
 			container.add_item(ui.TextDisplay(
-				f"{emote}{tab}`{name:^{max_width_name}}`{tab}`{qty:>{max_width_qty}}`", 
+				f"{emote}{tab}`{name.title():^{max_width_name}}`{tab * 2}`{qty:>{max_width_qty}}`", 
 			))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
