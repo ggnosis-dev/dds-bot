@@ -23,6 +23,7 @@ async def on_ready():
 
 async def load_cogs():
 	async with bot:
+		await bot.load_extension('cogs.demons')
 		await bot.load_extension('cogs.encounters')
 		await bot.load_extension('cogs.party')
 		await bot.load_extension('cogs.compendium')

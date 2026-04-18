@@ -21,6 +21,14 @@ class PlayerData:
 
 
 class Players:
+	def get_db_connection(self) -> sqlite3.Connection:
+		'''Helper method to get a connection to the players database.'''
+		conn = sqlite3.connect(PLAYERS_DB_PATH)
+
+		# Enforce foreign key constraints for the connection.
+		conn.execute('PRAGMA foreign_keys = ON')
+		return conn
+
 	'''Class for querying player data and updates to the database.'''
 	async def setup_player(self, ctx: commands.Context) -> bool:
 		'''
@@ -54,7 +62,7 @@ class Players:
 		Args:
 			player (PlayerData): Player's data that needs saving.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
 				INSERT INTO players (player_id, server_id) 
@@ -73,7 +81,7 @@ class Players:
 		Returns:
 			bool: True if the player exists, False otherwise.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			result = cursor.execute('''
 				SELECT * FROM players 
@@ -100,7 +108,7 @@ class Players:
 		Returns:
 			bool: True if the demon's status was updated, False otherwise.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
 				UPDATE player_demons 
@@ -129,7 +137,7 @@ class Players:
 		Returns:
 			bool: True if the demon was added, False if it already exists.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 
 			# Check if demon is already in compendium.
@@ -165,7 +173,7 @@ class Players:
 		Returns:
 			DemonRegistration: Enum indicating the demon's registration status.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			result = cursor.execute('''
 				SELECT in_party FROM player_demons 
@@ -185,7 +193,7 @@ class Players:
 		Returns:
 			list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 
 			# Retrieve the player's party.
@@ -207,7 +215,7 @@ class Players:
 		Returns:
 			list[dict]: List of demons in the player's compendium. Includes ID, name, race, personality, stored_rank, and in_party status.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 
 			# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
@@ -232,13 +240,33 @@ class Players:
 			server_id (int): Server ID the player belongs to.
 			demon_id (int): Demon's ID to set as selected.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
-				UPDATE player
+				UPDATE players
 				SET selected_demon_id = ?
 				WHERE player_id = ? AND server_id = ?
 			''', (demon_id, player_id, server_id))
+
+
+	def get_selected_demon_id(self, player_id: int, server_id: int) -> int | None:
+		'''
+		Get the player's selected demon ID.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+		Returns:
+			int | None: The selected demon's ID if it exists, otherwise None.
+		'''
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT selected_demon_id FROM players
+				WHERE player_id = ? AND server_id = ?
+			''', (player_id, server_id)).fetchone()
+
+			return result[0] if result else None
 
 
 	def add_gem_info(self, player_id: int, server_id: int, gem_name: str) -> None:
@@ -251,7 +279,7 @@ class Players:
 			server_id (int): Server ID the player belongs to.
 			gem_name (str): Name of the gem associated with selected demon.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 
 			cursor.execute('''
@@ -273,7 +301,7 @@ class Players:
 		Returns:
 			bool: True if gem was found, False otherwise.
 		'''
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 
 			# Increase gem meter by exp, returning meter value.
@@ -299,7 +327,7 @@ class Players:
 			return False
 
 
-		# with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		# with self.get_db_connection() as conn:
 		# 	cursor = conn.cursor()
 
 		# 	# Check if demon is already in compendium.

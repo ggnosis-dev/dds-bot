@@ -39,16 +39,17 @@ class Demon(commands.Cog):
 
 
 	@checks.has_profile()
-	@commands.command(name = 'select', aliases = ['s'], description = "Select a demon to lead your party.")
+	@commands.command(name = 'select', aliases = ['s', 'sel'], description = "Select a demon to lead your party.")
 	async def select_demon_command(self, ctx, *, demon_name: str) -> None:
 		'''Select a demon to lead your party.'''
 		demon_id = self.demon_queries.get_demon_id_by_name(demon_name)
 		
 		if demon_id == -1:
-			await ctx.reply(f"It seems a {demon_name} is not in your party.")
+			await ctx.send(f"It seems a {demon_name} is not in your party.")
 			return
 		
 		self.player_queries.set_selected_demon(ctx.author.id, ctx.guild.id, demon_id)
+		await ctx.send(f"{demon_name} has been selected to lead your party!")
 
 
 
@@ -135,3 +136,7 @@ class DemonQueries:
 			raise RuntimeError("ERROR: No demons found in the database.")
 
 		return self._convert_row_to_demon_data(row)
+
+
+async def setup(bot: commands.Bot) -> None:
+	await bot.add_cog(Demon(bot))

@@ -31,8 +31,10 @@ class Party(commands.Cog):
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = mentioned if mentioned is not None else ctx.author
 
-		party_list = await self.player_db.check_party(player.id, guild.id)							# type: ignore
-		view = PartyView(player.name, party_list)
+		party_list = await self.player_db.check_party(player.id, guild.id)
+		selected_demon_id = self.player_db.get_selected_demon_id(player.id, guild.id)					# type: ignore
+		
+		view = PartyView(player.name, party_list, selected_demon_id)
 		await ctx.send(view = view)
 
 
@@ -53,7 +55,7 @@ class Party(commands.Cog):
 		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
 		# Check if demon is in party before release to give a more informative message.
-		in_party = await self.player_db.check_demon_registration(							# type: ignore
+		in_party = await self.player_db.check_demon_registration(
 			player.id, 
 			guild.id, 
 			demon_id
@@ -63,7 +65,7 @@ class Party(commands.Cog):
 			await ctx.send(f"The demon {demon_name} was not found in your party. Did you spell their name correctly?")
 			return
 
-		await self.player_db.set_demon_in_party(											# type: ignore
+		await self.player_db.set_demon_in_party(
 			player.id, 
 			guild.id, 
 			demon_id, 
@@ -77,7 +79,8 @@ class PartyView(discord.ui.LayoutView):
 	def __init__(
 		self, 
 		user_name: str, 
-		list: list[dict], 
+		list: list[dict],
+		selected_demon_id: int | None = None,
 		page: int = 1, 
 		colour: int = 0xE93700
 	) -> None:
@@ -94,6 +97,7 @@ class PartyView(discord.ui.LayoutView):
 
 		self.user_name = user_name
 		self.list = list
+		self.selected_demon_id = selected_demon_id
 		self.page = page
 		self.colour = colour
 
@@ -132,6 +136,9 @@ class PartyView(discord.ui.LayoutView):
 		tab 			= '\u2003'
 		page_entries	= self._get_page_entries()
 		page_nav		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
+		max_width_race 	= 8
+		max_width_name 	= 12
+		max_width_rank 	= 3
 		
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Party"))
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
@@ -139,12 +146,30 @@ class PartyView(discord.ui.LayoutView):
 			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank"
 		))
 
-		max_width_race = 8
-		max_width_name = 12
-		max_width_rank = 3
+		# Only render selected if first page and selected has been passed in.
+		if self.selected_demon_id is not None and self.page == 1:
+			selected_demon 	= None
 
+			# Find the selected demon if it exists in the list.
+			for entry in self.list:
+				if entry[0] != self.selected_demon_id : continue
+				
+				selected_demon = entry
+				break
+			
+			# Draw selected demon at the top of the list on the first page.
+			if selected_demon:
+				_id, name, race, rank = selected_demon
+
+				container.add_item(ui.TextDisplay(
+					f"{Emotes.ONE.value}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{rank:>{max_width_rank}}`",
+				))
+
+		# Draw the rest of the demons on the current page.
 		for entry in page_entries:
-			_id, name, race, rank = entry
+			id, name, race, rank = entry
+
+			if id == self.selected_demon_id : continue
 
 			container.add_item(ui.TextDisplay(
 				f"{Emotes.ICON.value}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{rank:>{max_width_rank}}`", 

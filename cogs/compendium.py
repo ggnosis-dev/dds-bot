@@ -36,7 +36,7 @@ class Compendium(commands.Cog):
 	
 
 	@checks.has_profile()
-	@commands.command(name = 'summon', aliases = ['s'], help = "Summon a demon from the player's compendium.")
+	@commands.command(name = 'summon', aliases = ['sum'], help = "Summon a demon from the player's compendium.")
 	async def summon_command(self, ctx, *, demon_name) -> None:
 		'''
 		Command to summon a demon from the player's compendium into their party.

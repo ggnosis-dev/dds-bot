@@ -8,11 +8,11 @@ ensure_db_dir_exists()
 # https://www.sqlitetutorial.net/sqlite-json/
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
-	
+
 	# TESTS:
-	cursor.execute('DROP TABLE IF EXISTS players')
-	cursor.execute('DROP TABLE IF EXISTS player_demons')
-	cursor.execute('DROP TABLE IF EXISTS player_gems')
+	# cursor.execute('DROP TABLE IF EXISTS players')
+	# cursor.execute('DROP TABLE IF EXISTS player_demons')
+	# cursor.execute('DROP TABLE IF EXISTS player_gems')
 	# cursor.execute('UPDATE player_demons SET in_party = 0')
 
 	cursor.execute('''
