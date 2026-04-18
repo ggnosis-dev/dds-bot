@@ -45,15 +45,27 @@ class Gems(commands.Cog):
 		
 		player_id = message.author.id
 		guild_id = message.guild.id
-		exp = 1
+		selected_demon_id = self.player_db.get_selected_demon_id(player_id, guild_id)
+		
+		if selected_demon_id is None : return
+		
+		exp = 10
 
 		# Increase exp towards finding a gem.
-		await self.player_db.increase_gems(player_id, guild_id, 'AMETHYST', exp)
+		gem_found = await self.player_db.increase_gems(player_id, guild_id, selected_demon_id, exp)
+		
+		if gem_found:
+			await message.channel.send(f"{message.author.mention} has found a gem!")
 
 
 class GemCollectionView(discord.ui.View):
 
-	def __init__(self, user_name: str, gem_list: list[dict], colour: int) -> None:
+	def __init__(
+		self, 
+		user_name: str, 
+		collected_gems: list[dict], 
+		colour: int
+	) -> None:
 		'''
 		View class for displaying a player's gem collection.
 
@@ -65,7 +77,7 @@ class GemCollectionView(discord.ui.View):
 		super().__init__()
 
 		self.user_name = user_name
-		self.gem_list = gem_list
+		self.collected_gems = collected_gems
 		self.colour = colour
 
 		self._build_gem_col_layout()
@@ -85,7 +97,7 @@ class GemCollectionView(discord.ui.View):
 		max_width_name = 12
 		max_width_qty = 3
 
-		for entry in self.gem_list:
+		for entry in self.collected_gems:
 			name, qty = entry
 			# emote = Emotes[name].value
 			emote = Emotes.ICON.value
@@ -99,3 +111,5 @@ class GemCollectionView(discord.ui.View):
 		self.add_item(container)
 		
 
+async def setup(bot: commands.Bot) -> None:
+	await bot.add_cog(Gems(bot))
