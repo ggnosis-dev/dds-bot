@@ -5,7 +5,7 @@ from discord.ext import commands
 from shared_enums import DemonRegistration
 
 
-GEM_EXP_MULTIPLIER = 0.01
+GEM_EXP_MULTIPLIER = 0.05
 GEM_METER_FULL = 100
 
 
@@ -311,7 +311,7 @@ class Players:
 
 			# Get the meter value after the update to check if a gem has been found.
 			meter_val = cursor.fetchone()[0]
-			print(meter_val)
+			print(f"DEBUG: Player {player_id} | Server {server_id} | Gem {gem_name} meter: {meter_val:.2f}")
 
 			# Add gem to count and reset meter if gem found.
 			if meter_val >= GEM_METER_FULL:

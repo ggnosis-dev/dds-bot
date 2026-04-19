@@ -8,7 +8,7 @@ from shared_enums import Personality
 
 class DemonData:
 	'''Data class for a demon's information.'''
-	def __init__(self, id: int, name: str, race: str, rank: int, colour: int, personality_type: str, image_url: str):
+	def __init__(self, id: int, name: str, race: str, rank: int, colour: int, personality_type: str, gem: str, image_url: str):
 		'''
 		Initialise the DemonData object with the provided attributes.
 		
@@ -27,6 +27,7 @@ class DemonData:
 		self.rank = rank
 		self.colour = colour
 		self.personality_type = Personality[personality_type]
+		self.gem = gem
 		self.image_url = image_url
 
 
@@ -64,7 +65,7 @@ class DemonQueries:
 		Returns:
 			DemonData: Normalised DemonData object created from values provided.
 		'''
-		id, name, race, rank, colour, personality_type, image_url = row
+		id, name, race, rank, colour, personality_type, gem, image_url = row
 		return DemonData(
 			id = id,
 			name = name,
@@ -72,6 +73,7 @@ class DemonQueries:
 			rank = rank,
 			colour = colour,
 			personality_type = personality_type,
+			gem = gem,
 			image_url = image_url
 		)
 
@@ -87,7 +89,7 @@ class DemonQueries:
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute('''
-				SELECT id, name, race, rank, colour, personality, image_url 
+				SELECT id, name, race, rank, colour, personality, gem, image_url
 				FROM demons 
 				WHERE id = ?
 			''', (demon_id,)).fetchone()
@@ -126,7 +128,7 @@ class DemonQueries:
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute('''
-				SELECT id, name, race, rank, colour, personality, image_url 
+				SELECT id, name, race, rank, colour, personality, gem, image_url 
 				FROM demons 
 				ORDER BY RANDOM() 
 				LIMIT 1
