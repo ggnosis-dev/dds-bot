@@ -44,7 +44,6 @@ class RagsShopView(discord.ui.LayoutView):
 		
 		with open('data/items.json', 'r') as data:
 			self.shop_items = json.load(data)
-			print(f"DEBUG: Loaded items data: {self.shop_items}")
 		
 		self._build_shop_layout()
 
@@ -111,8 +110,9 @@ class RagsShopView(discord.ui.LayoutView):
 
 	def _get_page_entries(self) -> list[dict]:
 		page_list = []
+		sorted_items = sorted(self.shop_items.items())
 
-		for item_id, item_data in self.shop_items.items():
+		for item_id, item_data in sorted_items:
 			page_list.append(
 				(
 					item_id, 

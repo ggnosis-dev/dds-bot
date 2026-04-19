@@ -5,7 +5,7 @@
 		"description": "Increase a Fairy's rank by a little bit.",
 		"cost": {
 			"AMETHYST": 3,
-			"OPAL": 2
+			"AGATE": 2
 		}
 	},
 	"beast_incense": {
@@ -15,6 +15,44 @@
 		"cost": {
 			"ONYX": 3,
 			"TOPAZ": 2
+		}
+	},
+	"femme_incense": {
+		"display_name": "Femme Incense",
+		"category": "incense",
+		"description": "Increase a Femme's rank by a little bit.",
+		"cost": {
+			"ONYX": 3,
+			"OPAL": 2
+		}
+	},
+	"tyrant_incense": {
+		"display_name": "Tyrant Incense",
+		"category": "incense",
+		"description": "Increase a Tyrant's rank by a little bit.",
+		"cost": {
+			"EMERALD": 3,
+			"RUBY": 2,
+			"DIAMOND": 1
+		}
+	},
+	"vile_incense": {
+		"display_name": "Vile Incense",
+		"category": "incense",
+		"description": "Increase a Vile's rank by a little bit.",
+		"cost": {
+			"OPAL": 3,
+			"GARNET": 2,
+			"TOPAZ": 1
+		}
+	},
+	"wilder_incense": {
+		"display_name": "Wilder Incense",
+		"category": "incense",
+		"description": "Increase a Wilder's rank by a little bit.",
+		"cost": {
+			"TOPAZ": 3,
+			"AGATE": 2
 		}
 	}
 }
