@@ -5,7 +5,7 @@ from discord.ext import commands
 from shared_enums import DemonRegistration
 
 
-GEM_EXP_MULTIPLIER = 0.05
+GEM_EXP_MULTIPLIER = 1
 GEM_METER_FULL = 100
 
 
@@ -325,7 +325,7 @@ class Players:
 			return False
 		
 
-	def get_player_gems(self, player_id: int, server_id: int) -> list[dict]:
+	def get_player_gems(self, player_id: int, server_id: int) -> list[tuple]:
 		'''
 		Get a player's gem collection.
 
@@ -344,3 +344,54 @@ class Players:
 			''', (player_id, server_id)).fetchall()
 
 			return result if result else []
+		
+	def attempt_purchase_item(self, player_id: int, server_id: int, item_id: str, cost: dict) -> bool:
+		'''
+		Attempt to purchase an item for the player. Checks if the player has enough gems and deducts the cost if they do.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID.
+			item_id (str): ID of the item being purchased.
+			cost (int): Cost of the item in gems.
+		Returns:
+			bool: True if the purchase was successful, False if player didn't have enough.
+		'''
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+			gem_names = list(cost.keys())
+			
+			# Get number of placeholders for the IN clause.
+			gem_placeholders = ','.join('?' * len(gem_names))
+			
+			# Get player's gem counts.
+			rows = cursor.execute(f'''
+				SELECT gem_name, quantity FROM player_gems
+				WHERE player_id = ? AND server_id = ? AND gem_name IN ({gem_placeholders})
+			''', (player_id, server_id, *gem_names)).fetchall()
+
+			# Convert rows into a set for easier access. Gem: Quantity.
+			player_gems = {row[0]: row[1] for row in rows}
+
+			# Compare player's gems with cost.
+			for gem, required_amount in cost.items():
+				if player_gems.get(gem, 0) < required_amount:
+					return False
+			
+			# Deduct gems.
+			for gem, required_amount in cost.items():
+				cursor.execute('''
+					UPDATE player_gems
+					SET quantity = quantity - ?
+					WHERE player_id = ? AND server_id = ? AND gem_name = ?
+				''', (required_amount, player_id, server_id, gem))
+
+			# Add item to inventory. If it doesn't exist already, set to 1.
+			cursor.execute('''
+				INSERT INTO player_items (player_id, server_id, item_id, quantity)
+				VALUES (?, ?, ?, 1)
+				ON CONFLICT (player_id, server_id, item_id) DO
+				UPDATE SET quantity = quantity + 1
+			''', (player_id, server_id, item_id))
+
+			return True

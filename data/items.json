@@ -1,0 +1,20 @@
+{
+	"fairy_incense": {
+		"display_name": "Fairy Incense",
+		"category": "incense",
+		"description": "Increase a Fairy's rank by a little bit.",
+		"cost": {
+			"AMETHYST": 3,
+			"OPAL": 2
+		}
+	},
+	"beast_incense": {
+		"display_name": "Beast Incense",
+		"category": "incense",
+		"description": "Increase a Beast's rank by a little bit.",
+		"cost": {
+			"ONYX": 3,
+			"TOPAZ": 2
+		}
+	}
+}

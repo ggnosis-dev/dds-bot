@@ -19,13 +19,13 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		CREATE TABLE IF NOT EXISTS players (
 			player_id 			INTEGER,
 			server_id 			INTEGER,
-			selected_demon_id	INTEGER,
+			selected_demon_id	INTEGER DEFAULT 1,
 			CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
 			FOREIGN KEY (selected_demon_id) REFERENCES demons(id)
 		)
 	''')
 
-	cursor.execute('''		   
+	cursor.execute('''
 		CREATE TABLE IF NOT EXISTS player_demons (
 			player_id 		INTEGER,
 			server_id 		INTEGER,
@@ -42,9 +42,19 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			player_id 		INTEGER,
 			server_id 		INTEGER,
 			gem_name		TEXT,
-			meter			INTEGER,
-			quantity		INTEGER,
+			meter			INTEGER DEFAULT 0,
+			quantity		INTEGER DEFAULT 0,
 			UNIQUE(player_id, server_id, gem_name)
+		)
+	''')
+
+	cursor.execute('''
+		CREATE TABLE IF NOT EXISTS player_items (
+			player_id 		INTEGER,
+			server_id 		INTEGER,
+			item_id			TEXT,
+			quantity		INTEGER DEFAULT 0,
+			UNIQUE(player_id, server_id, item_id)
 		)
 	''')
 

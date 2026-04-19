@@ -39,7 +39,7 @@ class Party(commands.Cog):
 
 
 	@checks.has_profile()
-	@commands.command(name = 'release', aliases = ['r'], help = "Release a demon from your party.")
+	@commands.command(name = 'release', aliases = ['rel'], help = "Release a demon from your party.")
 	async def release_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		'''
 		Command to release a demon from the player's party.

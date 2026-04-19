@@ -31,16 +31,6 @@ class Gems(commands.Cog):
 		Listener for player messages to track progress towards finding a gem.
 		Only triggers if player has a profile.
 		'''
-		'''
-		1. Each message will add to a gem hunt meter.
-			1. Would it be easier to have rank add to the meter faster or have the meter determined by rank?
-			2. Probably want to store this too so player's can change demons and not lose progress towards finding a gem.
-		2. The selected demon's rank will influence how quick a gem is found.
-			1. Need to create a method of selecting a demon.
-			2. Add a DB entry for whether demon is selected. Could do a reference in the basic players table so to avoid a new column in player_demons that will be a bunch of 0s.
-		3. Send a message when a gem is found.
-		4. Update player gem table in DB.
-		'''
 		# Exit early if message is from bot or not in a server.
 		if message.author.bot or message.guild is None:
 			return
@@ -73,7 +63,7 @@ class GemCollectionView(discord.ui.LayoutView):
 	def __init__(
 		self, 
 		user_name: str, 
-		collected_gems: list[dict], 
+		collected_gems: list[tuple], 
 		colour: int = 0xE93700
 	) -> None:
 		'''
