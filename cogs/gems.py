@@ -45,8 +45,6 @@ class Gems(commands.Cog):
 		selected_demon_id = self.player_db.get_selected_demon_id(player_id, guild_id)
 		
 		if selected_demon_id is None : return
-		
-		exp = 10
 
 		# Increase exp towards finding a gem.
 		gem_found = await self.player_db.increase_gems(player_id, guild_id, selected_demon_id)

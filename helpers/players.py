@@ -22,6 +22,7 @@ class PlayerData:
 		'''
 		self.id = id
 		self.server_id = server_id
+		self.selected_demon_id = None
 
 
 class Players:
