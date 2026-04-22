@@ -1,9 +1,10 @@
-import sqlite3
+import discord
 import typing
 
 from cogs.demons import DemonData, DemonQueries
 from discord.ext import commands
 from helpers import checks, item_queries, players
+from shared_enums import Emotes
 
 
 
@@ -45,6 +46,68 @@ class Items(commands.Cog):
 		):
 			demon_data = typing.cast(DemonData, self.demon_queries.get_demon_by_id(selected_demon_id))
 			await ctx.send(f"{player.mention} used {item_name} on {demon_data.name}! Their stored rank has increased by 3.")
+
+	@checks.has_profile()
+	@commands.command(name = 'inventory', aliases = ['inv'], description = "View your item inventory.")
+	async def item_inventory_command(self, ctx) -> None:
+		'''View your item inventory.'''
+		print("HERE")
+		player = ctx.author
+		server = ctx.guild
+
+		items = self.item_queries.get_player_items(player.id, server.id)
+
+		if not items:
+			await ctx.send("Your inventory is empty.")
+			return
+		
+		view = ItemInventoryView(player.display_name, items)
+		await ctx.send(view = view)
+
+
+class ItemInventoryView(discord.ui.LayoutView):
+	def __init__(
+		self, 
+		player_name: str, 
+		items: dict[str, int],
+		colour: int = 0xE93700
+	) -> None:
+		super().__init__()
+
+		self.player_name = player_name
+		self.items = items
+		self.colour = colour
+
+		self._build_item_inventory_layout()
+
+
+	def _build_item_inventory_layout(self) -> None:
+		ui = discord.ui
+		container = ui.Container(accent_color = self.colour)
+		tab = '\u2003'
+
+		container.add_item(ui.TextDisplay(f"### {self.player_name}'s Item Inventory"))
+		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
+		container.add_item(ui.TextDisplay(
+			f"-# {Emotes.BLANK.value}{tab * 5}Name{tab * 5}Quantity")
+		)
+
+		max_width_name = 15
+		max_width_qty = 3
+
+		# Item: fairy_incense, Quantity: {'display_name': 'Fairy Incense', 'description': "Increase a Fairy's rank by a little bit.", 'exlusive_to': 'Fairy', 'cost': {'AMETHYST': 3, 'AGATE': 2}}
+		for name, qty in self.items.items():
+			print(f"Item: {name}, Quantity: {qty}")
+			# emote = Emotes[name].value
+			emote = Emotes.BLANK.value
+
+			container.add_item(ui.TextDisplay(
+				f"{emote}{tab}`{name.title():^{max_width_name}}`{tab * 2}`{qty:>{max_width_qty}}`", 
+			))
+
+		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
+
+		self.add_item(container)
 
 
 async def setup(bot: commands.Bot) -> None:

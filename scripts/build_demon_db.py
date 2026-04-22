@@ -9,7 +9,7 @@ demon_data = [
 	# Name 				Race		Rank	Colour		Personality						Gem							Image URL
 	('Pixie', 			'Fairy', 	5, 		0xE93700,	Personality.CHEERFUL.name, 		GemList.AMETHYST.name,		'https://static.wikia.nocookie.net/megamitensei/images/b/b8/Pixie.GIF'),
 	('Jack Frost',		'Fairy',	10, 	0x2A58CC, 	Personality.CHEERFUL.name, 		GemList.AQUAMARINE.name,	'https://static.wikia.nocookie.net/megamitensei/images/a/ab/Jack_Frost.GIF'),
-	('Dryad', 			'Fairy', 	12, 	0x9396E6, 	Personality.SHY.name, 			GemList.EMERALD.name,		'https://static.wikia.nocookie.net/megamitensei/images/2/23/Dryad.gif'),
+	('Dryad', 			'Fairy', 	12, 	0x9396E6, 	Personality.SHY.name, 			GemList.AGATE.name,			'https://static.wikia.nocookie.net/megamitensei/images/2/23/Dryad.gif'),
 	('Harpy', 			'Fairy', 	15, 	0x9396E6, 	Personality.AGGRESSIVE.name, 	GemList.GARNET.name, 		'https://static.wikia.nocookie.net/megamitensei/images/e/ee/Harpy2.GIF'),
 	('Goblin', 			'Fairy', 	20, 	0xE93700, 	Personality.AGGRESSIVE.name, 	GemList.OPAL.name, 			'https://static.wikia.nocookie.net/megamitensei/images/b/ba/Goblin.GIF'),
 	('Troll', 			'Fairy', 	25, 	0x2A58CC, 	Personality.AGGRESSIVE.name, 	GemList.TOPAZ.name, 		'https://static.wikia.nocookie.net/megamitensei/images/2/2f/Troll.GIF'),

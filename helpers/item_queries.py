@@ -41,6 +41,27 @@ class ItemQueries:
 		# Enforce foreign key constraints for the connection.
 		conn.execute('PRAGMA foreign_keys = ON')
 		return conn
+	
+
+	def get_player_items(self, player_id: int, server_id: int) -> dict[str, int]:
+		'''Get dictionary of name and quantity of items in player's inventory.'''
+		with self._get_db_connection() as conn:
+			cursor = conn.cursor()
+
+			cursor.execute('''
+				SELECT item_id, quantity FROM player_items 
+				WHERE player_id = ? AND server_id = ?
+			''', (player_id, server_id))
+
+			results = cursor.fetchall()
+
+			items = {}
+			for item_id, quantity in results:
+				item_data = self.items.get(item_id)
+				if item_data:
+					items[item_data['display_name']] = quantity
+
+			return items
 
 
 	def get_player_has_item(self, player_id: int, server_id: int, item_id: str) -> bool:
