@@ -27,6 +27,7 @@ async def load_cogs():
 		await bot.load_extension('cogs.check_handler')
 		await bot.load_extension('cogs.compendium')
 		await bot.load_extension('cogs.encounters')
+		await bot.load_extension('cogs.items')
 		await bot.load_extension('cogs.gems')
 		await bot.load_extension('cogs.party')
 		await bot.load_extension('cogs.shop_rags')

@@ -138,6 +138,28 @@ class DemonQueries:
 			raise RuntimeError("ERROR: No demons found in the database.")
 
 		return self._convert_row_to_demon_data(row)
+	
+
+	def get_demon_race_by_id(self, demon_id: int) -> str:
+		'''
+		Get demon's race from the database using its ID.
+
+		Args:
+			demon_id (int): Identifier of the demon to retrieve race for.
+		Returns:
+			str: Demon's race.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+			response = cursor.execute('''
+				SELECT race FROM demons 
+				WHERE id = ?
+			''', (demon_id,)).fetchone()
+
+			if response is None:
+				raise RuntimeError(f"ERROR: Demon with ID {demon_id} not found in the database.")
+			
+			return response[0]
 
 
 async def setup(bot: commands.Bot) -> None:

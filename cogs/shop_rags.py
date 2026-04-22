@@ -111,18 +111,17 @@ class RagsShopView(discord.ui.LayoutView):
 	def _get_page_entries(self) -> list[dict]:
 		page_list = []
 		
-		for category, items in self.shop_items.items():
-			sorted_items = sorted(items.items())
-			
-			for item_id, item_data in sorted_items:
-				page_list.append(
-					(
-						item_id, 
-						item_data['display_name'], 
-						item_data['description'], 
-						item_data['cost']
-					)
+		sorted_items = sorted(self.shop_items.items())
+		
+		for item_id, item_data in sorted_items:
+			page_list.append(
+				(
+					item_id, 
+					item_data['display_name'], 
+					item_data['description'], 
+					item_data['cost']
 				)
+			)
 
 		self.total_pages 	= int(max(1, (len(page_list) + PAGE_SIZE - 1) / PAGE_SIZE))
 		self.page		 	= max(1, min(self.page, self.total_pages))
@@ -137,16 +136,10 @@ class RagsShopView(discord.ui.LayoutView):
 	def _purchase_callback(self, item_id: str):
 		'''Callback for when an item purchase button is clicked.'''
 		async def callback(interaction: discord.Interaction) -> None:
-			# Find item across all categories.
-			item = None
-
-			for _category, items in self.shop_items.items():
-				if item_id in items:
-					item = items[item_id]
-					break
-			
-			if item is None:
-				raise RuntimeError(f"ERROR: Item with ID {item_id} not found in shop items.")
+			if item_id not in self.shop_items:
+					raise RuntimeError(f"ERROR: Item with ID {item_id} not found in shop items.")
+				
+			item = self.shop_items[item_id]
 			
 			player = interaction.user
 			server = typing.cast(discord.Guild, interaction.guild)
