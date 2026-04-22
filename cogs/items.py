@@ -1,5 +1,4 @@
 import discord
-import typing
 
 from cogs.demons import DemonData, DemonQueries
 from discord.ext import commands
@@ -22,6 +21,7 @@ class Items(commands.Cog):
 		'''Use an item on a demon.'''
 		player = ctx.author
 		server = ctx.guild
+		item_name = item_name.title()
 		item_id = self.item_queries.get_item_id_by_name(item_name)
 		
 		if item_id is None:
@@ -29,7 +29,7 @@ class Items(commands.Cog):
 			return
 
 		if self.item_queries.get_player_has_item(player.id, server.id, item_id) == False:
-			await ctx.send(f"You don't have any {item_name} in your inventory.")
+			await ctx.send(f"You don't have any **{item_name}** in your inventory.")
 			return
 		
 		selected_demon_id = self.player_queries.get_selected_demon_id(player.id, server.id)
@@ -44,14 +44,13 @@ class Items(commands.Cog):
 			selected_demon_id,
 			item_id
 		):
-			demon_data = typing.cast(DemonData, self.demon_queries.get_demon_by_id(selected_demon_id))
-			await ctx.send(f"{player.mention} used {item_name} on {demon_data.name}! Their stored rank has increased by 3.")
+			demon_name = self.demon_queries.get_demon_name_by_id(selected_demon_id)
+			await ctx.send(f"{player.mention} used **{item_name}** on **{demon_name}**! Their stored rank has **increased** by **3**.")
 
 	@checks.has_profile()
 	@commands.command(name = 'inventory', aliases = ['inv'], description = "View your item inventory.")
 	async def item_inventory_command(self, ctx) -> None:
 		'''View your item inventory.'''
-		print("HERE")
 		player = ctx.author
 		server = ctx.guild
 
@@ -95,9 +94,7 @@ class ItemInventoryView(discord.ui.LayoutView):
 		max_width_name = 15
 		max_width_qty = 3
 
-		# Item: fairy_incense, Quantity: {'display_name': 'Fairy Incense', 'description': "Increase a Fairy's rank by a little bit.", 'exlusive_to': 'Fairy', 'cost': {'AMETHYST': 3, 'AGATE': 2}}
 		for name, qty in self.items.items():
-			print(f"Item: {name}, Quantity: {qty}")
 			# emote = Emotes[name].value
 			emote = Emotes.BLANK.value
 

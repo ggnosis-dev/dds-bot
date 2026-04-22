@@ -94,9 +94,9 @@ class DemonQueries:
 				WHERE id = ?
 			''', (demon_id,)).fetchone()
 
-		if row:
-			return self._convert_row_to_demon_data(row)
-		return None
+			if row:
+				return self._convert_row_to_demon_data(row)
+			return None
 
 
 	def get_demon_id_by_name(self, demon_name: str) -> int:
@@ -115,7 +115,26 @@ class DemonQueries:
 				WHERE LOWER(name) = LOWER(?)
 			''', (demon_name,)).fetchone()
 
-		return response[0] if response else -1
+			return response[0] if response else -1
+	
+
+	def get_demon_name_by_id(self, demon_id: int) -> str:
+		'''
+		Retrieve a demon's name from the database using its ID.
+
+		Args:
+			demon_id (int): Identifier of the demon to retrieve the name for.
+		Returns:
+			str: Demon's name if found, otherwise an empty string.
+		'''
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+			response = cursor.execute('''
+				SELECT name FROM demons 
+				WHERE id = ?
+			''', (demon_id,)).fetchone()
+
+			return response[0] if response else ""
 
 
 	def get_random_demon(self) -> DemonData:
@@ -134,10 +153,10 @@ class DemonQueries:
 				LIMIT 1
 			''').fetchone()
 
-		if not row:
-			raise RuntimeError("ERROR: No demons found in the database.")
+			if not row:
+				raise RuntimeError("ERROR: No demons found in the database.")
 
-		return self._convert_row_to_demon_data(row)
+			return self._convert_row_to_demon_data(row)
 	
 
 	def get_demon_race_by_id(self, demon_id: int) -> str:
