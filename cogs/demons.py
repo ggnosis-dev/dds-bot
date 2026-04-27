@@ -3,7 +3,7 @@ import sqlite3
 from discord.ext import commands
 from database_paths import PLAYERS_DB_PATH
 from helpers import checks, players
-from shared_enums import Personality
+from shared_enums import DemonRegistration, Personality
 
 
 class DemonData:
@@ -43,14 +43,29 @@ class Demon(commands.Cog):
 	@commands.command(name = 'select', aliases = ['s', 'sel'], description = "Select a demon to lead your party.")
 	async def select_demon_command(self, ctx, *, demon_name: str) -> None:
 		'''Select a demon to lead your party.'''
+		player = ctx.author
+		server = ctx.guild
+		demon_name = demon_name.title()
 		demon_id = self.demon_queries.get_demon_id_by_name(demon_name)
-		
-		if demon_id == -1:
-			await ctx.send(f"It seems a {demon_name} is not in your party.")
+
+		# Repeat the same message to avoid giving away whether a demon exists or not.
+		if demon_id is None:
+			await ctx.send(f"A **{demon_name}** is not in your party...")
 			return
-		
+
+		# Check if in player's party.
+		in_party = await self.player_queries.check_demon_registration(
+			player.id, 
+			server.id, 
+			demon_id
+		)
+
+		if in_party != DemonRegistration.IN_PARTY:
+			await ctx.send(f"A **{demon_name}** is not in your party...")
+			return
+
 		self.player_queries.set_selected_demon(ctx.author.id, ctx.guild.id, demon_id)
-		await ctx.send(f"{demon_name} has been selected to lead your party!")
+		await ctx.send(f"**{demon_name}** has been selected to lead your party!")
 
 
 
@@ -99,14 +114,14 @@ class DemonQueries:
 			return None
 
 
-	def get_demon_id_by_name(self, demon_name: str) -> int:
+	def get_demon_id_by_name(self, demon_name: str) -> int | None:
 		'''
 		Retrieve a demon's ID from the database using its name.
 		
 		Args:
 			demon_name (str): Name of the demon to retrieve the ID for.
 		Returns:
-			int: Demon's ID if found, otherwise -1.
+			int | None: Demon's ID if found else None.
 		'''
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
@@ -115,7 +130,7 @@ class DemonQueries:
 				WHERE LOWER(name) = LOWER(?)
 			''', (demon_name,)).fetchone()
 
-			return response[0] if response else -1
+			return response[0] if response else None
 	
 
 	def get_demon_name_by_id(self, demon_id: int) -> str:

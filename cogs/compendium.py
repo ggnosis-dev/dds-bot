@@ -52,6 +52,10 @@ class Compendium(commands.Cog):
 		demon_name 	= demon_name.title()
 		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
+		if demon_id is None:
+			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
+			return
+
 		# Check if demon is in compendium before summoning to give a more informative message.
 		in_comp = await self.player_db.check_demon_registration(
 			player.id,
@@ -59,17 +63,16 @@ class Compendium(commands.Cog):
 			demon_id
 		)		
 
-		if in_comp == DemonRegistration.UNREGISTERED or demon_id == -1:
-			await ctx.send(f"A demon with the name {demon_name} was not found in your compendium.")
+		if in_comp == DemonRegistration.UNREGISTERED:
+			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
 			return
 		
 		if in_comp == DemonRegistration.IN_PARTY:
-			await ctx.send(f"You already have {demon_name} in your party...")
+			await ctx.send(f"You already have **{demon_name}** in your party...")
 			return
 
-		if demon_id != -1:
-			await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
-			await ctx.send(f"You have summoned {demon_name} to your party...")
+		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
+		await ctx.send(f"You have summoned **{demon_name}** to your party...")
 		
 
 class CompendiumView(discord.ui.LayoutView):

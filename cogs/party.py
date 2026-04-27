@@ -54,15 +54,19 @@ class Party(commands.Cog):
 		demon_name 	= demon_name.title()
 		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
-		# Check if demon is in party before release to give a more informative message.
+		if demon_id is None:
+			await ctx.send(f"A **{demon_name}** was not found in your party...")
+			return
+
+		# Check if demon is in party.
 		in_party = await self.player_db.check_demon_registration(
 			player.id, 
 			guild.id, 
 			demon_id
 		)
 
-		if in_party != DemonRegistration.IN_PARTY or demon_id == -1:
-			await ctx.send(f"The demon {demon_name} was not found in your party. Did you spell their name correctly?")
+		if in_party != DemonRegistration.IN_PARTY:
+			await ctx.send(f"A **{demon_name}** was not found in your party...")
 			return
 
 		await self.player_db.set_demon_in_party(
