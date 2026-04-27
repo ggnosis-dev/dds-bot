@@ -3,7 +3,7 @@ import discord
 from cogs.demons import DemonData, DemonQueries
 from discord.ext import commands
 from helpers import checks, item_queries, players
-from shared_enums import Emotes
+from shared_enums import DemonRegistration, Emotes
 
 
 
@@ -24,34 +24,45 @@ class Items(commands.Cog):
 		Args:
 			input_str (str): String containing the item name and optionally the demon name, separated by a semicolon. "item_name; demon_name" or just "item_name" to use on selected demon.
 		'''
-		parts = input_str.split(';')
-		item_name = parts[0].strip()
-		demon_name = parts[1].strip() if len(parts) > 1 else None
+		parts 		= input_str.split(';')
+		item_name 	= parts[0].strip().title()
+		demon_name 	= parts[1].strip().title() if len(parts) > 1 else None
+		player 		= ctx.author
+		server 		= ctx.guild
+		item_id 	= self.item_queries.get_item_id_by_name(item_name)
+		demon_id 	= None
 
-		player = ctx.author
-		server = ctx.guild
-		item_name = item_name.title()
-		item_id = self.item_queries.get_item_id_by_name(item_name)
-		
+		# Check if item is valid.
 		if item_id is None:
-			await ctx.send(f"The item '{item_name}' does not exist...")
+			await ctx.send(f"The item **{item_name}** does not exist in your inventory.")
 			return
-
+		
+		# Check if player has the item.
 		if self.item_queries.get_player_has_item(player.id, server.id, item_id) == False:
 			await ctx.send(f"You don't have any **{item_name}** in your inventory.")
 			return
-		
-		demon_id = None
 
+		# Get target demon ID.
 		if demon_name:
 			demon_id = self.demon_queries.get_demon_id_by_name(demon_name)
+
+			if demon_id is None:
+				await ctx.send(f"A **{demon_name}** was not found in your party...")
+				return
 		else:
 			demon_id = self.player_queries.get_selected_demon_id(player.id, server.id)
+			
+			# No demon was specified in command, and player doesn't have a demon selected.
+			if demon_id is None:
+				await ctx.send("You don't have a demon selected. Use `>select` to choose a demon first.")
+				return
 		
-		if demon_id is None:
-			await ctx.send("You don't have a demon selected. Use `>select` to choose a demon first.")
+		# Check if in player's party.
+		if await self.player_queries.check_demon_registration(player.id, server.id, demon_id) != DemonRegistration.IN_PARTY:
+			await ctx.send(f"A **{demon_name}** was not found in your party...")
 			return
 		
+		# Use the incense item and apply its effect.
 		if self.item_queries.use_incense(
 			player.id, 
 			server.id, 
