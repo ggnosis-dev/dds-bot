@@ -17,8 +17,17 @@ class Items(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name = 'use', aliases = ['u'], description = "Use an item on a demon.")
-	async def use_item_command(self, ctx, *, item_name: str) -> None:
-		'''Use an item on a demon.'''
+	async def use_item_command(self, ctx, *, input_str: str) -> None:
+		'''
+		Use an item on a demon.
+		
+		Args:
+			input_str (str): String containing the item name and optionally the demon name, separated by a semicolon. "item_name; demon_name" or just "item_name" to use on selected demon.
+		'''
+		parts = input_str.split(';')
+		item_name = parts[0].strip()
+		demon_name = parts[1].strip() if len(parts) > 1 else None
+
 		player = ctx.author
 		server = ctx.guild
 		item_name = item_name.title()
@@ -32,20 +41,26 @@ class Items(commands.Cog):
 			await ctx.send(f"You don't have any **{item_name}** in your inventory.")
 			return
 		
-		selected_demon_id = self.player_queries.get_selected_demon_id(player.id, server.id)
+		demon_id = None
+
+		if demon_name:
+			demon_id = self.demon_queries.get_demon_id_by_name(demon_name)
+		else:
+			demon_id = self.player_queries.get_selected_demon_id(player.id, server.id)
 		
-		if selected_demon_id is None:
+		if demon_id is None:
 			await ctx.send("You don't have a demon selected. Use `>select` to choose a demon first.")
 			return
 		
 		if self.item_queries.use_incense(
 			player.id, 
 			server.id, 
-			selected_demon_id,
+			demon_id,
 			item_id
 		):
-			demon_name = self.demon_queries.get_demon_name_by_id(selected_demon_id)
+			demon_name = self.demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(f"{player.mention} used **{item_name}** on **{demon_name}**! Their stored rank has **increased** by **3**.")
+
 
 	@checks.has_profile()
 	@commands.command(name = 'inventory', aliases = ['inv'], description = "View your item inventory.")
