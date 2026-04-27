@@ -74,7 +74,7 @@ class Items(commands.Cog):
 
 
 	@checks.has_profile()
-	@commands.command(name = 'inventory', aliases = ['inv'], description = "View your item inventory.")
+	@commands.command(name = 'inventory', aliases = ['inv', 'items'], description = "View your item inventory.")
 	async def item_inventory_command(self, ctx) -> None:
 		'''View your item inventory.'''
 		player = ctx.author
