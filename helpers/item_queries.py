@@ -1,6 +1,5 @@
 import json
 import sqlite3
-import discord
 
 from cogs.demons import DemonQueries
 from database_paths import PLAYERS_DB_PATH
@@ -14,15 +13,7 @@ class ItemQueries:
 			player_id (int): ID of the player using the item.
 			server_id (int): ID of the server where the item is being used.
 			item_id (str): ID of the item to use.
-
-		1.X Check if the player has the item in their inventory. 
-		2.X Apply item effect based on category.
-		3.X If it's in the incense category, check demon's race matches incense type.
-		4.X If true, increase demon's STORED RANK by 3.
-		5.X Remove item from player's inventory.
-
-		Might move this to items.py if it doesn't directly touch the database.
-		'''
+	'''
 	def __init__(self):
 		with open('data/items.json', 'r') as data:
 			raw_items = json.load(data)

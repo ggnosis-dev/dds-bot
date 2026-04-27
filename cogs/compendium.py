@@ -3,7 +3,7 @@ import typing
 
 from cogs.demons import DemonQueries
 from discord.ext import commands
-from helpers import checks, players
+from helpers import checks, currency_queries, players
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -40,7 +40,7 @@ class Compendium(commands.Cog):
 	async def summon_command(self, ctx, *, demon_name) -> None:
 		'''
 		Command to summon a demon from the player's compendium into their party.
-		TODO: Implement a cost to summoning.
+		TODO: Implement a confirmation step.
 
 		Args:
 			ctx (discord.Context): Context of the command call.
@@ -49,6 +49,14 @@ class Compendium(commands.Cog):
 		'''
 		guild 		= typing.cast(discord.Guild, ctx.guild)
 		player 		= ctx.author
+		
+		# Check if player has enough mag to summon.
+		mag = currency_queries.get_mag(player.id, guild.id)
+
+		if mag < 200:
+			await ctx.send(f"You don't have enough Magnetite to summon this demon!")
+			return
+		
 		demon_name 	= demon_name.title()
 		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
@@ -61,7 +69,7 @@ class Compendium(commands.Cog):
 			player.id,
 			guild.id,
 			demon_id
-		)		
+		)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
 			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
@@ -71,8 +79,9 @@ class Compendium(commands.Cog):
 			await ctx.send(f"You already have **{demon_name}** in your party...")
 			return
 
+		currency_queries.update_mag(player.id, guild.id, -200)
 		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
-		await ctx.send(f"You have summoned **{demon_name}** to your party...")
+		await ctx.send(f"You have summoned **{demon_name}** to your party!")
 		
 
 class CompendiumView(discord.ui.LayoutView):

@@ -4,7 +4,7 @@ import random
 from abc import ABC, abstractmethod
 from cogs.demons import DemonQueries, DemonData
 from discord.ext import commands
-from helpers import checks, players
+from helpers import checks, currency_queries, players
 from shared_enums import Emotes, Personality, ResponseType
 
 
@@ -91,6 +91,8 @@ class Encounters(commands.Cog):
 
 		if server_id is None:
 			raise RuntimeError("ERROR: Server ID is None.")
+
+		currency_queries.update_mag(player.id, server_id, 100)
 
 		new_entry = await self.player_db.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
 		await self.player_db.set_demon_in_party(player.id, server_id, demon.id)
