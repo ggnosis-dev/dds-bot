@@ -41,7 +41,6 @@ class Compendium(commands.Cog):
 	async def summon_command(self, ctx, *, demon_name) -> None:
 		'''
 		Command to summon a demon from the player's compendium into their party.
-		TODO: Implement a confirmation step.
 
 		Args:
 			ctx (discord.Context): Context of the command call.
@@ -51,22 +50,8 @@ class Compendium(commands.Cog):
 		guild 		= typing.cast(discord.Guild, ctx.guild)
 		player 		= ctx.author
 		demon_name 	= demon_name.title()
+		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 		cost 		= 200
-
-		view = ConfirmationView(f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?")
-		await ctx.send(view = view)
-		confirmed = await view.wait_for_response()
-
-		if not confirmed : return
-		
-		# Check if player has enough mag to summon.
-		mag = currency_queries.get_mag(player.id, guild.id)
-
-		if mag < cost:
-			await ctx.send(f"You don't have enough Magnetite to summon this demon!")
-			return
-		
-		demon_id = self.demon_db.get_demon_id_by_name(demon_name)
 
 		if demon_id is None:
 			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
@@ -86,8 +71,22 @@ class Compendium(commands.Cog):
 		if in_comp == DemonRegistration.IN_PARTY:
 			await ctx.send(f"You already have **{demon_name}** in your party...")
 			return
+		
+		# Send a confirmation view with the cost.
+		view = ConfirmationView(f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?")
+		await ctx.send(view = view)
+		confirmed = await view.wait_for_response()
 
-		currency_queries.update_mag(player.id, guild.id, -200)
+		if not confirmed : return
+		
+		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
+		mag = currency_queries.get_mag(player.id, guild.id)
+
+		if mag < cost:
+			await ctx.send(f"You don't have enough Magnetite to summon this demon!")
+			return
+
+		currency_queries.update_mag(player.id, guild.id, -cost)
 		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
 		await ctx.send(f"You have summoned **{demon_name}** to your party!")
 		
