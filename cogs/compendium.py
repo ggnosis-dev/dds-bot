@@ -4,6 +4,7 @@ import typing
 from cogs.demons import DemonQueries
 from discord.ext import commands
 from helpers import checks, currency_queries, players
+from helpers.view import ConfirmationView
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -49,16 +50,23 @@ class Compendium(commands.Cog):
 		'''
 		guild 		= typing.cast(discord.Guild, ctx.guild)
 		player 		= ctx.author
+		demon_name 	= demon_name.title()
+		cost 		= 200
+
+		view = ConfirmationView(f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?")
+		await ctx.send(view = view)
+		confirmed = await view.wait_for_response()
+
+		if not confirmed : return
 		
 		# Check if player has enough mag to summon.
 		mag = currency_queries.get_mag(player.id, guild.id)
 
-		if mag < 200:
+		if mag < cost:
 			await ctx.send(f"You don't have enough Magnetite to summon this demon!")
 			return
 		
-		demon_name 	= demon_name.title()
-		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
+		demon_id = self.demon_db.get_demon_id_by_name(demon_name)
 
 		if demon_id is None:
 			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
