@@ -79,10 +79,7 @@ class Compendium(commands.Cog):
 
 		confirmed = await view.wait_for_response()
 
-		if confirmed is None: 
-			await ctx.send("Timed out.") 
-			return
-		if confirmed is False: return
+		if confirmed is False or confirmed is None: return
 		
 		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
 		mag = currency_queries.get_mag(player.id, guild.id)
