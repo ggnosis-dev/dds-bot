@@ -4,7 +4,7 @@ import typing
 from cogs.demons import DemonQueries
 from discord.ext import commands
 from helpers import checks, currency_queries, players
-from helpers.view import ConfirmationView
+from helpers.view import ConfirmationView, MessageView
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -54,7 +54,8 @@ class Compendium(commands.Cog):
 		cost 		= 200
 
 		if demon_id is None:
-			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
+			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
+			await ctx.send(view = msg)
 			return
 
 		# Check if demon is in compendium before summoning to give a more informative message.
@@ -65,11 +66,13 @@ class Compendium(commands.Cog):
 		)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
-			await ctx.send(f"The demon **{demon_name}** was not found in your compendium.")
+			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
+			await ctx.send(view = msg)
 			return
 		
 		if in_comp == DemonRegistration.IN_PARTY:
-			await ctx.send(f"You already have **{demon_name}** in your party...")
+			msg = MessageView(f"You already have **{demon_name}** in your party...")
+			await ctx.send(view = msg)
 			return
 		
 		# Send a confirmation view with the cost.
@@ -83,12 +86,14 @@ class Compendium(commands.Cog):
 		mag = currency_queries.get_mag(player.id, guild.id)
 
 		if mag < cost:
-			await ctx.send(f"You don't have enough Magnetite to summon this demon!")
+			msg = MessageView(f"You don't have enough Magnetite to summon this demon!")
+			await ctx.send(view = msg)
 			return
 
 		currency_queries.update_mag(player.id, guild.id, -cost)
 		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
-		await ctx.send(f"You have summoned **{demon_name}** to your party!")
+		msg = MessageView(f"You have summoned **{demon_name}** to your party!")
+		await ctx.send(view = msg)
 		
 
 class CompendiumView(discord.ui.LayoutView):
