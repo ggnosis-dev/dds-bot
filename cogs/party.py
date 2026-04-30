@@ -71,7 +71,7 @@ class Party(commands.Cog):
 			return
 
 		# Send a confirmation view.
-		view 	= ConfirmationView(f"Are you sure you want to release **{demon_name}**?")
+		view 	= ConfirmationView(f"Are you sure you want to release **{demon_name}**?", confirmLabel = 'Yes', denyLabel = 'No')
 		result 	= await ConfirmationView.send_message(view, ctx)
 
 		if result is False or result is None:

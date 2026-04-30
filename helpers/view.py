@@ -4,9 +4,17 @@ import typing
 
 
 class ConfirmationView(discord.ui.LayoutView):
-	def __init__(self, message: str, colour: int = 0xE93700, timeout: float = 10.0):
+	def __init__(self, 
+		message: str,
+		confirmLabel: str = 'Confirm',
+		denyLabel: str = 'Deny',
+		colour: int = 0xE93700, 
+		timeout: float = 10.0
+	):
 		super().__init__(timeout = timeout)
 		self.message = message
+		self.confirmLabel = confirmLabel
+		self.denyLabel = denyLabel
 		self.colour = colour
 		self.timedOut: bool = False
 		self.confirmed: bool | None = None
@@ -21,8 +29,8 @@ class ConfirmationView(discord.ui.LayoutView):
 		ui = discord.ui
 		container = ui.Container(accent_color = self.colour)
 		action_row = ui.ActionRow(
-			self.ConfirmButton('Confirm', True, discord.ButtonStyle.success),
-			self.ConfirmButton('Deny', False, discord.ButtonStyle.danger),
+			self.ConfirmButton(self.confirmLabel, True, discord.ButtonStyle.success),
+			self.ConfirmButton(self.denyLabel, False, discord.ButtonStyle.danger),
 		)
 
 		container.add_item(ui.TextDisplay(self.message))
@@ -30,7 +38,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		container.add_item(action_row)
 
 		if self.timedOut:
-			container.add_item(ui.TextDisplay("Timed Out"))
+			container.add_item(ui.TextDisplay("-# Timed Out"))
 
 		self.add_item(container)
 
