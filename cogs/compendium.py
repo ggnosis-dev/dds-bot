@@ -74,10 +74,15 @@ class Compendium(commands.Cog):
 		
 		# Send a confirmation view with the cost.
 		view = ConfirmationView(f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?")
-		await ctx.send(view = view)
+		msg = await ctx.send(view = view)
+		view.msg = msg
+
 		confirmed = await view.wait_for_response()
 
-		if not confirmed : return
+		if confirmed is None: 
+			await ctx.send("Timed out.") 
+			return
+		if confirmed is False: return
 		
 		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
 		mag = currency_queries.get_mag(player.id, guild.id)
