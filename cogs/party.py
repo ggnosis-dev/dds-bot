@@ -4,6 +4,7 @@ import typing
 from cogs.demons import DemonQueries
 from discord.ext import commands
 from helpers import checks, players
+from helpers.view import ConfirmationView
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -67,6 +68,13 @@ class Party(commands.Cog):
 
 		if in_party != DemonRegistration.IN_PARTY:
 			await ctx.send(f"A **{demon_name}** was not found in your party...")
+			return
+
+		# Send a confirmation view.
+		view 	= ConfirmationView(f"Are you sure you want to release **{demon_name}**?")
+		result 	= await ConfirmationView.send_message(view, ctx)
+
+		if result is False or result is None:
 			return
 
 		await self.player_db.set_demon_in_party(

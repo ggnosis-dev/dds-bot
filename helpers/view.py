@@ -53,6 +53,13 @@ class ConfirmationView(discord.ui.LayoutView):
 			await self.msg.edit(view = self)
 
 
+	async def send_message(self, ctx) -> bool | None:
+		msg = await ctx.send(view = self)
+		self.msg = msg
+
+		return await self.wait_for_response()
+
+
 	def _disable_buttons(self) -> None:
 		container = self.children[0]
 
