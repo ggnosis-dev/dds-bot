@@ -3,6 +3,24 @@ import discord
 import typing
 
 
+class MessageView(discord.ui.LayoutView):
+	def __init__(self, 
+		message: str,
+		colour: int = 0xE93700, 
+	):
+		super().__init__()
+		self.message = message
+		self.colour = colour
+		self._build_layout()
+
+
+	def _build_layout(self) -> None:
+		ui = discord.ui
+		container = ui.Container(accent_color = self.colour)
+		container.add_item(ui.TextDisplay(self.message))
+		self.add_item(container)
+
+
 class ConfirmationView(discord.ui.LayoutView):
 	def __init__(self, 
 		message: str,
@@ -12,6 +30,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		timeout: float = 10.0
 	):
 		super().__init__(timeout = timeout)
+
 		self.message = message
 		self.confirmLabel = confirmLabel
 		self.denyLabel = denyLabel

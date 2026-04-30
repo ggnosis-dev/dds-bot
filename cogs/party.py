@@ -4,7 +4,7 @@ import typing
 from cogs.demons import DemonQueries
 from discord.ext import commands
 from helpers import checks, players
-from helpers.view import ConfirmationView
+from helpers.view import ConfirmationView, MessageView
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -56,7 +56,8 @@ class Party(commands.Cog):
 		demon_id 	= self.demon_db.get_demon_id_by_name(demon_name)
 
 		if demon_id is None:
-			await ctx.send(f"A **{demon_name}** was not found in your party...")
+			msg = MessageView(f"A **{demon_name}** was not found in your party...")
+			await ctx.send(view = msg)
 			return
 
 		# Check if demon is in party.
@@ -67,7 +68,8 @@ class Party(commands.Cog):
 		)
 
 		if in_party != DemonRegistration.IN_PARTY:
-			await ctx.send(f"A **{demon_name}** was not found in your party...")
+			msg = MessageView(f"A **{demon_name}** was not found in your party...")
+			await ctx.send(view = msg)
 			return
 
 		# Send a confirmation view.
@@ -82,8 +84,9 @@ class Party(commands.Cog):
 			guild.id, 
 			demon_id, 
 			party_add = False
-		)				
-		await ctx.send(f"### Good-Bye...\n{demon_name} will have a happy life in a faraway forest. You will never see your {demon_name} again.")
+		)
+		msg = MessageView(f"### Good-Bye...\n**{demon_name}** will have a happy life in a faraway forest. You will never see your **{demon_name}** again.")	
+		await ctx.send(view = msg)
 	
 
 class PartyView(discord.ui.LayoutView):
