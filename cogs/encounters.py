@@ -2,9 +2,9 @@ import discord
 import random
 
 from abc import ABC, abstractmethod
-from cogs.demons import DemonQueries, DemonData
 from discord.ext import commands
 from helpers import checks, currency_queries, players
+from helpers.demon_queries import DemonData, DemonQueries
 from shared_enums import Emotes, Personality, ResponseType
 
 

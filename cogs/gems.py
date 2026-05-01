@@ -1,9 +1,9 @@
 import discord
 import typing
 
-from cogs.demons import DemonData, DemonQueries
 from discord.ext import commands
 from helpers import checks, players 
+from helpers.demon_queries import DemonData, DemonQueries
 from shared_enums import Emotes
 
 

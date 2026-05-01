@@ -1,9 +1,8 @@
 import discord
 import typing
 
-from cogs.demons import DemonQueries
 from discord.ext import commands
-from helpers import checks, players
+from helpers import checks, demon_queries, players 
 from helpers.view import ConfirmationView, MessageView
 from shared_enums import DemonRegistration, Emotes
 
@@ -15,7 +14,7 @@ class Party(commands.Cog):
 	def __init__(self, bot: commands.Bot):
 		'''Init the Party cog with reference to bot instance and database classes.'''
 		self.bot = bot
-		self.demon_db = DemonQueries()
+		self.demon_db = demon_queries.DemonQueries()
 		self.player_db = players.Players()
 
 

@@ -1,10 +1,8 @@
 import discord
 
-from cogs.demons import DemonData, DemonQueries
 from discord.ext import commands
-from helpers import checks, item_queries, players
+from helpers import checks, item_queries, demon_queries, players
 from shared_enums import DemonRegistration, Emotes
-
 
 
 class Items(commands.Cog):
@@ -12,7 +10,7 @@ class Items(commands.Cog):
 		self.bot = bot
 		self.item_queries = item_queries.ItemQueries()
 		self.player_queries = players.Players()
-		self.demon_queries = DemonQueries()
+		self.demon_db = demon_queries.DemonQueries()
 
 
 	@checks.has_profile()
@@ -44,7 +42,7 @@ class Items(commands.Cog):
 
 		# Get target demon ID.
 		if demon_name:
-			demon_id = self.demon_queries.get_demon_id_by_name(demon_name)
+			demon_id = self.demon_db.get_demon_id_by_name(demon_name)
 
 			if demon_id is None:
 				await ctx.send(f"A **{demon_name}** was not found in your party...")
@@ -69,7 +67,7 @@ class Items(commands.Cog):
 			demon_id,
 			item_id
 		):
-			demon_name = self.demon_queries.get_demon_name_by_id(demon_id)
+			demon_name = self.demon_db.get_demon_name_by_id(demon_id)
 			await ctx.send(f"{player.mention} used **{item_name}** on **{demon_name}**! Their stored rank has **increased** by **3**.")
 
 

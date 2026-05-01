@@ -1,7 +1,7 @@
 import json
 import sqlite3
 
-from cogs.demons import DemonQueries
+from helpers.demon_queries import DemonQueries
 from database_paths import PLAYERS_DB_PATH
 
 
