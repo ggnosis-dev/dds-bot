@@ -25,7 +25,7 @@ class PlayerData:
 		self.selected_demon_id = None
 
 
-class Players:
+class PlayerQueries:
 	def get_db_connection(self) -> sqlite3.Connection:
 		'''Helper method to get a connection to the players database.'''
 		conn = sqlite3.connect(PLAYERS_DB_PATH)

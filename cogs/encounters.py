@@ -3,7 +3,7 @@ import random
 
 from abc import ABC, abstractmethod
 from discord.ext import commands
-from helpers import checks, currency_queries, players
+from helpers import checks, currency_queries, player_queries
 from helpers.demon_queries import DemonData, DemonQueries
 from shared_enums import Emotes, Personality, ResponseType
 
@@ -27,7 +27,7 @@ class Encounters(commands.Cog):
 		'''
 		self.bot = bot
 		self.demon_db = DemonQueries()
-		self.player_db = players.Players()
+		self.player_db = player_queries.PlayerQueries()
 
 
 	@checks.is_developer()

@@ -1,5 +1,5 @@
 from discord.ext import commands
-from helpers.players import Players
+from helpers.player_queries import PlayerQueries
 
 
 class IsDeveloperCheck(commands.CheckFailure):
@@ -44,7 +44,7 @@ def has_profile():
 		if ctx.guild is None:
 			raise RuntimeError("ERROR: Server ID could not be determined.")
 
-		player_db = Players()
+		player_db = PlayerQueries()
 		has_profile = player_db.check_player_exists(ctx.author.id, ctx.guild.id)
 		if not has_profile:
 			raise ProfileSetupCheck("You don't have a profile set up yet! Use `>start` to begin.")

@@ -1,7 +1,7 @@
 import discord
 
 from discord.ext import commands
-from helpers import checks, item_queries, demon_queries, players
+from helpers import checks, item_queries, demon_queries, player_queries
 from shared_enums import DemonRegistration, Emotes
 
 
@@ -9,7 +9,7 @@ class Items(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.item_queries = item_queries.ItemQueries()
-		self.player_queries = players.Players()
+		self.player_queries = player_queries.PlayerQueries()
 		self.demon_db = demon_queries.DemonQueries()
 
 

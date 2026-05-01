@@ -3,7 +3,7 @@ import json
 import typing
 
 from discord.ext import commands
-from helpers import checks, players
+from helpers import checks, player_queries
 from shared_enums import Emotes
 
 
@@ -15,7 +15,7 @@ class RagsShop(commands.Cog):
 	'''Cog for the Rags Shop where players can spend Rags to buy items.'''
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_db = players.Players()
+		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(name = 'rags', aliases = ['r', 'shop'], description = "Trade gemstones at Rag's Jewelry to get incense and other valuable items.")
@@ -144,7 +144,7 @@ class RagsShopView(discord.ui.LayoutView):
 			player = interaction.user
 			server = typing.cast(discord.Guild, interaction.guild)
 
-			check = players.Players().attempt_purchase_item(
+			check = player_queries.PlayerQueries().attempt_purchase_item(
 				player_id = player.id, 
 				server_id = server.id, 
 				item_id = item_id, 

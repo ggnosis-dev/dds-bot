@@ -2,7 +2,7 @@ import discord
 import typing
 
 from discord.ext import commands
-from helpers import checks, players 
+from helpers import checks, player_queries 
 from helpers.demon_queries import DemonData, DemonQueries
 from shared_enums import Emotes
 
@@ -10,7 +10,7 @@ from shared_enums import Emotes
 class Gems(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_db = players.Players()
+		self.player_db = player_queries.PlayerQueries()
 
 
 	@commands.command(name = 'gems', aliases = ['g'], description = "Displays the player's current gem collection.")

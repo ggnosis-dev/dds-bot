@@ -1,5 +1,5 @@
 from discord.ext import commands
-from helpers import checks, demon_queries, players
+from helpers import checks, demon_queries, player_queries
 from shared_enums import DemonRegistration
 
 
@@ -8,7 +8,7 @@ class Demon(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.demon_db = demon_queries.DemonQueries()
-		self.player_db = players.Players()
+		self.player_db = player_queries.PlayerQueries()
 
 
 	@checks.has_profile()

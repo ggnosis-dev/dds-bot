@@ -2,7 +2,7 @@ import discord
 import typing
 
 from discord.ext import commands
-from helpers import checks, currency_queries, demon_queries, players
+from helpers import checks, currency_queries, demon_queries, player_queries
 from helpers.view import ConfirmationView, MessageView
 from shared_enums import DemonRegistration, Emotes
 
@@ -15,7 +15,7 @@ class Compendium(commands.Cog):
 		'''Init the Compendium cog with reference to bot instance and database classes.'''
 		self.bot = bot
 		self.demon_db = demon_queries.DemonQueries()
-		self.player_db = players.Players()
+		self.player_db = player_queries.PlayerQueries()
 
 
 	@commands.command(name = 'compendium', aliases = ['comp', 'c'], help = "Displays the player's compendium.")
