@@ -196,7 +196,7 @@ class PlayerQueries:
 			''', (player_id, server_id, demon_id)).fetchone()
 
 			# Return early if demon is already in compendium to avoid dupes.
-			if exists_in_comp : return False
+			if exists_in_comp: return False
 			
 			cursor.execute('''
 				INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank, in_party)
@@ -341,7 +341,7 @@ class PlayerQueries:
 				WHERE d.id = ?
 			''', (demon_id,)).fetchone()
 
-			if gem_name is None : return False
+			if gem_name is None: return False
 
 			stored_rank = stored_rank * GEM_EXP_MULTIPLIER
 

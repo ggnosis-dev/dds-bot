@@ -39,13 +39,13 @@ class Gems(commands.Cog):
 		ctx = await self.bot.get_context(message)
 
 		# This check will exit if the player uses a proper command.
-		if ctx.valid : return
+		if ctx.valid: return
 		
 		player_id = message.author.id
 		guild_id = message.guild.id
 		selected_demon_id = self.player_db.get_selected_demon_id(player_id, guild_id)
 		
-		if selected_demon_id is None : return
+		if selected_demon_id is None: return
 
 		# Increase exp towards finding a gem.
 		gem_found = await self.player_db.increase_gems(player_id, guild_id, selected_demon_id)
