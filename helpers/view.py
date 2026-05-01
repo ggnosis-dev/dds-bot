@@ -6,18 +6,27 @@ import typing
 class MessageView(discord.ui.LayoutView):
 	def __init__(self, 
 		message: str,
-		colour: int = 0xE93700, 
+		image: str | None = None,
+		colour: int = 0xE93700,
 	):
 		super().__init__()
 		self.message = message
 		self.colour = colour
+		self.image = image
 		self._build_layout()
 
 
 	def _build_layout(self) -> None:
 		ui = discord.ui
 		container = ui.Container(accent_color = self.colour)
-		container.add_item(ui.TextDisplay(self.message))
+
+		if self.image is not None:
+			section = ui.Section(accessory = ui.Thumbnail(media = self.image))
+			section.add_item(ui.TextDisplay(self.message))
+			container.add_item(section)
+		else:
+			container.add_item(ui.TextDisplay(self.message))
+
 		self.add_item(container)
 
 
