@@ -356,12 +356,7 @@ class PlayerQueries:
 				WHERE player_id = ? AND server_id = ? AND gem_name = ?
 			''', (player_id, server_id, gem_name)).fetchone()
 
-			if result is None:
-				return 0
-			
-			print(result)
-			
-			return result[0]
+			return result[0] if result else 0
 		
 		
 	def attempt_purchase_item(self, player_id: int, server_id: int, item_id: str, cost: dict) -> bool:
