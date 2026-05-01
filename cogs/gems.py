@@ -4,6 +4,7 @@ import typing
 from discord.ext import commands
 from helpers import checks, player_queries 
 from helpers.demon_queries import DemonData, DemonQueries
+from helpers.view import MessageView
 from shared_enums import Emotes
 
 
@@ -51,7 +52,12 @@ class Gems(commands.Cog):
 		
 		if gem_found:
 			try:
-				view = GemCollectedView(message.author, selected_demon_id)
+				d = typing.cast(DemonData, DemonQueries().get_demon_by_id(selected_demon_id))
+				view = MessageView(
+					f"{message.author.mention}, your **{d.name}** has found a **{d.gem.title()}**!", 
+					d.image_url,
+					d.colour
+				)
 				await message.channel.send(view = view)
 			except Exception as e:
 				print(f"ERROR: Failed to send gem found message: {e}")
@@ -106,38 +112,6 @@ class GemCollectionView(discord.ui.LayoutView):
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 
-		self.add_item(container)
-		
-
-class GemCollectedView(discord.ui.LayoutView):
-	def __init__(
-		self, 
-		player: discord.User | discord.Member, 
-		demon_id: int,
-	) -> None:
-		super().__init__()
-
-		self.player = player
-		self.demon = typing.cast(DemonData, DemonQueries().get_demon_by_id(demon_id))
-
-		self._build_gem_collected_layout()
-
-
-	def _build_gem_collected_layout(self) -> None:
-		gem_name = self.demon.gem.title()
-		colour = self.demon.colour
-		image = self.demon.image_url
-		name = self.demon.name
-
-		ui = discord.ui
-		container = ui.Container(accent_color = colour)
-		
-		# Can use thumbnails given it's put in a section.
-		section = ui.Section(accessory = ui.Thumbnail(media = image))
-		section.add_item(ui.TextDisplay(f"{self.player.mention}, your **{name}** has found a **{gem_name}**!"))
-
-		container.add_item(section)
-		
 		self.add_item(container)
 
 
