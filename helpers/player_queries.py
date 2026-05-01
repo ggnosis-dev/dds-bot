@@ -90,6 +90,15 @@ class PlayerQueries:
 		
 	
 	async def get_player(self, player_id, server_id) -> PlayerData | None:
+		'''
+		Get the properties of the player.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Sever ID player belongs to.
+		Returns:
+			PlayerData: A data class of player properties.
+		'''
 		with self.get_db_connection() as conn:
 			conn.row_factory = sqlite3.Row
 			cursor = conn.cursor()
@@ -108,7 +117,17 @@ class PlayerQueries:
 				daily_timer = result['daily_timer']
 			)
 		
-	async def set_daily_timer(self, player_id, server_id, time) -> bool:
+	async def set_daily_timer(self, player_id: int, server_id: int, time: int) -> bool:
+		'''
+		Set the player's daily timer.
+		
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Sever ID player belongs to.
+			time (int): Time to set the daily timer to.
+		Returns:
+			bool: True if successful, False otherwise.
+		'''
 		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
@@ -116,7 +135,7 @@ class PlayerQueries:
 				SET daily_timer = ?
 				WHERE player_id = ? AND server_id = ?
 			''', (time, player_id, server_id))
-			
+
 			return cursor.rowcount > 0
 
 
