@@ -22,6 +22,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			server_id 			INTEGER,
 			mag 				INTEGER DEFAULT 0,
 			selected_demon_id	INTEGER DEFAULT 1,
+			daily_timer			INTEGER DEFAULT 0,
 			CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
 			FOREIGN KEY (selected_demon_id) REFERENCES demons(id)
 		)

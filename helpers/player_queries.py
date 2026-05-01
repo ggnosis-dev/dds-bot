@@ -10,19 +10,12 @@ GEM_METER_FULL = 100
 
 
 class PlayerData:
-	'''Data class for a player's information.'''
-	def __init__(self, id: int, server_id: int) -> None:
-		'''
-		Initialize a new PlayerData instance.
-		TODO: Add currencies.
-
-		Args:
-			id (int): The player's ID.
-			server_id (int): The server ID the player belongs to.
-		'''
-		self.id = id
+	def __init__(self, player_id: int, server_id: int, selected_demon_id: int, mag: int, daily_timer: int):
+		self.player_id = player_id
 		self.server_id = server_id
-		self.selected_demon_id = None
+		self.selected_demon_id = selected_demon_id
+		self.mag = mag
+		self.daily_timer = daily_timer
 
 
 class PlayerQueries:
@@ -33,6 +26,7 @@ class PlayerQueries:
 		# Enforce foreign key constraints for the connection.
 		conn.execute('PRAGMA foreign_keys = ON')
 		return conn
+
 
 	'''Class for querying player data and updates to the database.'''
 	async def setup_player(self, ctx: commands.Context) -> bool:
@@ -45,38 +39,38 @@ class PlayerQueries:
 		if ctx.guild is None:
 			raise RuntimeError("ERROR: Server ID could not be determined.")
 
-		id = ctx.author.id
+		player_id = ctx.author.id
 		server_id = ctx.guild.id
 
-		if self.check_player_exists(id, server_id):
+		if self.check_player_exists(player_id, server_id):
 			await ctx.send("You already have a profile set up on this server!")
 			return False
 		
 		await ctx.send(f"Welcome to the bot {ctx.author.mention}! Setting up your profile now...")
-		player_data = PlayerData(id, server_id)
-		self.save_player_to_db(player_data)
+		self.save_player_to_db(player_id, server_id)
 		await ctx.send("Your profile has been set up!")
 
 		return True
 
 
-	def save_player_to_db(self, player: PlayerData) -> None:
+	def save_player_to_db(self, player_id: int, server_id: int) -> None:
 		'''
 		Save a new player's data to the database.
 
 		Args:
-			player (PlayerData): Player's data that needs saving.
+			player_id (int): Player ID that needs saving.
+			server_id (int): Server ID player belongs to.
 		'''
 		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 			cursor.execute('''
 				INSERT INTO players (player_id, server_id) 
 					VALUES (?, ?)
-			''', (player.id, player.server_id))
-			print(f'INFO: New player added: {player.id} | Server {player.server_id}.')
+			''', (player_id, server_id))
+			print(f'INFO: New player added: {player_id} | Server {server_id}.')
 
 
-	def check_player_exists(self, player_id, player_server) -> bool:
+	def check_player_exists(self, player_id, server_id) -> bool:
 		'''
 		Check if a player already exists in the database.
 
@@ -90,10 +84,41 @@ class PlayerQueries:
 			cursor = conn.cursor()
 			result = cursor.execute('''
 				SELECT * FROM players 
-					WHERE player_id = ? AND server_id = ?
-			''', (player_id, player_server)).fetchone()
+				WHERE player_id = ? AND server_id = ?
+			''', (player_id, server_id)).fetchone()
 			return result is not None
+		
 	
+	async def get_player(self, player_id, server_id) -> PlayerData | None:
+		with self.get_db_connection() as conn:
+			conn.row_factory = sqlite3.Row
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT * FROM players 
+				WHERE player_id = ? AND server_id = ?
+			''', (player_id, server_id)).fetchone()
+			
+			if result is None: return None
+
+			return PlayerData(
+				player_id = result['player_id'],
+				server_id = result['server_id'],
+				selected_demon_id = result['selected_demon_id'],
+				mag = result['mag'],
+				daily_timer = result['daily_timer']
+			)
+		
+	async def set_daily_timer(self, player_id, server_id, time) -> bool:
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+			cursor.execute('''
+				UPDATE players
+				SET daily_timer = ?
+				WHERE player_id = ? AND server_id = ?
+			''', (time, player_id, server_id))
+			
+			return cursor.rowcount > 0
+
 
 	async def set_demon_in_party(
 		self, 
