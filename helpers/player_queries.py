@@ -346,6 +346,23 @@ class PlayerQueries:
 
 			return result if result else []
 		
+	
+	def get_gem_progress(self, player_id: int, server_id: int, gem_name: str) -> int:
+		'''Get gem meter progress.'''
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT meter FROM player_gems
+				WHERE player_id = ? AND server_id = ? AND gem_name = ?
+			''', (player_id, server_id, gem_name)).fetchone()
+
+			if result is None:
+				return 0
+			
+			print(result)
+			
+			return result[0]
+		
 		
 	def attempt_purchase_item(self, player_id: int, server_id: int, item_id: str, cost: dict) -> bool:
 		'''
