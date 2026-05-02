@@ -18,6 +18,14 @@ class PlayerData:
 		self.daily_timer = daily_timer
 
 
+class ServerCompendiumDemon:
+	def __init__(self, player_id: int, server_id: int, demon_id: int, stored_rank: int):
+		self.player_id = player_id
+		self.server_id = server_id
+		self.demon_id = demon_id
+		self.stored_rank = stored_rank
+
+
 class PlayerQueries:
 	def get_db_connection(self) -> sqlite3.Connection:
 		'''Helper method to get a connection to the players database.'''
@@ -229,6 +237,96 @@ class PlayerQueries:
 
 			return True
 		
+	
+	async def add_demon_to_server_compendium(
+		self, 
+		player_id: int, 
+		server_id: int, 
+		demon_id: int, 
+	) -> bool:
+		'''
+		Add a demon to the server's compendium and mark it on loan.
+
+		Args:
+			player_id (int): Player ID.
+			server_id (int): Server ID the player belongs to.
+			demon_id (int): Demon's ID.
+		Returns:
+			bool: True if the demon was added, False if it already exists.
+		'''
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+
+			exists_in_comp = cursor.execute('''
+				SELECT 1 FROM server_demons
+				WHERE server_id = ? AND demon_id = ?
+			''', (server_id, demon_id)).fetchone()
+
+			# Return early if demon is already in compendium to avoid dupes.
+			if exists_in_comp: return False
+
+			# Insert reference to player's demon into the compendium.
+			cursor.execute('''
+				INSERT INTO server_demons (player_id, server_id, demon_id)
+				VALUES (?, ?, ?)
+			''', (player_id, server_id, demon_id))
+
+			# Update player's demon with the on loan flag.
+			cursor.execute('''
+				UPDATE player_demons SET on_loan = 1
+				WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			''', (player_id, server_id, demon_id))
+
+			return True
+		
+	
+	async def get_server_compendium_demon(self, server_id: int, demon_id: int) -> ServerCompendiumDemon:
+		with self.get_db_connection() as conn:
+			conn.row_factory = sqlite3.Row
+			cursor = conn.cursor()
+			result = cursor.execute('''
+				SELECT sd.*, pd.stored_rank FROM server_demons sd
+				JOIN player_demons pd
+					ON sd.player_id = pd.player_id
+				  		AND sd.server_id = pd.server_id
+				  		AND sd.demon_id = pd.demon_id
+				WHERE sd.server_id = ? AND sd.demon_id = ? 
+			''', (server_id, demon_id)).fetchone()
+
+			return ServerCompendiumDemon(
+				player_id = result['player_id'],
+				server_id = result['server_id'],
+				demon_id = result['demon_id'],
+				stored_rank = result['stored_rank']
+			)
+
+
+	async def replace_server_compendium_demon(self, player_id, server_id, demon_id) -> None:
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+
+			# Release old loaned demon.
+			cursor.execute('''
+				UPDATE player_demons SET on_loan = 0
+				WHERE server_id = ? AND demon_id = ?
+					AND player_id = (
+				  		SELECT player_id FROM server_demons
+				  		WHERE server_id = ? AND demon_id = ?
+				  )
+			''', (server_id, demon_id, server_id, demon_id))
+
+			# Update compendium entry.
+			cursor.execute('''
+				UPDATE server_demons SET player_id = ?
+				WHERE server_id = ? AND demon_id = ?
+			''', (player_id, server_id, demon_id))
+
+			# Set on loan on demon.
+			cursor.execute('''
+				UPDATE player_demons SET on_loan = 1
+				WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			''', (player_id, server_id, demon_id))
+
 
 	async def check_demon_registration(
 		self, 

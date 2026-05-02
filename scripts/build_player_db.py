@@ -12,6 +12,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# TESTS:
 	# cursor.execute('DROP TABLE IF EXISTS players')
 	# cursor.execute('DROP TABLE IF EXISTS player_demons')
+	# cursor.execute('DROP TABLE IF EXISTS server_demons')
 	# cursor.execute('DROP TABLE IF EXISTS player_gems')
 	# cursor.execute('DROP TABLE IF EXISTS player_items')
 	# cursor.execute('UPDATE player_demons SET in_party = 0')
@@ -47,7 +48,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 				DEFAULT 0 
 				CHECK (on_loan IN (0, 1)),
 			UNIQUE (player_id, server_id, demon_id)
-			FOREIGN KEY (demon_id) REFERENCES demons(id)
+			FOREIGN KEY (demon_id) REFERENCES demons (id)
 		)
 	''')
 
@@ -58,7 +59,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			demon_id		INTEGER,
 			PRIMARY KEY (server_id, demon_id),
 			FOREIGN KEY (server_id) 
-				REFERENCES server (server_id),
+				REFERENCES servers (server_id),
 			FOREIGN KEY (player_id, server_id, demon_id) 
 				REFERENCES player_demons (player_id, server_id, demon_id)
 		)

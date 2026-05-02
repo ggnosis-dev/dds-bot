@@ -1,0 +1,98 @@
+import discord
+import typing
+
+from discord.ext import commands
+from helpers import checks, currency_queries, demon_queries, player_queries
+from helpers.view import ConfirmationView, MessageView
+from shared_enums import DemonRegistration, Emotes
+
+
+class ServerCompendium(commands.Cog):
+	'''Cog for viewing and summoning from player compendiums.'''
+	def __init__(self, bot: commands.Bot) -> None:
+		'''Init the Compendium cog with reference to bot instance and database classes.'''
+		self.bot = bot
+		self.demon_db = demon_queries.DemonQueries()
+		self.player_db = player_queries.PlayerQueries()
+
+
+	@checks.has_profile()
+	@commands.command(name = 'loan', help = "Loan a demon to the server's compendium.")
+	async def loan_command(self, ctx, *, demon_name) -> None:
+		player 		= ctx.author
+		server 		= typing.cast(discord.Guild, ctx.guild)
+		demon_name 	= demon_name.title()
+		demon 		= self.demon_db.get_demon_by_name(demon_name)
+
+		if demon is None:
+			msg = MessageView(f"**{demon_name}** was not found in your party...")
+			await ctx.send(view = msg)
+			return
+
+		# Check if demon is in party.
+		in_party = await self.player_db.check_demon_registration(
+			player.id, 
+			server.id, 
+			demon.id
+		)
+
+		if in_party != DemonRegistration.IN_PARTY:
+			msg = MessageView(f"**{demon_name}** was not found in your party...")
+			await ctx.send(view = msg)
+			return
+
+		# Send a confirmation view with the cost.
+		view = ConfirmationView(
+			f"Do you wish to loan your **{demon.race} {demon.name}** to the **{server.name}'s Compendium**?\n\n-# You will not be able to use the demon again until taken back.",
+			confirmLabel = 'Yes',
+			denyLabel = 'No',
+			colour = demon.colour
+		)
+		result = await ConfirmationView.send_message(view, ctx)
+
+		if result is False or result is None:
+			return
+		
+		success = await self.player_db.add_demon_to_server_compendium(player.id, server.id, demon.id)
+		
+		if success is False:
+			stored_demon = await self.player_db.get_server_compendium_demon(server.id, demon.id)
+			stored_owner = typing.cast(discord.Member, self.bot.get_user(stored_demon.player_id))
+
+			# Ask to overwrite if stronger.
+			if demon.rank <= stored_demon.stored_rank:
+				msg = MessageView(f"**{stored_owner}**'s **{demon_name}** (Rank {stored_demon.stored_rank}) is already in {server.name}'s Compendium.")
+				await ctx.send(view = msg)
+				return
+			
+			# Send a confirmation view with the cost.
+			view = ConfirmationView(
+				f"**{stored_owner}** already has their **{demon.name}** loaned to **{server.name}'s Compendium**. Do you wish to replace it? The demon will be returned to its owner.\n\n-# You will not be able to use the demon again until taken back.",
+				confirmLabel = 'Replace',
+				denyLabel = 'Cancel',
+				colour = demon.colour
+			)
+			result = await ConfirmationView.send_message(view, ctx)
+
+			if result is False or result is None:
+				return
+			
+			await self.player_db.replace_server_compendium_demon(player.id, server.id, demon.id)
+			msg = MessageView(
+				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s Compendium** for the time being. {stored_owner.mention}'s {demon.name} has been returned to its COMP.\n\n-# You will not be able to use the demon again until taken back.",
+				image = demon.image_url,
+				colour = demon.colour
+			)
+			await ctx.send(view = msg)
+			return
+		
+		msg = MessageView(
+			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s Compendium** for the time being.\n\n-# You will not be able to use the demon again until taken back.",
+			image = demon.image_url,
+			colour = demon.colour
+		)
+		await ctx.send(view = msg)
+		
+
+async def setup(bot: commands.Bot) -> None:
+	await bot.add_cog(ServerCompendium(bot))
