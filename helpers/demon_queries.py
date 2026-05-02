@@ -94,6 +94,12 @@ class DemonQueries:
 			return response[0] if response else None
 	
 
+	def get_demon_by_name(self, demon_name: str) -> DemonData | None:
+		'''Helper to get demon by name.'''
+		d_id = self.get_demon_id_by_name(demon_name)
+		return self.get_demon_by_id(d_id) if d_id else None
+	
+
 	def get_demon_name_by_id(self, demon_id: int) -> str:
 		'''
 		Retrieve a demon's name from the database using its ID.
