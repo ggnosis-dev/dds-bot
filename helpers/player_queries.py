@@ -48,18 +48,21 @@ class PlayerQueries:
 		
 		await ctx.send(f"Welcome to the bot {ctx.author.mention}! Setting up your profile now...")
 		self.save_player_to_db(player_id, server_id)
+		self.update_server_in_db(server_id)
 		await ctx.send("Your profile has been set up!")
 
 		return True
 
 
-	def save_player_to_db(self, player_id: int, server_id: int) -> None:
+	def save_player_to_db(self, player_id: int, server_id: int) -> bool:
 		'''
 		Save a new player's data to the database.
 
 		Args:
 			player_id (int): Player ID that needs saving.
 			server_id (int): Server ID player belongs to.
+		Returns:
+			bool: True on successful, False on fail.
 		'''
 		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
@@ -68,6 +71,27 @@ class PlayerQueries:
 					VALUES (?, ?)
 			''', (player_id, server_id))
 			print(f'INFO: New player added: {player_id} | Server {server_id}.')
+			return cursor.rowcount > 0
+
+
+	def update_server_in_db(self, server_id: int) -> bool:
+		'''
+		Update a server's data in the database.
+
+		Args:
+			server_id (int): Server ID to save.
+		Returns:
+			bool: True on successful, False on fail.
+		'''
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+			cursor.execute('''
+				INSERT INTO servers (server_id, player_count) 
+				VALUES (?, 1)
+				ON CONFLICT (server_id) DO UPDATE SET
+					player_count = player_count + 1
+			''', (server_id,))
+			return cursor.rowcount > 0
 
 
 	def check_player_exists(self, player_id, server_id) -> bool:
