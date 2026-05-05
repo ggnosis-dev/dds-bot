@@ -3,8 +3,19 @@ import typing
 
 from discord.ext import commands
 from helpers import checks, demon_queries, player_queries
-from helpers.views import ConfirmationView, MessageView
+from helpers.views import ColumnConfig, CompendiumView, ConfirmationView, MessageView
 from shared_enums import DemonRegistration
+
+
+COL_RACE = ColumnConfig(key = 'race', label = 'Race', width = 8)
+COL_NAME = ColumnConfig(key = 'name', label = 'Name', width = 12)
+COL_RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>')
+COL_OWNER = ColumnConfig(key = 'owner', label = 'Owner', width = 12)
+
+COL_GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12)
+COL_PERSONALITY = ColumnConfig(key = 'personality', label = 'Personality', width = 12)
+
+DEFAULT_COLUMNS = [COL_RACE, COL_NAME, COL_RANK, COL_OWNER]
 
 
 class ServerCompendium(commands.Cog):
@@ -14,6 +25,16 @@ class ServerCompendium(commands.Cog):
 		self.bot = bot
 		self.demon_db = demon_queries.DemonQueries()
 		self.player_db = player_queries.PlayerQueries()
+
+
+	@commands.command(name = 'server_comp', aliases = ['servcomp', 'sc'], help = "Displays the server's compendium.")
+	async def server_comp_command(self, ctx: commands.Context) -> None:
+		server = typing.cast(discord.Guild, ctx.guild)
+		print("HERE")
+
+		comp_list = await self.player_db.check_server_compendium(server.id)
+		view = CompendiumView(server.name, comp_list, DEFAULT_COLUMNS)
+		await ctx.send(view = view)
 
 
 	@checks.has_profile()

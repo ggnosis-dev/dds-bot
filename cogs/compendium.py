@@ -3,11 +3,19 @@ import typing
 
 from discord.ext import commands
 from helpers import checks, currency_queries, demon_queries, player_queries
-from helpers.views import ConfirmationView, MessageView
+from helpers.views import ColumnConfig, CompendiumView, ConfirmationView, MessageView
 from shared_enums import DemonRegistration, Emotes
 
-## Constants
-PAGE_SIZE = 5
+
+COL_EMOTE = ColumnConfig(key = 'in_party', label = Emotes.BLANK.value, width = 0)
+COL_RACE = ColumnConfig(key = 'race', label = 'Race', width = 8)
+COL_NAME = ColumnConfig(key = 'name', label = 'Name', width = 12)
+COL_RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>')
+
+COL_GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12)
+COL_PERSONALITY = ColumnConfig(key = 'personality', label = 'Personality', width = 12)
+
+DEFAULT_COLUMNS = [COL_EMOTE, COL_RACE, COL_NAME, COL_RANK]
 
 class Compendium(commands.Cog):
 	'''Cog for viewing and summoning from player compendiums.'''
@@ -33,7 +41,7 @@ class Compendium(commands.Cog):
 		# TODO: If player mentioned is the bot, redirect command to server_compendium.
 
 		comp_list = await self.player_db.check_compendium(player.id, guild.id)
-		view = CompendiumView(player.name, comp_list)
+		view = CompendiumView(player.name, comp_list, DEFAULT_COLUMNS)
 		await ctx.send(view = view)
 	
 
@@ -95,172 +103,6 @@ class Compendium(commands.Cog):
 		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
 		msg = MessageView(f"You have summoned **{demon_name}** to your party!")
 		await ctx.send(view = msg)
-		
-
-class CompendiumView(discord.ui.LayoutView):
-	'''Custom view for displaying the player's viewed demons and hints at unseen ones.'''
-	def __init__(
-		self, 
-		user_name: str, 
-		list: list[dict], 
-		page: int = 1, 
-		colour: int = 0xE93700,
-	) -> None:
-		'''
-		Init for the compendium view.
-		
-		Args:
-			user_name (str): Name of the user whose compendium is being displayed.
-			list (list[dict]): List of demons in the player's compendium. Each dict should include ID, name, race, personality, rank, and in_party.
-			page (int): Current page number of the compendium view. Defaults to 1.
-			colour (int): Colour of the compendium view.
-			filtered_race (str): Race to filter the compendium view by. Defaults to 'all'.
-		'''
-		super().__init__()
-
-		self.user_name = user_name
-		self.list = list
-		self.page = page
-		self.colour = colour
-		self.filtered_race = 'all'
-
-		self._build_compendium_layout()
-
-	class RaceSelect(discord.ui.Select):
-		'''Custom select menu for filtering demons by race.'''
-		def __init__(self, races: list[str]) -> None:
-			options = [discord.SelectOption(label = 'All', value = 'all')]
-
-			sorted_races = sorted(races)
-			for r in sorted_races:
-				options.append(discord.SelectOption(label = r, value = r.lower()))
-
-			super().__init__(
-				placeholder = 'Filter By Race',
-				options = options
-			)
-
-		async def callback(self, interaction: discord.Interaction) -> None:
-			'''Callback for when a race is selected from the filter menu.'''
-			view = typing.cast(CompendiumView, self.view)
-			view.filtered_race = self.values[0]
-			view.page = 1
-			view.total_pages = 1
-			view.clear_items()
-			view._build_compendium_layout()
-			await interaction.response.edit_message(view = view)
-
-
-	class PageButton(discord.ui.Button):
-		'''Custom button for navigating between pages of the compendium view.'''
-		def __init__(self, direction: str) -> None:
-			if direction == 'prev':
-				super().__init__(label = '<', style = discord.ButtonStyle.primary)
-			elif direction == 'next':
-				super().__init__(label = '>', style = discord.ButtonStyle.primary)
-			else:
-				raise ValueError("ERROR: Direction must be 'prev' or 'next'.")
-
-
-		async def callback(self, interaction: discord.Interaction) -> None:
-			'''Callback for when a page navigation button is clicked. Allows wrapping around the pages.'''			
-			view = typing.cast(CompendiumView, self.view)
-
-			if self.label == '<':
-				view.page = view.total_pages if view.page <= 1 else view.page - 1
-			elif self.label == '>':
-				view.page = 1 if view.page >= view.total_pages else view.page + 1
-
-			view.clear_items()
-			view._build_compendium_layout()
-			await interaction.response.edit_message(view = view)
-
-
-	def _build_compendium_layout(self) -> None:
-		'''Function to build the compendium view layout.'''
-		ui 				= discord.ui
-		container 		= ui.Container(accent_color = self.colour)
-		tab 			= '\u2003'
-		race_select 	= self._build_race_filter()
-		page_entries	= self._get_page_entries()
-		page_nav 		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
-		
-		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Compendium"))
-		container.add_item(race_select)
-		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
-		container.add_item(ui.TextDisplay(
-			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank{tab * 3}Gemstone{tab * 4}Personality"
-		))
-
-		max_width_race = 8
-		max_width_name = 12
-		max_width_num = 3
-		max_width_pers = 12
-
-		for entry in page_entries:
-			_id, name, race, personality, rank, in_party, gem = entry
-
-			if self.filtered_race != 'all' and race.lower() != self.filtered_race:
-				continue
-
-			if rank is not None:
-				emote = Emotes.ICON.value if in_party else Emotes.BLANK.value
-				container.add_item(ui.TextDisplay(
-					f"{emote}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{str(rank):>{max_width_num}}`{tab}`{gem.title():^{max_width_pers}}`{tab}`{personality.title():^{max_width_pers}}`"
-				))
-			else:
-				container.add_item(ui.TextDisplay(
-					f"{Emotes.BLANK.value}{tab}`{'?????':^{max_width_race}}`{tab}`{'?????':^{max_width_name}}`{tab}`{'???':>{max_width_num}}`{tab}`{'?????':^{max_width_pers}}`{tab}`{'?????':^{max_width_pers}}`"
-				))
-
-		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
-		container.add_item(ui.TextDisplay(f'-# Page {self.page} of {self.total_pages}'))
-		container.add_item(page_nav)
-		self.add_item(container)
-
-
-	def _build_race_filter(self) -> discord.ui.ActionRow:
-		'''
-		Helper to build the race filter select menu. Gathers distinct races from the comp list
-		and populates the options into the select menu.
-
-		Returns:
-			discord.ui.ActionRow: Action row containing the race filter select menu.
-		'''
-		# Set will prevent duplicates.
-		races = set()
-		for entry in self.list:
-			race = entry[2]
-			races.add(race)
-		race_select = self.RaceSelect(list(races))
-		return discord.ui.ActionRow(race_select)
-
-
-	def _get_page_entries(self) -> list[dict]:
-		'''
-		Helper function to get the entries to be displayed on the current page of the compendium view.
-		Sets self.total_pages based on the number of entries after filtering.
-
-		Returns:
-			list[dict]: List of demon entries to be displayed on the current page.
-		'''
-		page_list = []
-
-		for entry in self.list:
-			selected_race = entry[2].lower()
-
-			# Check filtered_race against selected race and only add to page list if it matches.
-			if self.filtered_race == 'all' or selected_race == self.filtered_race:
-				page_list.append(entry)
-
-		self.total_pages 	= int(max(1, (len(page_list) + PAGE_SIZE - 1) / PAGE_SIZE))
-		self.page		 	= max(1, min(self.page, self.total_pages))
-
-		start_index	= (self.page - 1) * PAGE_SIZE
-		end_index 	= start_index + PAGE_SIZE
-
-		# Use delimiter to slice out entries.
-		return page_list[start_index:end_index]
 
 
 async def setup(bot: commands.Bot) -> None:
