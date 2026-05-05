@@ -424,6 +424,27 @@ class PlayerQueries:
 			''', (user_id, server_id)).fetchall()
 
 			return result if result else []
+		
+
+	# FIXME: This doesn't work but I'm refactoring now so I'll come back to this.
+	async def check_server_compendium(self, server_id: int) -> list[dict]:
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+
+			result = cursor.execute('''
+				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, d.gem, pd.id
+				FROM server_demons sd
+				JOIN demons d ON sd.demon_id = d.id
+				JOIN player_demons pd ON pd.player_id = sd.player_id
+					AND pd.server_id = sd.server_id
+					AND pd.demon_id = sd.demon_id
+				WHERE sd.server_id = ?
+				ORDER BY d.race ASC, d.id ASC
+			''', (server_id,)).fetchall()
+
+			print(result)
+
+			return result if result else []
 
 
 	def set_selected_demon(self, player_id: int, server_id: int, demon_id: int) -> None:
