@@ -67,7 +67,7 @@ class ServerCompendium(commands.Cog):
 			
 			# Send a confirmation view with the cost.
 			view = ConfirmationView(
-				f"**{stored_owner}** already has their **{demon.name}** loaned to **{server.name}'s Compendium**. Do you wish to replace it? The demon will be returned to its owner.\n\n-# You will not be able to use the demon again until taken back.",
+				f"**{stored_owner}** is already loaning their **{demon.name}** to **{server.name}'s Compendium**. Do you wish to replace it? The demon will be returned to its owner.\n\n-# You will not be able to use the demon again until taken back.",
 				confirmLabel = 'Replace',
 				denyLabel = 'Cancel',
 				colour = demon.colour
@@ -79,7 +79,7 @@ class ServerCompendium(commands.Cog):
 			
 			await self.player_db.replace_server_compendium_demon(player.id, server.id, demon.id)
 			msg = MessageView(
-				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s Compendium** for the time being. {stored_owner.mention}'s {demon.name} has been returned to its COMP.\n\n-# You will not be able to use the demon again until taken back.",
+				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s Compendium** for the time being. {stored_owner.mention}'s {demon.name} has been returned to its COMP.",
 				image = demon.image_url,
 				colour = demon.colour
 			)
@@ -87,11 +87,43 @@ class ServerCompendium(commands.Cog):
 			return
 		
 		msg = MessageView(
-			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s Compendium** for the time being.\n\n-# You will not be able to use the demon again until taken back.",
+			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s Compendium** for the time being.",
 			image = demon.image_url,
 			colour = demon.colour
 		)
 		await ctx.send(view = msg)
+
+
+	@checks.has_profile()
+	@commands.command(name = 'return', help = "Loan a demon to the server's compendium.")
+	async def return_command(self, ctx, *, demon_name) -> None:
+		player 		= ctx.author
+		server 		= typing.cast(discord.Guild, ctx.guild)
+		demon_name 	= demon_name.title()
+		demon 		= self.demon_db.get_demon_by_name(demon_name)
+
+		if demon is None:
+			msg = MessageView(f"**{demon_name}** was not found in your party...")
+			await ctx.send(view = msg)
+			return
+
+		stored_demon = await self.player_db.get_server_compendium_demon(server.id, demon.id)
+
+		if stored_demon is not None and player.id == stored_demon.player_id:
+			view = ConfirmationView(
+				f"Are you sure you want to retrieve **{demon.race} {demon.name}** (Rank {demon.rank}) from **{server.name}'s Compendium**?",
+				confirmLabel = 'Yes',
+				denyLabel = 'No',
+				colour = demon.colour
+			)
+			result = await ConfirmationView.send_message(view, ctx)
+
+			if result is False or result is None:
+				return
+			
+			if await self.player_db.return_server_comp_demon(server.id, demon.id):
+				msg = MessageView(f"**{demon.race} {demon.name}** has been returned to you.", demon.image_url, demon.colour)
+				await ctx.send(view = msg)
 		
 
 async def setup(bot: commands.Bot) -> None:

@@ -302,6 +302,8 @@ class PlayerQueries:
 
 
 	async def replace_server_compendium_demon(self, player_id, server_id, demon_id) -> None:
+		# await self.return_server_comp_demon(server_id, demon_id)
+
 		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
 
@@ -326,6 +328,29 @@ class PlayerQueries:
 				UPDATE player_demons SET on_loan = 1
 				WHERE player_id = ? AND server_id = ? AND demon_id = ?
 			''', (player_id, server_id, demon_id))
+
+
+	async def return_server_comp_demon(self, server_id, demon_id) -> bool:
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+
+			# Set on loan back to 0.
+			cursor.execute('''
+				UPDATE player_demons SET on_loan = 0
+				WHERE server_id = ? AND demon_id = ?
+					AND player_id = (
+				  		SELECT player_id FROM server_demons
+				  		WHERE server_id = ? AND demon_id = ?
+				  )
+			''', (server_id, demon_id, server_id, demon_id))
+
+			# Delete the compendium entry.
+			cursor.execute('''
+				DELETE FROM server_demons
+				WHERE server_id = ? AND demon_id = ?
+			''', (server_id, demon_id))
+
+			return cursor.rowcount > 0
 
 
 	async def check_demon_registration(
