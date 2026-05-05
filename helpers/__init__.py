@@ -1,1 +1,1 @@
-from . import checks, currency_queries, demon_queries, item_queries, player_queries, view
+from . import checks, currency_queries, demon_queries, item_queries, player_queries, views

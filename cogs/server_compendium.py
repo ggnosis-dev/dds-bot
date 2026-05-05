@@ -2,9 +2,9 @@ import discord
 import typing
 
 from discord.ext import commands
-from helpers import checks, currency_queries, demon_queries, player_queries
-from helpers.view import ConfirmationView, MessageView
-from shared_enums import DemonRegistration, Emotes
+from helpers import checks, demon_queries, player_queries
+from helpers.views import ConfirmationView, MessageView
+from shared_enums import DemonRegistration
 
 
 class ServerCompendium(commands.Cog):

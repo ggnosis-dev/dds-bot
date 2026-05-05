@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from discord.ext import commands
 from helpers import checks, currency_queries, player_queries
 from helpers.demon_queries import DemonData, DemonQueries
-from helpers.view import MessageView
+from helpers.views import MessageView
 from shared_enums import Emotes, Personality, ResponseType
 
 
