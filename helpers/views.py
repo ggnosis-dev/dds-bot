@@ -3,6 +3,7 @@ import discord
 import typing
 
 from dataclasses import dataclass
+from helpers.player_queries import DemonEntry
 from shared_enums import Emotes
 
 
@@ -143,12 +144,11 @@ class ColumnConfig:
 	header_tabs: int = 1
 
 class CompendiumView(discord.ui.LayoutView):
-
 	'''Custom view for displaying the player's viewed demons and hints at unseen ones.'''
 	def __init__(
 		self, 
 		user_name: str, 
-		entries: list[dict], 
+		entries: list[DemonEntry], 
 		columns: list[ColumnConfig],
 		page: int = 1, 
 		colour: int = 0xE93700,
@@ -226,6 +226,7 @@ class CompendiumView(discord.ui.LayoutView):
 
 
 	def _build_layout(self) -> None:
+		print("HERE")
 		ui 				= discord.ui
 		container 		= ui.Container(accent_color = self.colour)
 		tab 			= '\u2003'
@@ -238,11 +239,15 @@ class CompendiumView(discord.ui.LayoutView):
 
 		header = ''
 		for col in self.columns:
-			header = header + f"{tab * col.header_tabs}{col.label:^{col.width}}"
+			header += f"{tab * col.header_tabs}{col.label:^{col.width}}"
 		container.add_item(ui.TextDisplay(f"-# {header}"))
 
+		print(page_entries)
 		for entry in page_entries:
-			pass
+			new_row = ''
+
+			for col in self.columns:
+				value = getattr(entry, col.key)
 
 		self.add_item(container)
 
@@ -301,7 +306,7 @@ class CompendiumView(discord.ui.LayoutView):
 		# Set will prevent duplicates.
 		races = set()
 		for entry in self.entries:
-			race = entry[2]
+			race = entry.race
 			races.add(race)
 		race_select = self.RaceSelect(list(races))
 		return discord.ui.ActionRow(race_select)
@@ -318,7 +323,7 @@ class CompendiumView(discord.ui.LayoutView):
 		page_entries = []
 
 		for entry in self.entries:
-			selected_race = entry[2].lower()
+			selected_race = entry.race.lower()
 
 			# Check filtered_race against selected race and only add to page entries if it matches.
 			if self.filtered_race == 'all' or selected_race == self.filtered_race:

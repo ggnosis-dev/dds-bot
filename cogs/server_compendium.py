@@ -32,9 +32,9 @@ class ServerCompendium(commands.Cog):
 		server = typing.cast(discord.Guild, ctx.guild)
 		print("HERE")
 
-		comp_list = await self.player_db.check_server_compendium(server.id)
-		view = CompendiumView(server.name, comp_list, DEFAULT_COLUMNS)
-		await ctx.send(view = view)
+		# comp_list = await self.player_db.check_server_compendium(server.id)
+		# view = CompendiumView(server.name, comp_list, DEFAULT_COLUMNS)
+		# await ctx.send(view = view)
 
 
 	@checks.has_profile()

@@ -1,6 +1,7 @@
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH
+from dataclasses import dataclass
 from discord.ext import commands
 from shared_enums import DemonRegistration
 
@@ -8,23 +9,30 @@ from shared_enums import DemonRegistration
 GEM_EXP_MULTIPLIER = 1
 GEM_METER_FULL = 100
 
-
+@dataclass
 class PlayerData:
-	def __init__(self, player_id: int, server_id: int, selected_demon_id: int, mag: int, daily_timer: int):
-		self.player_id = player_id
-		self.server_id = server_id
-		self.selected_demon_id = selected_demon_id
-		self.mag = mag
-		self.daily_timer = daily_timer
+	player_id: int
+	server_id: int
+	selected_demon_id: int
+	mag: int
+	daily_timer: int
 
-
+@dataclass
 class ServerCompendiumDemon:
-	def __init__(self, player_id: int, server_id: int, demon_id: int, stored_rank: int):
-		self.player_id = player_id
-		self.server_id = server_id
-		self.demon_id = demon_id
-		self.stored_rank = stored_rank
+	player_id: int
+	server_id: int
+	demon_id: int
+	stored_rank: int
 
+@dataclass
+class DemonEntry:
+	demon_id: int
+	name: str
+	race: str
+	personality: str
+	rank: int | None
+	in_party: bool | None
+	gem: str
 
 class PlayerQueries:
 	def get_db_connection(self) -> sqlite3.Connection:
@@ -404,18 +412,19 @@ class PlayerQueries:
 			return result if result else []
 	
 
-	async def check_compendium(self, user_id: int, server_id: int) -> list[dict]:
+	async def check_compendium(self, user_id: int, server_id: int) -> list[DemonEntry]:
 		'''
 		Query the database for the player's encountered demons. Joins the player_demons table with the demon database.
 
 		Returns:
-			list[dict]: List of demons in the player's compendium. Includes ID, name, race, personality, stored_rank, and in_party status.
+			list[DemonEntry]: List of demons in the player's compendium. 
 		'''
 		with self.get_db_connection() as conn:
+			conn.row_factory = sqlite3.Row
 			cursor = conn.cursor()
 
 			# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
-			result = cursor.execute('''
+			rows = cursor.execute('''
 				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party, d.gem
 				FROM demons d
 				LEFT JOIN player_demons pd ON pd.demon_id = d.id
@@ -423,7 +432,18 @@ class PlayerQueries:
 				ORDER BY d.race ASC, d.id ASC
 			''', (user_id, server_id)).fetchall()
 
-			return result if result else []
+			entries = []
+			for row in rows:
+				entries.append(DemonEntry(
+					demon_id	= row['id'],
+					name 		= row['name'],
+					race 		= row['race'],
+					personality = row['personality'],
+					rank 		= row['stored_rank'],
+					in_party 	= row['in_party'],
+					gem 		= row['gem']
+				))
+			return entries
 		
 
 	# FIXME: This doesn't work but I'm refactoring now so I'll come back to this.
