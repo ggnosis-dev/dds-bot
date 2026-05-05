@@ -196,7 +196,7 @@ class CompendiumView(discord.ui.LayoutView):
 			view.page = 1
 			view.total_pages = 1
 			view.clear_items()
-			view._build_compendium_layout()
+			view._build_layout()
 			await interaction.response.edit_message(view = view)
 
 
@@ -221,17 +221,17 @@ class CompendiumView(discord.ui.LayoutView):
 				view.page = 1 if view.page >= view.total_pages else view.page + 1
 
 			view.clear_items()
-			view._build_compendium_layout()
+			view._build_layout()
 			await interaction.response.edit_message(view = view)
 
 
 	def _build_layout(self) -> None:
-		print("HERE")
 		ui 				= discord.ui
 		container 		= ui.Container(accent_color = self.colour)
 		tab 			= '\u2003'
 		race_select 	= self._build_race_filter()
 		page_entries	= self._get_page_entries()
+		page_nav 		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
 
 		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Compendium"))
 		container.add_item(race_select)
@@ -240,54 +240,35 @@ class CompendiumView(discord.ui.LayoutView):
 		header = ''
 		for col in self.columns:
 			header += f"{tab * col.header_tabs}{col.label:^{col.width}}"
+
 		container.add_item(ui.TextDisplay(f"-# {header}"))
 
-		print(page_entries)
 		for entry in page_entries:
 			new_row = ''
 
 			for col in self.columns:
 				value = getattr(entry, col.key)
 
-		self.add_item(container)
+				# This will be an emote column if width is 0.
+				if col.width == 0:
+					if entry.in_party is not None:
+						new_row += Emotes.ICON.value
+						continue
 
+					new_row += Emotes.BLANK.value
+					continue
 
-	def _build_compendium_layout(self) -> None:
-		'''Function to build the compendium view layout.'''
-		ui 				= discord.ui
-		container 		= ui.Container(accent_color = self.colour)
-		tab 			= '\u2003'
-		race_select 	= self._build_race_filter()
-		page_entries	= self._get_page_entries()
-		page_nav 		= ui.ActionRow(self.PageButton('prev'), self.PageButton('next'))
-		
-		container.add_item(ui.TextDisplay(f"### {self.user_name}'s Compendium"))
-		container.add_item(race_select)
-		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
-		container.add_item(ui.TextDisplay(
-			f"-# {Emotes.BLANK.value}{tab * 3}Race{tab * 5}Name{tab * 4}Rank{tab * 3}Gemstone{tab * 4}Personality"
-		))
+				# When in_party is none, the player hasn't seen the demon before so show hint for it.
+				if entry.in_party is None:
+					# If column align is right, it's a value. Show less question marks.
+					placeholder = '???' if col.align == '>' else '?????'
+					new_row += f"{tab}`{placeholder:{col.align}{col.width}}`"
 
-		max_width_race = 8
-		max_width_name = 12
-		max_width_num = 3
-		max_width_pers = 12
-
-		for entry in page_entries:
-			_id, name, race, personality, rank, in_party, gem = entry
-
-			if self.filtered_race != 'all' and race.lower() != self.filtered_race:
-				continue
-
-			if rank is not None:
-				emote = Emotes.ICON.value if in_party else Emotes.BLANK.value
-				container.add_item(ui.TextDisplay(
-					f"{emote}{tab}`{race:^{max_width_race}}`{tab}`{name:^{max_width_name}}`{tab}`{str(rank):>{max_width_num}}`{tab}`{gem.title():^{max_width_pers}}`{tab}`{personality.title():^{max_width_pers}}`"
-				))
-			else:
-				container.add_item(ui.TextDisplay(
-					f"{Emotes.BLANK.value}{tab}`{'?????':^{max_width_race}}`{tab}`{'?????':^{max_width_name}}`{tab}`{'???':>{max_width_num}}`{tab}`{'?????':^{max_width_pers}}`{tab}`{'?????':^{max_width_pers}}`"
-				))
+				else:
+					text = str(value).title()
+					new_row += f"{tab}`{text:{col.align}{col.width}}`"
+				
+			container.add_item(ui.TextDisplay(new_row))
 
 		container.add_item(ui.Separator(spacing = discord.SeparatorSpacing.large))
 		container.add_item(ui.TextDisplay(f'-# Page {self.page} of {self.total_pages}'))
@@ -312,7 +293,7 @@ class CompendiumView(discord.ui.LayoutView):
 		return discord.ui.ActionRow(race_select)
 
 
-	def _get_page_entries(self) -> list[dict]:
+	def _get_page_entries(self) -> list[DemonEntry]:
 		'''
 		Helper function to get the entries to be displayed on the current page of the compendium view.
 		Sets self.total_pages based on the number of entries after filtering.

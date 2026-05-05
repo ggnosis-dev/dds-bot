@@ -8,12 +8,12 @@ from shared_enums import DemonRegistration, Emotes
 
 
 COL_EMOTE = ColumnConfig(key = 'in_party', label = Emotes.BLANK.value, width = 0)
-COL_RACE = ColumnConfig(key = 'race', label = 'Race', width = 8)
-COL_NAME = ColumnConfig(key = 'name', label = 'Name', width = 12)
-COL_RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>')
+COL_RACE = ColumnConfig(key = 'race', label = 'Race', width = 12, header_tabs = 3)
+COL_NAME = ColumnConfig(key = 'name', label = 'Name', width = 12, header_tabs = 5)
+COL_RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>', header_tabs = 3)
 
-COL_GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12)
-COL_PERSONALITY = ColumnConfig(key = 'personality', label = 'Personality', width = 12)
+COL_GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12, header_tabs = 3)
+COL_PERS = ColumnConfig(key = 'personality', label = 'Personality', width = 12, header_tabs = 3)
 
 DEFAULT_COLUMNS = [COL_EMOTE, COL_RACE, COL_NAME, COL_RANK]
 
