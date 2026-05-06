@@ -47,7 +47,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			on_loan			INTEGER 
 				DEFAULT 0 
 				CHECK (on_loan IN (0, 1)),
-			UNIQUE (player_id, server_id, demon_id)
+			PRIMARY KEY (player_id, server_id, demon_id)
 			FOREIGN KEY (demon_id) REFERENCES demons (id)
 		)
 	''')
@@ -86,9 +86,5 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		)
 	''')
 
-	# Index for faster lookup of player's parties and compendiums.
-	cursor.execute('''
-		CREATE INDEX IF NOT EXISTS idx_player_demons ON player_demons(player_id, server_id)
-	''')
 
 
