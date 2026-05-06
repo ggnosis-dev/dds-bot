@@ -15,7 +15,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# cursor.execute('DROP TABLE IF EXISTS server_demons')
 	# cursor.execute('DROP TABLE IF EXISTS player_gems')
 	# cursor.execute('DROP TABLE IF EXISTS player_items')
-	# cursor.execute('UPDATE player_demons SET in_party = 0')
 
 	cursor.execute('''
 		CREATE TABLE IF NOT EXISTS players (
@@ -24,7 +23,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			mag 				INTEGER DEFAULT 0,
 			selected_demon_id	INTEGER DEFAULT 1,
 			daily_timer			INTEGER DEFAULT 0,
-			CONSTRAINT player_server_id PRIMARY KEY (player_id, server_id)
+			PRIMARY KEY (player_id, server_id)
 			FOREIGN KEY (selected_demon_id) REFERENCES demons(id)
 		)
 	''')
@@ -60,6 +59,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			PRIMARY KEY (server_id, demon_id),
 			FOREIGN KEY (server_id) 
 				REFERENCES servers (server_id),
+			-- A demon doesn't exist in server_demons in the usual sense, it's a reference pointing to player_demons. 
 			FOREIGN KEY (player_id, server_id, demon_id) 
 				REFERENCES player_demons (player_id, server_id, demon_id)
 		)
@@ -86,5 +86,9 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		)
 	''')
 
-
+	# Index for faster lookup of server's compendiums.
+	cursor.execute('''
+		CREATE INDEX IF NOT EXISTS idx_server_demons_lookup
+			ON server_demons (server_id, player_id, demon_id)
+	''')
 
