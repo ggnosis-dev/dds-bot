@@ -452,7 +452,6 @@ class PlayerQueries:
 			return entries
 		
 
-	# FIXME: This doesn't work but I'm refactoring now so I'll come back to this.
 	async def check_server_compendium(self, server_id: int) -> list[DemonEntry]:
 		with self.get_db_connection() as conn:
 			conn.row_factory = sqlite3.Row
