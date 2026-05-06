@@ -259,13 +259,14 @@ class CompendiumView(discord.ui.LayoutView):
 					continue
 
 				# When in_party is none, the player hasn't seen the demon before so show hint for it.
-				if entry.in_party is None:
+				if entry.in_party is None and entry.owner_id is None:
 					# If column align is right, it's a value. Show less question marks.
 					placeholder = '???' if col.align == '>' else '?????'
 					new_row += f"{tab}`{placeholder:{col.align}{col.width}}`"
 
 				else:
-					text = str(value).title()
+					# Only use title case if it's not a player's name.
+					text = str(value).title() if not entry.owner else value
 					new_row += f"{tab}`{text:{col.align}{col.width}}`"
 				
 			container.add_item(ui.TextDisplay(new_row))

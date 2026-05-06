@@ -38,8 +38,6 @@ class Compendium(commands.Cog):
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = mentioned if mentioned is not None else ctx.author
 
-		# TODO: If player mentioned is the bot, redirect command to server_compendium.
-
 		comp_list = await self.player_db.check_compendium(player.id, guild.id)
 		view = CompendiumView(player.name, comp_list, DEFAULT_COLUMNS)
 		await ctx.send(view = view)

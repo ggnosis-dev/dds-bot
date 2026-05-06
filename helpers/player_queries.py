@@ -19,6 +19,7 @@ class PlayerData:
 
 @dataclass
 class ServerCompendiumDemon:
+	'''Thin data class used for operations.'''
 	player_id: int
 	server_id: int
 	demon_id: int
@@ -26,13 +27,18 @@ class ServerCompendiumDemon:
 
 @dataclass
 class DemonEntry:
+	'''For view/displaying player demons.'''
 	demon_id: int
 	name: str
 	race: str
 	personality: str
 	rank: int | None
-	in_party: bool | None
 	gem: str
+	# For player demon only.
+	in_party: bool | None = None
+	# For server demon only.
+	owner_id: int | None = None
+	owner: str | None = None
 
 class PlayerQueries:
 	def get_db_connection(self) -> sqlite3.Connection:
@@ -447,24 +453,36 @@ class PlayerQueries:
 		
 
 	# FIXME: This doesn't work but I'm refactoring now so I'll come back to this.
-	async def check_server_compendium(self, server_id: int) -> list[dict]:
+	async def check_server_compendium(self, server_id: int) -> list[DemonEntry]:
 		with self.get_db_connection() as conn:
+			conn.row_factory = sqlite3.Row
 			cursor = conn.cursor()
 
-			result = cursor.execute('''
-				SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, d.gem, pd.id
-				FROM server_demons sd
-				JOIN demons d ON sd.demon_id = d.id
-				JOIN player_demons pd ON pd.player_id = sd.player_id
+			rows = cursor.execute('''
+				SELECT d.id, d.name, d.race, d.personality, d.gem, pd.player_id, pd.stored_rank
+				FROM demons d
+				LEFT JOIN server_demons sd 
+					ON sd.demon_id = d.id
+					AND sd.server_id = ?
+				LEFT JOIN player_demons pd
+					ON pd.player_id = sd.player_id
 					AND pd.server_id = sd.server_id
 					AND pd.demon_id = sd.demon_id
-				WHERE sd.server_id = ?
 				ORDER BY d.race ASC, d.id ASC
 			''', (server_id,)).fetchall()
 
-			print(result)
-
-			return result if result else []
+			entries = []
+			for row in rows:
+				entries.append(DemonEntry(
+					demon_id	= row['id'],
+					owner_id	= row['player_id'],
+					name 		= row['name'],
+					race 		= row['race'],
+					personality = row['personality'],
+					rank 		= row['stored_rank'],
+					gem 		= row['gem']
+				))
+			return entries
 
 
 	def set_selected_demon(self, player_id: int, server_id: int, demon_id: int) -> None:
