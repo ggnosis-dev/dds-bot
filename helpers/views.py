@@ -143,6 +143,18 @@ class ColumnConfig:
 	align: str = '^'
 	header_tabs: int = 1
 
+class Columns:
+	EMOTE = ColumnConfig(key = 'in_party', label = Emotes.BLANK.value, width = 0)
+	RACE = ColumnConfig(key = 'race', label = 'Race', width = 12, header_tabs = 3)
+	NAME = ColumnConfig(key = 'name', label = 'Name', width = 12, header_tabs = 5)
+	RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>', header_tabs = 3)
+	OWNER = ColumnConfig(key = 'owner', label = 'Owner', width = 12, header_tabs = 3)
+	GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12, header_tabs = 3)
+	PERSONALITY = ColumnConfig(key = 'personality', label = 'Personality', width = 12, header_tabs = 3)
+
+	PLAYER_DEFAULT = [EMOTE, RACE, NAME, RANK]
+	SERVER_DEFAULT = PLAYER_DEFAULT + [OWNER]
+
 class CompendiumView(discord.ui.LayoutView):
 	'''Custom view for displaying the player's viewed demons and hints at unseen ones.'''
 	def __init__(

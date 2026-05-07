@@ -3,20 +3,8 @@ import typing
 
 from discord.ext import commands
 from helpers import checks, demon_queries, player_queries
-from helpers.views import ColumnConfig, CompendiumView, ConfirmationView, MessageView
-from shared_enums import DemonRegistration, Emotes
-
-
-COL_EMOTE = ColumnConfig(key = 'in_party', label = Emotes.BLANK.value, width = 0)
-COL_RACE = ColumnConfig(key = 'race', label = 'Race', width = 12, header_tabs = 3)
-COL_NAME = ColumnConfig(key = 'name', label = 'Name', width = 12, header_tabs = 5)
-COL_RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>', header_tabs = 3)
-COL_OWNER = ColumnConfig(key = 'owner', label = 'Owner', width = 12, header_tabs = 3)
-
-COL_GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12)
-COL_PERSONALITY = ColumnConfig(key = 'personality', label = 'Personality', width = 12)
-
-DEFAULT_COLUMNS = [COL_EMOTE, COL_RACE, COL_NAME, COL_RANK, COL_OWNER]
+from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
+from shared_enums import DemonRegistration
 
 
 class ServerCompendium(commands.Cog):
@@ -39,7 +27,7 @@ class ServerCompendium(commands.Cog):
 				player = server.get_member(entry.owner_id)
 				entry.owner = player.display_name if player else "Unknown"
 
-		view = CompendiumView(server.name, comp_list, DEFAULT_COLUMNS)
+		view = CompendiumView(server.name, comp_list, Columns.SERVER_DEFAULT)
 		await ctx.send(view = view)
 
 

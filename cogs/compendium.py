@@ -3,19 +3,8 @@ import typing
 
 from discord.ext import commands
 from helpers import checks, currency_queries, demon_queries, player_queries
-from helpers.views import ColumnConfig, CompendiumView, ConfirmationView, MessageView
+from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
 from shared_enums import DemonRegistration, Emotes
-
-
-COL_EMOTE = ColumnConfig(key = 'in_party', label = Emotes.BLANK.value, width = 0)
-COL_RACE = ColumnConfig(key = 'race', label = 'Race', width = 12, header_tabs = 3)
-COL_NAME = ColumnConfig(key = 'name', label = 'Name', width = 12, header_tabs = 5)
-COL_RANK = ColumnConfig(key = 'rank', label = 'Rank', width = 3, align = '>', header_tabs = 3)
-
-COL_GEM = ColumnConfig(key = 'gem', label = 'Gemstone', width = 12, header_tabs = 3)
-COL_PERS = ColumnConfig(key = 'personality', label = 'Personality', width = 12, header_tabs = 3)
-
-DEFAULT_COLUMNS = [COL_EMOTE, COL_RACE, COL_NAME, COL_RANK]
 
 class Compendium(commands.Cog):
 	'''Cog for viewing and summoning from player compendiums.'''
@@ -39,7 +28,7 @@ class Compendium(commands.Cog):
 		player = mentioned if mentioned is not None else ctx.author
 
 		comp_list = await self.player_db.check_compendium(player.id, guild.id)
-		view = CompendiumView(player.name, comp_list, DEFAULT_COLUMNS)
+		view = CompendiumView(player.name, comp_list, Columns.PLAYER_DEFAULT)
 		await ctx.send(view = view)
 	
 
