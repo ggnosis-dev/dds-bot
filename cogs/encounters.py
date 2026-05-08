@@ -7,7 +7,7 @@ from discord.ext import commands
 from helpers import checks, currency_queries, player_queries
 from helpers.demon_queries import DemonData, DemonQueries
 from helpers.views import MessageView
-from shared_enums import Emotes, Personality, ResponseType
+from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 
 dedicated_channel = 1486290442877407333
@@ -115,27 +115,65 @@ class Encounters(commands.Cog):
 		player: discord.User | discord.Member, 
 		server: discord.Guild | None, 
 		demon: DemonData
-	) -> bool:
+	) -> tuple[DemonRegistration, int, int]:
 		'''
-		Sends a request to the Players cog to add a demon to the player's party and comp. 
+		Organises a demon to either be added to COMP, party or if it should give the player a gift instead.
 
 		Args: 
 			player (discord.User | discord.Member): Player to add the demon for.
 			server (discord.Guild | None): Server the player is in.
 			demon (DemonData): Demon's data to be added.
 		Returns:
-			bool: True if the demon was NEWLY ADDED to the compendium, False if it was just added to the party.
+			tuple[DemonRegistration, int, int]: Returns registration state the demon is in (IN_PARTY, IN_COMP, UNREGISTERED), the amount of mag received and number of gems, if any.
 		'''
 		server_id = server.id if server else None
 
 		if server_id is None:
 			raise RuntimeError("ERROR: Server ID is None.")
 
-		currency_queries.update_mag(player.id, server_id, 100)
+		mag_multiplier = 0
+		gems_to_add = 0
+		new_entry = await self.player_db.check_demon_registration(player.id, server_id, demon.id)
 
-		new_entry = await self.player_db.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
-		await self.player_db.set_demon_in_party(player.id, server_id, demon.id)
-		return new_entry
+		match new_entry:
+			case DemonRegistration.UNREGISTERED:
+				# Added demon to COMP with a little bonus MAG.
+				mag_multiplier = 0.6
+				await self.player_db \
+					.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
+				await self.player_db \
+					.set_demon_in_party(player.id, server_id, demon.id)
+
+			case DemonRegistration.IN_COMP:
+				# Only add demon to player's party.
+				mag_multiplier = 0.3
+				await self.player_db \
+					.set_demon_in_party(player.id, server_id, demon.id)
+				
+			case DemonRegistration.IN_PARTY:
+				# Add gem to player and increase MAG paid.
+				gems_to_add = self._gems_for_rank(demon.rank)
+				mag_multiplier = 0.9
+				print(gems_to_add)
+				await self.player_db.add_gem(player.id, server_id, demon.id, gems_to_add)
+
+		mag_to_add = int((demon.rank * 10) / mag_multiplier)
+		currency_queries.update_mag(player.id, server_id, mag_to_add)
+
+		return new_entry, mag_to_add, gems_to_add
+
+
+	def _gems_for_rank(self, rank: int) -> int:
+		max_gems = int(rank / 33)
+		total = 1
+		probability = 0.5
+
+		for _ in range(max_gems):
+			if random.random() < probability:
+				total += 1
+
+		return total
+
 
 
 class EncounterViewTemplate(discord.ui.LayoutView, ABC):
@@ -271,14 +309,20 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		d_name = self.demon.name
 		d_race = self.demon.race
 
-		new_entry = await self.encounters_cog.join_player_party(
+		new_entry, mag_received, gems_added = await self.encounters_cog.join_player_party(
 			user, interaction.guild, self.demon
-		)	
+		)
 
-		if new_entry:
-			status = f"{d_race} {d_name} was registered to {user.mention}'s compendium!"
-		else:
-			status = f"{d_race} {d_name} has joined {user.mention}'s party!"
+		match new_entry:
+			case DemonRegistration.UNREGISTERED:
+				status = f"{d_race} {d_name} was registered to {user.mention}'s compendium! +{mag_received} MAG"
+
+			case DemonRegistration.IN_COMP:
+				status = f"{d_race} {d_name} has joined {user.mention}'s party! +{mag_received} MAG"
+				
+			case DemonRegistration.IN_PARTY:
+				gem_name = self.demon.gem.title()
+				status = f"{d_race} {d_name} gifted {user.mention} {gems_added} {gem_name}! +{mag_received} MAG"
 		
 		await self._handle_demon_interacted(interaction, status)
 

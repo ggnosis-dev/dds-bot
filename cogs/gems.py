@@ -14,17 +14,6 @@ class Gems(commands.Cog):
 		self.player_db = player_queries.PlayerQueries()
 
 
-	@commands.command(name = 'gems', aliases = ['g'], description = "Displays the player's current gem collection.")
-	async def gem_collection_command(self, ctx) -> None:
-		'''View player's current gem collection.'''
-		player_id = ctx.author.id
-		server_id = ctx.guild.id
-
-		collected_gems = self.player_db.get_player_gems(player_id, server_id)
-		view = GemCollectionView(ctx.author.name, collected_gems)
-		await ctx.send(view = view)
-
-
 	@checks.has_profile()
 	@commands.Cog.listener()
 	async def on_message(self, message: discord.Message) -> None:
@@ -62,6 +51,16 @@ class Gems(commands.Cog):
 			except Exception as e:
 				print(f"ERROR: Failed to send gem found message: {e}")
 
+
+	@commands.command(name = 'gems', aliases = ['g'], description = "Displays the player's current gem collection.")
+	async def gem_collection_command(self, ctx) -> None:
+		'''View player's current gem collection.'''
+		player_id = ctx.author.id
+		server_id = ctx.guild.id
+
+		collected_gems = self.player_db.get_player_gems(player_id, server_id)
+		view = GemCollectionView(ctx.author.name, collected_gems)
+		await ctx.send(view = view)
 
 class GemCollectionView(discord.ui.LayoutView):
 	def __init__(

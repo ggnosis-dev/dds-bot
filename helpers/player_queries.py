@@ -381,7 +381,7 @@ class PlayerQueries:
 			server_id (int): Server ID the player belongs to.
 			demon_id (int): Demon's ID.
 		Returns:
-			DemonRegistration: Enum indicating the demon's registration status.
+			DemonRegistration: Enum indicating the demon's registration status. IN_PARTY, IN_COMP, UNREGISTERED.
 		'''
 		with self.get_db_connection() as conn:
 			cursor = conn.cursor()
@@ -550,7 +550,7 @@ class PlayerQueries:
 
 			stored_rank = stored_rank * GEM_EXP_MULTIPLIER
 
-			# Increase gem meter by exp, returning meter value.
+			# Increase gem meter by exp, returning meter value. excluded.meter is the value that was going to be inserted into the meter.
 			cursor.execute('''
 				INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
 				VALUES (?, ?, ?, ?, 0)
@@ -574,6 +574,29 @@ class PlayerQueries:
 				return True
 			return False
 		
+
+	async def add_gem(self, player_id: int, server_id: int, demon_id: int, number: int) -> None:
+		with self.get_db_connection() as conn:
+			cursor = conn.cursor()
+
+			# Get gem type.
+			gem_name, = cursor.execute('''
+				SELECT d.gem FROM demons d
+				JOIN player_demons pd ON pd.demon_id = d.id
+				WHERE d.id = ?
+			''', (demon_id,)).fetchone()
+
+			print(f"DEBUG: Player {player_id} | Server {server_id} | Gem {gem_name} | Number: {number}")
+
+			cursor.execute('''
+				INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
+				VALUES (?, ?, ?, 0, ?)
+				ON CONFLICT (player_id, server_id, gem_name) DO
+				UPDATE SET quantity = quantity + ?
+			''', (player_id, server_id, gem_name, number, number))
+
+
+
 
 	def get_player_gems(self, player_id: int, server_id: int) -> list[tuple]:
 		'''
