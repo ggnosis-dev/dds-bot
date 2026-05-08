@@ -7,6 +7,10 @@ class Emotes(Enum):
 	ICON = '<:__:1486233309078884493>'
 	BLANK = '<:__:1486236397508628510>'
 
+class Unicode(Enum):
+	FILLED_CIRCLE = '\u2b24'
+	UNFILLED_CIRCLE = '\u25ef'
+
 class Personality(Enum): 
 	CHEERFUL = 1
 	SHY = 2

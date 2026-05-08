@@ -3,7 +3,7 @@ import typing
 from discord.ext import commands
 from helpers import checks, demon_queries, player_queries
 from helpers.views import MessageView
-from shared_enums import DemonRegistration
+from shared_enums import DemonRegistration, Unicode
 
 
 class Demon(commands.Cog):
@@ -57,7 +57,7 @@ class Demon(commands.Cog):
 		
 		d = typing.cast(demon_queries.DemonData, self.demon_db.get_demon_by_id(d_id))
 		gem_progress = round(self.player_db.get_gem_progress(player.id, server.id, d.gem) / 10)
-		progress_bar = '⬤ ' * gem_progress + '◯ ' * (10 - gem_progress)
+		progress_bar = f'{Unicode.FILLED_CIRCLE} ' * gem_progress + f'{Unicode.UNFILLED_CIRCLE} ' * (10 - gem_progress)
 
 		view = MessageView(
 			f"**{d.race} {d.name}** currently leads your party.\n\n-# **Rank:** {d.rank}\n-# **Hunting:** {d.gem.title()}\n-# **Progress:** {progress_bar}", 
