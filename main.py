@@ -35,7 +35,7 @@ async def load_cogs():
 		await bot.load_extension("cogs.server_compendium")
 		await bot.load_extension("cogs.shop_rags")
 
-		if token != None:
+		if token is not None:
 			await bot.start(token)
 
 
