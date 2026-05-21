@@ -210,3 +210,5 @@ __marimo__/
 *.db
 *.toml
 databases/
+sprites/
+*.DS_Store
