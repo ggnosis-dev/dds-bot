@@ -109,10 +109,10 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 
 	try:
 		while True:
+			# Convert and upscale the character sprite.
 			frame = sprite.convert("RGBA")
-
-			# Upscale the character sprite.
 			frame = upscale_sprite(frame)
+
 			bg_copy = bg_base.copy()
 
 			# Calculate positions to paste character.
@@ -121,31 +121,19 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 			# Cast int due to VERTICAL_OFFSET being a float.
 			y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
 
+			# Paste character at x, y with alpha mask to preserve transparency.
 			bg_copy.paste(frame, (x, y), frame)
+
+			# Append completed frame to list of frames.
 			frames.append(bg_copy)
+
+			# Move to next frame.
 			sprite.seek(sprite.tell() + 1)
 	except EOFError:
 		# No more frames in the sprite.
 		pass
 
 	return frames if len(frames) > 1 else frames[0]
-
-	bg = background.copy()
-	char = sprite.copy()
-
-	# Upscale the sprites.
-	char = upscale_sprite(char)
-	bg = upscale_sprite(bg)
-
-	# Calculate positions to paste character.
-	x = (bg.width - char.width) // 2 if HORIZONTAL_CENTER else 0
-
-	# Cast int due to VERTICAL_OFFSET being a float.
-	y = int((bg.height - char.height) * VERTICAL_OFFSET)
-
-	# Paste character at x, y with alpha mask to preserve transparency.
-	bg.paste(char, (x, y), char)
-	return bg
 
 
 def upscale_sprite(sprite: Image.Image) -> Image.Image:
@@ -155,7 +143,7 @@ def upscale_sprite(sprite: Image.Image) -> Image.Image:
 	return sprite.resize((new_w, new_h), resample=Image.Resampling.NEAREST)
 
 
-def save_image(frames: list[Image.Image], filename: str):
+def save_image(frames: list[Image.Image], filename: str, duration: int = 100):
 	"""Helper to save the final image."""
 	OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 	output_path = OUTPUT_DIR / filename
@@ -164,9 +152,8 @@ def save_image(frames: list[Image.Image], filename: str):
 	for f in frames:
 		gif.append(f.quantize(method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE))
 
-	gif[0].save(output_path, format="GIF", save_all=True, append_images=gif[1:], loop=0)
-
-	print(f"Saved image to {output_path}")
+	gif[0].save(output_path, format="GIF", save_all=True, append_images=gif[1:], loop=0, duration=duration)
+	print(f"Saved image as {output_path.stem}.gif")
 
 
 if __name__ == "__main__":
@@ -204,10 +191,11 @@ if __name__ == "__main__":
 			bg_indices = char_assignments[name]
 			backgrounds = bulk_get_backgrounds(number=args.number, indices=bg_indices)
 			sprite = get_rgba_sprite(char_path)
+			duration = sprite.info.get("duration", 100)  # Default 100ms if not found.
 
 			for i, bg in enumerate(backgrounds):
 				composite = combine_sprite_on_background(char_path, bg)
-				save_image(composite, f"{name}_{i + 1}.gif")
+				save_image(composite, f"{name}_{i + 1}.gif", duration)
 
 	else:
 		# Single demon mode.
@@ -228,7 +216,8 @@ if __name__ == "__main__":
 			raise FileNotFoundError(f"Sprite not found for {name}")
 
 		sprite = get_rgba_sprite(sprite_path)
+		duration = sprite.info.get("duration", 100)  # Default 100ms if not found.
 
 		for i, bg in enumerate(backgrounds):
 			composite = combine_sprite_on_background(sprite_path, bg)
-			save_image(composite, f"{name}_{i + 1}.gif")
+			save_image(composite, f"{name}_{i + 1}.gif", duration)
