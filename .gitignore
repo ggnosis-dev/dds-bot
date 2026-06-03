@@ -209,7 +209,10 @@ __marimo__/
 # Added
 *.db
 *.toml
+*.DS_Store
+build_*
+
 databases/
 sprites/
-*.DS_Store
-scripts/
+
+

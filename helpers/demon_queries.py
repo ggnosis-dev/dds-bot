@@ -171,3 +171,17 @@ class DemonQueries:
 				raise RuntimeError(f"ERROR: Demon with ID {demon_id} not found in the database.")
 
 			return response[0]
+
+	def get_demon_names_by_race(self, race: str) -> list[str]:
+		"""Return a list of all demon names from  a race."""
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+			rows = cursor.execute(
+				"""
+				SELECT name FROM demons
+				WHERE LOWER(race) = LOWER(?)
+				""",
+				(race,),
+			).fetchall()
+
+			return [row[0] for row in rows]
