@@ -59,7 +59,7 @@ def bulk_get_backgrounds(
 
 def bulk_find_character_sprites(race: str) -> list[Path]:
 	# Characters stored in subdirs by race.
-	race_dir = SPRITES_DIR / race.lower()
+	race_dir = CHARACTER_DIRS / race.lower()
 
 	if not race_dir.exists():
 		raise FileNotFoundError(f"Race directory not found: {race_dir}")
@@ -78,11 +78,13 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 			file = race_dir / f"{name}{ext}"
 
 			if not file.exists():
-				raise FileNotFoundError(f"Sprite not found for {file.stem}")
+				# Remove it from the list.
+				print(f"WARN: Sprite not found for {file.stem}. Removing from list.")
+				continue
 
 			image_locations.append(file)
 
-		if image_locations is not None:
+		if image_locations:
 			return image_locations
 
 	return []
@@ -99,7 +101,35 @@ def get_rgba_sprite(sprite_path: str | Path) -> Image.Image:
 	return Image.open(sprite_path).convert("RGBA")
 
 
-def combine_sprite_on_background(sprite: Image.Image, background: Image.Image) -> Image.Image:
+def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> list[Image.Image]:
+	# Upscale the background sprite.
+	bg_base = upscale_sprite(background.copy())
+	frames = []
+	sprite = Image.open(sprite_path)
+
+	try:
+		while True:
+			frame = sprite.convert("RGBA")
+
+			# Upscale the character sprite.
+			frame = upscale_sprite(frame)
+			bg_copy = bg_base.copy()
+
+			# Calculate positions to paste character.
+			x = (bg_copy.width - frame.width) // 2 if HORIZONTAL_CENTER else 0
+
+			# Cast int due to VERTICAL_OFFSET being a float.
+			y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
+
+			bg_copy.paste(frame, (x, y), frame)
+			frames.append(bg_copy)
+			sprite.seek(sprite.tell() + 1)
+	except EOFError:
+		# No more frames in the sprite.
+		pass
+
+	return frames if len(frames) > 1 else frames[0]
+
 	bg = background.copy()
 	char = sprite.copy()
 
@@ -125,14 +155,16 @@ def upscale_sprite(sprite: Image.Image) -> Image.Image:
 	return sprite.resize((new_w, new_h), resample=Image.Resampling.NEAREST)
 
 
-def save_image(image: Image.Image, filename: str):
+def save_image(frames: list[Image.Image], filename: str):
 	"""Helper to save the final image."""
 	OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 	output_path = OUTPUT_DIR / filename
+	gif = []
 
-	image = image.quantize(method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+	for f in frames:
+		gif.append(f.quantize(method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE))
 
-	image.save(output_path, format="GIF")
+	gif[0].save(output_path, format="GIF", save_all=True, append_images=gif[1:], loop=0)
 
 	print(f"Saved image to {output_path}")
 
@@ -174,7 +206,7 @@ if __name__ == "__main__":
 			sprite = get_rgba_sprite(char_path)
 
 			for i, bg in enumerate(backgrounds):
-				composite = combine_sprite_on_background(sprite, bg)
+				composite = combine_sprite_on_background(char_path, bg)
 				save_image(composite, f"{name}_{i + 1}.gif")
 
 	else:
@@ -198,5 +230,5 @@ if __name__ == "__main__":
 		sprite = get_rgba_sprite(sprite_path)
 
 		for i, bg in enumerate(backgrounds):
-			composite = combine_sprite_on_background(sprite, bg)
+			composite = combine_sprite_on_background(sprite_path, bg)
 			save_image(composite, f"{name}_{i + 1}.gif")
