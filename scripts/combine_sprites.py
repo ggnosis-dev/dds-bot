@@ -24,6 +24,11 @@ HORIZONTAL_CENTER = True
 # 0 = bottom, 1 = top. 0.6 means slightly above bottom.
 VERTICAL_OFFSET = 0.6
 
+BG_VERTICAL_START = 0.8
+
+CROP_WIDTH = 238
+CROP_HEIGHT = 108
+
 
 def bulk_get_backgrounds(
 	number: int = 1,
@@ -103,7 +108,10 @@ def get_rgba_sprite(sprite_path: str | Path) -> Image.Image:
 
 def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> list[Image.Image]:
 	# Upscale the background sprite.
-	bg_base = upscale_sprite(background.copy())
+	bg_base = background.copy()
+	bg_base = crop_from_bottom(bg_base, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
+	bg_base = upscale_sprite(bg_base)
+
 	frames = []
 	sprite = Image.open(sprite_path)
 
@@ -134,6 +142,25 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 		pass
 
 	return frames if len(frames) > 1 else frames[0]
+
+
+def crop_from_bottom(image: Image.Image, width: int, height: int, vertical_start: float) -> Image.Image:
+	"""
+	Helper to crop background image anchored from the bottom to a specific width and height.
+
+	Args:
+		image (Image.Image): Image to crop.
+		width (int): Desired region's width.
+		height (int): Desired region's height.
+		vertical_start (float): Vertical starting position as a fraction of the image height.
+	Returns:
+		Image.Image: Cropped image.
+	"""
+	top = int(image.height * vertical_start)
+	top = min(top, image.height - height)
+	left = (image.width - width) // 2
+
+	return image.crop((left, top, left + width, top + height))
 
 
 def upscale_sprite(sprite: Image.Image) -> Image.Image:
