@@ -210,7 +210,6 @@ __marimo__/
 *.db
 *.toml
 *.DS_Store
-build_*
 
 databases/
 sprites/
