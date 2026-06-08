@@ -1,5 +1,6 @@
 import argparse
 import random
+import re
 import sys
 
 from pathlib import Path
@@ -30,6 +31,12 @@ CROP_WIDTH = 238
 CROP_HEIGHT = 108
 
 
+def extract_number(file: Path) -> int:
+	"""Using regex, extract first number. If no number found, return -1."""
+	match = re.search(r"\d+", file.stem)
+	return int(match.group()) if match else -1
+
+
 def bulk_get_backgrounds(
 	number: int = 1,
 	indices: list[int] | None = None,
@@ -43,21 +50,24 @@ def bulk_get_backgrounds(
 	Returns:
 	    list[Image.Image]: A list of selected background images in RGBA mode.
 	"""
-	background_files = list(BACKGROUNDS_DIR.glob("*.png")) + list(BACKGROUNDS_DIR.glob("*.gif"))
+	files = list(BACKGROUNDS_DIR.glob("*.png")) + list(BACKGROUNDS_DIR.glob("*.gif"))
 
-	if not background_files:
+	# Sort backgrounds numerically.
+	files = sorted(files, key=extract_number)
+
+	if not files:
 		raise FileNotFoundError(f"No background images found in {BACKGROUNDS_DIR}")
 
 	selected_bgs = []
 	if indices:
 		for i in indices:
-			if i < 0 or i >= len(background_files):
-				raise IndexError(f"Background index {i} is out of range: {len(background_files)}.")
+			if i < 0 or i >= len(files):
+				raise IndexError(f"Background index {i} is out of range: {len(files)}.")
 
-			selected_bgs.append(background_files[i])
+			selected_bgs.append(files[i])
 	else:
 		for _ in range(number):
-			selected_bgs.append(random.choice(background_files))
+			selected_bgs.append(random.choice(files))
 
 	return [get_rgba_sprite(bg) for bg in selected_bgs]
 
@@ -203,15 +213,36 @@ if __name__ == "__main__":
 		total_backgrounds = len(list(BACKGROUNDS_DIR.glob("*.png"))) + len(list(BACKGROUNDS_DIR.glob("*.gif")))
 		print(f"\n{total_backgrounds} backgrounds available. Leave blank for random selection.")
 
-		# e.g. pixie: [0, 2, 5], jackolantern: [1, 3, 4]
+		# e.g. pixie: [1, 2, 5], jackolantern: [1, 3, 4]
 		char_assignments: dict[str, list[int] | None] = {}
 		for char in character_sprites:
-			bg_indices = input(f"Enter background indices for {char.stem} (separated by spaces or leave blank for random): ")
+			# Retry loop.
+			while True:
+				# Get input from the user.
+				bg_indices = input(
+					f"Enter background indices for {char.stem} (separated by spaces or leave blank for random): "
+				)
 
-			if bg_indices.strip():
-				char_assignments[char.stem] = [int(i) for i in bg_indices.split()]
-			else:
-				char_assignments[char.stem] = None
+				# If blank, assign None and continue to next character.
+				if not bg_indices.strip():
+					char_assignments[char.stem] = None
+					break
+
+				try:
+					# Get list of integers from input.
+					indices = [int(i) for i in bg_indices.split()]
+
+					# If outside valid range, ask again.
+					invalid = [i for i in indices if i < 0 or i >= total_backgrounds]
+					if invalid:
+						print(f"Invalid indices: {invalid}. Enter valid indices.")
+						continue
+
+					char_assignments[char.stem] = indices
+					break
+				except ValueError:
+					print("Invalid input. Enter valid integers separated by spaces.")
+					continue
 
 		for char_path in character_sprites:
 			name = char_path.stem
