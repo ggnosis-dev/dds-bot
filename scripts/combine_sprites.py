@@ -5,7 +5,7 @@ import sys
 
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from helpers.demon_queries import DemonQueries
@@ -29,6 +29,8 @@ BG_VERTICAL_START = 0.8
 
 CROP_WIDTH = 238
 CROP_HEIGHT = 108
+
+BG_BRIGHTNESS = 0.5
 
 
 def extract_number(file: Path) -> int:
@@ -120,6 +122,7 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 	# Upscale the background sprite.
 	bg_base = background.copy()
 	bg_base = crop_from_bottom(bg_base, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
+	bg_base = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
 	bg_base = upscale_sprite(bg_base)
 
 	frames = []
