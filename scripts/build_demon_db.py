@@ -29,7 +29,7 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			entry["image_url"],
 		)
 
-	demon_data.append(demon)
+		demon_data.append(demon)
 
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
