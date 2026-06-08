@@ -11,7 +11,7 @@ demon_data = []
 for race_json in DEMONS_DIR.glob("*.json"):
 	data = {}
 	demon = {}
-	race = race_json.name.capitalize()
+	race = race_json.stem.capitalize()
 
 	print(f"Adding {race} to database.")
 
