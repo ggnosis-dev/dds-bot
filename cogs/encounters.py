@@ -128,8 +128,7 @@ class Encounters(commands.Cog):
 			minutes, seconds = divmod(remainder, 60)
 
 			view = MessageView(
-				f"Daily encounter is on cooldown. Try again in **{hours}h**, **{minutes}m** and \
-				**{seconds}s**."
+				f"Daily encounter is on cooldown. Try again in **{hours}h**, **{minutes}m** and **{seconds}s**."
 			)
 			await ctx.send(view=view)
 			return
@@ -371,14 +370,14 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		match new_entry:
 			case DemonRegistration.UNREGISTERED:
-				status = f"{d_race} {d_name} was registered to {user.mention}'s compendium!+{mag_received} MAG"
+				status = f"{d_race} {d_name} was registered to {user.mention}'s compendium! +{mag_received} MAG"
 
 			case DemonRegistration.IN_COMP:
 				status = f"{d_race} {d_name} has joined {user.mention}'s party! +{mag_received} MAG"
 
 			case DemonRegistration.IN_PARTY:
 				gem_name = self.demon.gem.title()
-				status = f"{d_race} {d_name} gifted {user.mention} {gems_added} {gem_name}!+{mag_received} MAG"
+				status = f"{d_race} {d_name} gifted {user.mention} {gems_added} {gem_name}! +{mag_received} MAG"
 
 		await self._handle_demon_interacted(interaction, status)
 

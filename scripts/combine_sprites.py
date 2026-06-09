@@ -101,8 +101,7 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 				image_locations.append(file)
 				break
 
-			# If not found, remove it from the list.
-			print(f"WARN: Sprite not found for {name}. Removing from list.")
+			print(f"WARN: Sprite not found for {name}{ext}.")
 
 	if image_locations:
 		return image_locations
