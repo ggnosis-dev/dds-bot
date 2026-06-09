@@ -88,21 +88,20 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 	d_names = [normalise_name(n) for n in d_names]
 
 	# Find sprites for names from the race.
-	for ext in [".gif", ".png"]:
-		image_locations = []
-
-		for name in d_names:
+	image_locations = []
+	for name in d_names:
+		for ext in [".gif", ".png"]:
 			file = race_dir / f"{name}{ext}"
 
-			if not file.exists():
-				# Remove it from the list.
-				print(f"WARN: Sprite not found for {file.stem}. Removing from list.")
-				continue
+			if file.exists():
+				image_locations.append(file)
+				break
 
-			image_locations.append(file)
+			# If not found, remove it from the list.
+			print(f"WARN: Sprite not found for {name}. Removing from list.")
 
-		if image_locations:
-			return image_locations
+	if image_locations:
+		return image_locations
 
 	return []
 
@@ -154,6 +153,7 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 		# No more frames in the sprite.
 		pass
 
+	print(f"INFO: Created new GIF for {sprite_path}")
 	return frames if len(frames) > 1 else frames[0]
 
 
@@ -183,17 +183,35 @@ def upscale_sprite(sprite: Image.Image) -> Image.Image:
 	return sprite.resize((new_w, new_h), resample=Image.Resampling.NEAREST)
 
 
-def save_image(frames: list[Image.Image], filename: str, duration: int = 100):
-	"""Helper to save the final image."""
+def save_image(frames: list[Image.Image] | Image.Image, filename: str, duration: int = 100) -> None:
+	"""
+	Helper to save the final image.
+
+	Args:
+		frames (list[Image.Image] | Image.Image) Combined image(s) of sprites. PNGs will be one frame, hence Image.Image.
+		filename (str): The filename to save the final image as.
+		duration (int): The frame delay of the GIF. Defaults to 100ms.
+	"""
 	OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 	output_path = OUTPUT_DIR / filename
 	gif = []
 
-	for f in frames:
-		gif.append(f.quantize(method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE))
+	if isinstance(frames, Image.Image):
+		gif.append(quantize_frame(frames))
+	else:
+		for f in frames:
+			gif.append(quantize_frame(f))
 
 	gif[0].save(output_path, format="GIF", save_all=True, append_images=gif[1:], loop=0, duration=duration)
 	print(f"Saved image as {output_path.stem}.gif")
+
+
+def quantize_frame(frame: Image.Image) -> Image.Image:
+	"""
+	Helper to quantize the image. Frames use .quantize to reduce image colour to 256 colors required by GIFs using the
+	"octree" method (fast variation). Dithering is also disabled to make pixels sharper.
+	"""
+	return frame.quantize(method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
 
 
 if __name__ == "__main__":
