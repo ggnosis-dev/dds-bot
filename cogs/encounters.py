@@ -69,9 +69,12 @@ class Encounters(commands.Cog):
 		aliases=["e"],
 		help="Start a test encounter with a random demon.",
 	)
-	async def test_encounter_command(self, ctx) -> None:
+	async def test_encounter_command(self, ctx, *, name: str | None = None) -> None:
 		"""Command to start a test encounter with a random demon."""
-		await self._start_encounter(ctx.channel)
+		if name is not None:
+			name = name.title()
+
+		await self._start_encounter(ctx.channel, name)
 
 	@commands.command(name="start", help="Sets up the player to start playing.")
 	async def start_tutorial_command(self, ctx) -> None:
@@ -137,7 +140,7 @@ class Encounters(commands.Cog):
 		await send_to_channel.send(view=view)
 		await self.player_db.set_daily_timer(player.id, server.id, now)
 
-	async def _start_encounter(self, send_to_channel: discord.TextChannel) -> None:
+	async def _start_encounter(self, send_to_channel: discord.TextChannel, name: str | None = None) -> None:
 		"""
 		Starts an encounter by selecting a demon and creating a layout view. It will send the
 		encounter to the specified channel, which can be configured to a dedicated channel if
@@ -146,7 +149,11 @@ class Encounters(commands.Cog):
 		Args:
 		    send_to_channel (discord.TextChannel): Channel to send the encounter to.
 		"""
-		demon = self.demon_db.get_random_demon()
+		demon = self.demon_db.get_random_demon() if name is None else self.demon_db.get_demon_by_name(name)
+
+		if demon is None:
+			raise RuntimeError(f"ERROR: Demon ID for {name} was not found.")
+
 		count = random.randint(1, 3)
 		view = EncounterViewInitial(demon, self, count)
 		await send_to_channel.send(view=view)
