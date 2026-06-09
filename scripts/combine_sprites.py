@@ -123,12 +123,11 @@ def get_rgba_sprite(sprite_path: str | Path) -> Image.Image:
 
 def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> list[Image.Image]:
 	# Upscale the background sprite.
-	bg_tile = background.copy()
-	bg_tile = crop_from_bottom(bg_tile, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
-	# bg_tile = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
-	bg_tile = upscale_sprite(bg_tile, BG_UPSCALE_FACTOR)
-
-	bg_base = tile_background(bg_tile, int(CROP_WIDTH * BG_UPSCALE_FACTOR), int(CROP_HEIGHT * BG_UPSCALE_FACTOR))
+	bg_base = background.copy()
+	bg_base = crop_from_bottom(bg_base, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
+	# bg_base = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
+	bg_base = upscale_sprite(bg_base, BG_UPSCALE_FACTOR)
+	bg_base = tile_background(bg_base, int(CROP_WIDTH * BG_UPSCALE_FACTOR), int(CROP_HEIGHT * BG_UPSCALE_FACTOR))
 
 	frames = []
 	sprite = Image.open(sprite_path)
@@ -187,9 +186,12 @@ def tile_background(tile: Image.Image, target_width: int, target_height: int) ->
 	start_y = edge_y - tile_h
 
 	# For the amount of times that tile_height can fit between the start_y and target_height.
-	for y in range(start_y, target_height, tile_h):
+	for row, y in enumerate(range(start_y, target_height, tile_h)):
+		# Rotate the tile by 180 for every second row. row mod 2 will return False when 0, True when 1.
+		current_tile = tile.rotate(180) if not row % 2 else tile
+
 		for x in range(start_x, target_width, tile_w):
-			tiled.paste(tile, (x, y))
+			tiled.paste(current_tile, (x, y))
 
 	return tiled
 
