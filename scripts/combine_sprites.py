@@ -5,7 +5,7 @@ import sys
 
 from pathlib import Path
 
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageOps
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from helpers.demon_queries import DemonQueries
@@ -16,21 +16,25 @@ OUTPUT_DIR = SPRITES_DIR / "output"
 BACKGROUNDS_DIR = SPRITES_DIR / "backgrounds"
 CHARACTER_DIRS = SPRITES_DIR / "characters"
 
-# Positioning and scaling.
-UPSCALE_FACTOR = 5
+# Scaling constants.
+BG_UPSCALE_FACTOR = 3
+UPSCALE_FACTOR = 3
 
-# Position character horizontally centred.
+# Positioning constants.
+# Position character in the centre.
 HORIZONTAL_CENTER = True
 
 # 0 = bottom, 1 = top. 0.6 means slightly above bottom.
 VERTICAL_OFFSET = 0.6
 
+# Crop constants.
 BG_VERTICAL_START = 0.8
-
 CROP_WIDTH = 238
 CROP_HEIGHT = 108
 
-BG_BRIGHTNESS = 0.5
+# Design constants.
+BORDER_SIZE = 1
+BORDER_COLOUR = 0xFFFFFF
 
 
 def extract_number(file: Path) -> int:
@@ -119,10 +123,12 @@ def get_rgba_sprite(sprite_path: str | Path) -> Image.Image:
 
 def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> list[Image.Image]:
 	# Upscale the background sprite.
-	bg_base = background.copy()
-	bg_base = crop_from_bottom(bg_base, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
-	bg_base = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
-	bg_base = upscale_sprite(bg_base)
+	bg_tile = background.copy()
+	bg_tile = crop_from_bottom(bg_tile, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
+	# bg_tile = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
+	bg_tile = upscale_sprite(bg_tile, BG_UPSCALE_FACTOR)
+
+	bg_base = tile_background(bg_tile, int(CROP_WIDTH * BG_UPSCALE_FACTOR), int(CROP_HEIGHT * BG_UPSCALE_FACTOR))
 
 	frames = []
 	sprite = Image.open(sprite_path)
@@ -131,7 +137,7 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 		while True:
 			# Convert and upscale the character sprite.
 			frame = sprite.convert("RGBA")
-			frame = upscale_sprite(frame)
+			frame = upscale_sprite(frame, UPSCALE_FACTOR)
 
 			bg_copy = bg_base.copy()
 
@@ -144,6 +150,9 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 			# Paste character at x, y with alpha mask to preserve transparency.
 			bg_copy.paste(frame, (x, y), frame)
 
+			# Add a border.
+			bg_copy = add_border(bg_copy, BORDER_COLOUR)
+
 			# Append completed frame to list of frames.
 			frames.append(bg_copy)
 
@@ -155,6 +164,38 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 
 	print(f"INFO: Created new GIF for {sprite_path}")
 	return frames if len(frames) > 1 else frames[0]
+
+
+def tile_background(tile: Image.Image, target_width: int, target_height: int) -> Image.Image:
+	# Get the image's width and heights.
+	tile_w, tile_h = tile.size
+
+	# Instance of new image.
+	tiled = Image.new("RGBA", (target_width, target_height))
+
+	# Find the centre of the main tile so we know where to put tiles around it.
+	target_centre_x = target_width // 2
+
+	# Find the edge of the main tile. This should also reflect how much space is on either side of the main tile.
+	edge_x = target_centre_x - tile_w // 2
+
+	# Bottom edge of the main. We ignore the divided by 2 as we want to anchor this to the bottom.
+	edge_y = target_height - tile_h
+
+	# By subtracting the tile's coordinates from the edge, we can get location of the first tile.
+	start_x = edge_x - tile_w
+	start_y = edge_y - tile_h
+
+	# For the amount of times that tile_height can fit between the start_y and target_height.
+	for y in range(start_y, target_height, tile_h):
+		for x in range(start_x, target_width, tile_w):
+			tiled.paste(tile, (x, y))
+
+	return tiled
+
+
+def add_border(image: Image.Image, colour: int) -> Image.Image:
+	return ImageOps.expand(image, border=BORDER_SIZE, fill=colour)
 
 
 def crop_from_bottom(image: Image.Image, width: int, height: int, vertical_start: float) -> Image.Image:
@@ -173,13 +214,15 @@ def crop_from_bottom(image: Image.Image, width: int, height: int, vertical_start
 	top = min(top, image.height - height)
 	left = (image.width - width) // 2
 
-	return image.crop((left, top, left + width, top + height))
+	image = image.crop((left, top, left + width, top + height))
+	bounding_box = image.getbbox()
+	return image.crop(bounding_box)
 
 
-def upscale_sprite(sprite: Image.Image) -> Image.Image:
+def upscale_sprite(sprite: Image.Image, factor: int) -> Image.Image:
 	"""Helper to upscale a character sprite."""
-	new_w = sprite.width * UPSCALE_FACTOR
-	new_h = sprite.height * UPSCALE_FACTOR
+	new_w = sprite.width * factor
+	new_h = sprite.height * factor
 	return sprite.resize((new_w, new_h), resample=Image.Resampling.NEAREST)
 
 
