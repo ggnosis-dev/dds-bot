@@ -1,12 +1,10 @@
 import argparse
-import sys
 
 from pathlib import Path
 
 from PIL import Image, ImageSequence
 
-sys.path.insert(0, str(Path(__file__).parent))
-from combine_sprites import bulk_find_character_sprites, normalise_name, save_image, upscale_sprite
+from scripts.create_encounter_sprites import bulk_find_character_sprites, normalise_name, save_image, upscale_sprite
 
 # Directories for sprites and backgrounds.
 SPRITES_DIR = Path(__file__).parent.parent / "sprites"

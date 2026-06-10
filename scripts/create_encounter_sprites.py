@@ -25,7 +25,7 @@ UPSCALE_FACTOR = 3
 HORIZONTAL_CENTER = True
 
 # 0 = bottom, 1 = top. 0.6 means slightly above bottom.
-VERTICAL_OFFSET = 0.6
+VERTICAL_OFFSET = 0.8
 
 # Crop constants.
 BG_VERTICAL_START = 0.8
