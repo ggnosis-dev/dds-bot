@@ -246,7 +246,16 @@ def save_image(frames: list[Image.Image] | Image.Image, filename: str, duration:
 		for f in frames:
 			gif.append(quantize_frame(f))
 
-	gif[0].save(output_path, format="GIF", save_all=True, append_images=gif[1:], loop=0, duration=duration)
+	gif[0].save(
+		output_path,
+		format="GIF",
+		save_all=True,
+		append_images=gif[1:],
+		loop=0,
+		duration=duration,
+		# Prevent PIL from compressing palette across frames (which can corrupt the palette)
+		optimize=False,
+	)
 	print(f"Saved image as {output_path.stem}.gif")
 
 

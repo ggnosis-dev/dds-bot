@@ -3,7 +3,7 @@ import sys
 
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageSequence
 
 sys.path.insert(0, str(Path(__file__).parent))
 from combine_sprites import bulk_find_character_sprites, normalise_name, save_image, upscale_sprite
@@ -31,32 +31,24 @@ def combine_sprite_on_background(sprite: Image.Image) -> list[Image.Image]:
 
 	frames = []
 
-	try:
-		while True:
-			# Convert and upscale the character sprite.
-			print(sprite.mode)
-			frame = sprite.convert("RGBA")
-			frame = upscale_sprite(frame, UPSCALE_FACTOR)
+	for frame in ImageSequence.Iterator(sprite):
+		# Convert and upscale the character sprite.
+		frame = frame.convert("RGBA")
+		frame = upscale_sprite(frame, UPSCALE_FACTOR)
 
-			bg_copy = bg.copy()
+		bg_copy = bg.copy()
 
-			# Calculate positions to paste character.
-			x = (bg_copy.width - frame.width) // 2
+		# Calculate positions to paste character.
+		x = (bg_copy.width - frame.width) // 2
 
-			# Cast int due to VERTICAL_OFFSET being a float.
-			y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
+		# Cast int due to VERTICAL_OFFSET being a float.
+		y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
 
-			# Paste character at x, y with alpha mask to preserve transparency.
-			bg_copy.paste(frame, (x, y), frame)
+		# Paste character at x, y with alpha mask to preserve transparency.
+		bg_copy.paste(frame, (x, y), frame)
 
-			# Append completed frame to list of frames.
-			frames.append(bg_copy)
-
-			# Move to next frame.
-			sprite.seek(sprite.tell() + 1)
-	except EOFError:
-		# No more frames in the sprite.
-		pass
+		# Append completed frame to list of frames.
+		frames.append(bg_copy)
 
 	return frames if len(frames) > 1 else frames[0]
 
