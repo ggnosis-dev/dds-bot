@@ -8,7 +8,16 @@ class DemonData:
 	"""Data class for a demon's information."""
 
 	def __init__(
-		self, id: int, name: str, race: str, rank: int, colour: int, personality_type: str, gem: str, image_url: str
+		self,
+		id: int,
+		name: str,
+		race: str,
+		rank: int,
+		colour: int,
+		personality_type: str,
+		gem: str,
+		image_url: str,
+		profile_url: str | None,
 	):
 		"""
 		Initialise the DemonData object with the provided attributes.
@@ -30,6 +39,7 @@ class DemonData:
 		self.personality_type = Personality[personality_type]
 		self.gem = gem
 		self.image_url = image_url
+		self.profile_url = profile_url
 
 
 class DemonQueries:
@@ -40,11 +50,11 @@ class DemonQueries:
 		Convert retrieved DB row into a DemonData object.
 
 		Args:
-			row (tuple): A tuple containing demon data (id, name, race, rank, colour, personality, image_url).
+			row (tuple): A tuple containing demon data (id, name, race, rank, colour, personality, image_url, profile_url).
 		Returns:
 			DemonData: Normalised DemonData object created from values provided.
 		"""
-		id, name, race, rank, colour, personality_type, gem, image_url = row
+		id, name, race, rank, colour, personality_type, gem, image_url, profile_url = row
 		return DemonData(
 			id=id,
 			name=name,
@@ -54,6 +64,7 @@ class DemonQueries:
 			personality_type=personality_type,
 			gem=gem,
 			image_url=image_url,
+			profile_url=profile_url,
 		)
 
 	def get_demon_by_id(self, demon_id: int) -> DemonData | None:
@@ -69,7 +80,7 @@ class DemonQueries:
 			cursor = conn.cursor()
 			row = cursor.execute(
 				"""
-				SELECT id, name, race, rank, colour, personality, gem, image_url
+				SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
 				FROM demons
 				WHERE id = ?
 				""",
@@ -129,7 +140,7 @@ class DemonQueries:
 
 	def get_random_demon(self) -> DemonData:
 		"""
-		Retrieve a random demon's data from the database.
+		Retrieve a random demon's data from the database. Does not need a profile.
 
 		Returns:
 			DemonData: Random demon's data.

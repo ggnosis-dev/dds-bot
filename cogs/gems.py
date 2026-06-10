@@ -47,7 +47,7 @@ class Gems(commands.Cog):
 				d = typing.cast(DemonData, DemonQueries().get_demon_by_id(selected_demon_id))
 				view = MessageView(
 					f"{message.author.mention}, your **{d.name}** has found a **{d.gem.title()}**!",
-					d.image_url,
+					d.profile_url,
 					d.colour,
 				)
 				await message.channel.send(view=view)

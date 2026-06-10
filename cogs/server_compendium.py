@@ -99,7 +99,7 @@ class ServerCompendium(commands.Cog):
 			msg = MessageView(
 				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
 				f"Compendium** for the time being. {stored_owner.mention}'s {demon.name} has been returned to its COMP.",
-				image=demon.image_url,
+				image=demon.profile_url,
 				colour=demon.colour,
 			)
 			await ctx.send(view=msg)
@@ -108,7 +108,7 @@ class ServerCompendium(commands.Cog):
 		msg = MessageView(
 			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
 			f"Compendium** for the time being.",
-			image=demon.image_url,
+			image=demon.profile_url,
 			colour=demon.colour,
 		)
 		await ctx.send(view=msg)
@@ -142,7 +142,9 @@ class ServerCompendium(commands.Cog):
 				return
 
 			if await self.player_db.return_server_comp_demon(server.id, demon.id):
-				msg = MessageView(f"**{demon.race} {demon.name}** has been returned to you.", demon.image_url, demon.colour)
+				msg = MessageView(
+					f"**{demon.race} {demon.name}** has been returned to you.", demon.profile_url, demon.colour
+				)
 				await ctx.send(view=msg)
 
 

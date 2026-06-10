@@ -27,6 +27,7 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			Personality[entry["personality"]].name,
 			GemList[entry["gem"]].name,
 			entry["image_url"],
+			entry["profile_url"],
 		)
 
 		demon_data.append(demon)
@@ -47,15 +48,16 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			colour INTEGER,
 			personality TEXT,
 			gem TEXT,
-			image_url TEXT
+			image_url TEXT,
+			profile_url TEXT
 		)
 	""")
 
 	# Insert demon data.
 	cursor.executemany(
 		"""
-		INSERT INTO demons (name, race, rank, colour, personality, gem, image_url)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO demons (name, race, rank, colour, personality, gem, image_url, profile_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	""",
 		demon_data,
 	)
