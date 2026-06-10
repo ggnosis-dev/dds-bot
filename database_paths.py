@@ -5,6 +5,7 @@ DATABASE_DIR = PROJECT_ROOT / "databases"
 DEMONS_DIR = DATABASE_DIR / "demons"
 DEMONS_DB_PATH = DATABASE_DIR / "demons.db"
 PLAYERS_DB_PATH = DATABASE_DIR / "players.db"
+FUSION_CSV_PATH = DATABASE_DIR / "fusion.csv"
 
 
 def ensure_db_dir_exists() -> Path:
