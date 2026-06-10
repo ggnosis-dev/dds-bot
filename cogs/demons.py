@@ -53,7 +53,9 @@ class Demon(commands.Cog):
 
 		d = typing.cast(demon_queries.DemonData, self.demon_db.get_demon_by_id(d_id))
 		gem_progress = round(self.player_db.get_gem_progress(player.id, server.id, d.gem) / 10)
-		progress_bar = f"{Unicode.FILLED_CIRCLE} " * gem_progress + f"{Unicode.UNFILLED_CIRCLE.value} " * (10 - gem_progress)
+		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * gem_progress + f"{Unicode.UNFILLED_CIRCLE.value} " * (
+			10 - gem_progress
+		)
 
 		view = MessageView(
 			(
