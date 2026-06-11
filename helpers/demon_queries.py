@@ -113,7 +113,7 @@ class DemonQueries:
 			return response[0] if response else None
 
 	def get_demon_by_name(self, demon_name: str) -> DemonData | None:
-		"""Helper to get demon by name."""
+		"""Helper to get demon by name. Makes name lowercase in query."""
 		d_id = self.get_demon_id_by_name(demon_name)
 		return self.get_demon_by_id(d_id) if d_id else None
 
@@ -196,3 +196,22 @@ class DemonQueries:
 			).fetchall()
 
 			return [row[0] for row in rows]
+
+	def get_closest_demon_in_race(self, race: str, rank: int) -> DemonData | None:
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+			d_id = cursor.execute(
+				"""
+				SELECT id FROM demons
+				WHERE race = ?
+				ORDER BY
+					-- Order by absolute rank minus passed in rank.
+					ABS(rank - ?),
+					-- If there's a tie, prioritise the smaller one.
+					rank
+				LIMIT 1
+				""",
+				(race, rank),
+			).fetchone()
+
+			return self.get_demon_by_id(d_id[0])
