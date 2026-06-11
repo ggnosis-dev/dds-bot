@@ -5,7 +5,7 @@ import sys
 
 from pathlib import Path
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageEnhance, ImageOps
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from helpers.demon_queries import DemonQueries
@@ -22,10 +22,10 @@ UPSCALE_FACTOR = 3
 
 # Positioning constants.
 # Position character in the centre.
-HORIZONTAL_CENTER = True
+HORIZONTAL_OFFSET = 0.5
 
-# 0 = bottom, 1 = top. 0.6 means slightly above bottom.
-VERTICAL_OFFSET = 0.8
+# 1 = bottom, 0 = top.
+VERTICAL_OFFSET = 0.4
 
 # Crop constants.
 BG_VERTICAL_START = 0.8
@@ -35,6 +35,7 @@ CROP_HEIGHT = 108
 # Design constants.
 BORDER_SIZE = 1
 BORDER_COLOUR = 0xFFFFFF
+BG_BRIGHTNESS = 1
 
 
 def extract_number(file: Path) -> int:
@@ -124,7 +125,7 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 	# Upscale the background sprite.
 	bg_base = background.copy()
 	bg_base = crop_from_bottom(bg_base, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
-	# bg_base = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
+	bg_base = ImageEnhance.Brightness(bg_base).enhance(BG_BRIGHTNESS)
 	bg_base = upscale_sprite(bg_base, BG_UPSCALE_FACTOR)
 	bg_base = tile_background(bg_base, int(CROP_WIDTH * BG_UPSCALE_FACTOR), int(CROP_HEIGHT * BG_UPSCALE_FACTOR))
 
@@ -140,7 +141,7 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 			bg_copy = bg_base.copy()
 
 			# Calculate positions to paste character.
-			x = (bg_copy.width - frame.width) // 2 if HORIZONTAL_CENTER else 0
+			x = int((bg_copy.width - frame.width) * HORIZONTAL_OFFSET)
 
 			# Cast int due to VERTICAL_OFFSET being a float.
 			y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
