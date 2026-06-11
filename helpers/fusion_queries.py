@@ -15,11 +15,9 @@ class FusionQueries:
 
 	def get_fused_race(self, race_1: str, race_2: str) -> str | None:
 		# Database has race_1 in alphabetically order.
-		print("get_fused_race")
 		race_1, race_2 = sorted([race_1, race_2])
 
 		with self._get_db_connection() as conn:
-			print("HERE")
 			cursor = conn.cursor()
 
 			race_result = cursor.execute(
@@ -29,8 +27,6 @@ class FusionQueries:
 				""",
 				(race_1, race_2),
 			).fetchone()
-
-			print(race_result)
 
 			return race_result[0] if race_result else None
 
@@ -51,7 +47,7 @@ class FusionQueries:
 			print(f"INFO: {demon_1.race} + {demon_2.race} cannot fuse together.")
 			return None
 
-		if fused_race == "element":
+		if fused_race.lower() == "element":
 			print("WARN: Element fusion is not yet implemented.")
 			return None
 
