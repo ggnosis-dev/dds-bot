@@ -20,7 +20,7 @@ class Items(commands.Cog):
 		Use an item on a demon.
 
 		Args:
-			input_str (str): String containing the item name and optionally the demon name, separated by a semicolon.
+			input_str (str): String containing item name and optional demon name, separated by a semicolon delimiter.
 				"item_name; demon_name" or just "item_name" to use on selected demon.
 		"""
 		parts = input_str.split(";")
@@ -57,10 +57,7 @@ class Items(commands.Cog):
 				return
 
 		# Check if in player's party.
-		if (
-			await self.player_queries.check_demon_registration(player.id, server.id, demon_id)
-			!= DemonRegistration.IN_PARTY
-		):
+		if await self.player_queries.check_demon_registration(player.id, server.id, demon_id) != DemonRegistration.IN_PARTY:
 			await ctx.send(f"A **{demon_name}** was not found in your party...")
 			return
 
@@ -68,10 +65,7 @@ class Items(commands.Cog):
 		if self.item_queries.use_incense(player.id, server.id, demon_id, item_id):
 			demon_name = self.demon_db.get_demon_name_by_id(demon_id)
 			await ctx.send(
-				(
-					f"{player.mention} used **{item_name}** on **{demon_name}**!"
-					"Their stored rank has **increased** by **3**."
-				),
+				(f"{player.mention} used **{item_name}** on **{demon_name}**!Their stored rank has **increased** by **3**."),
 			)
 
 	@checks.has_profile()
