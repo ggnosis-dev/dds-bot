@@ -3,6 +3,15 @@ import sqlite3
 from database_paths import PLAYERS_DB_PATH
 from helpers.demon_queries import DemonData, DemonQueries
 
+ELEMENT_RACE = ["erthys", "aeros", "aquans", "flaemis"]
+
+ELEMENT_PAIRS = {
+	"Erthys": ["beast", "femme", "jaki"],
+	"Aeros": ["fairy", "flight"],
+	"Aquans": ["fairy", "wilder"],
+	"Flaemis": ["beast", "femme", "flight", "jaki", "wilder"],
+}
+
 
 class FusionQueries:
 	def _get_db_connection(self) -> sqlite3.Connection:
@@ -38,8 +47,24 @@ class FusionQueries:
 			print(f"INFO: {race_1} + {race_2} cannot fuse together.")
 			return None
 
-		if fused_race.lower() == "element":
-			print("WARN: Element fusion is not yet implemented.")
-			return None
+		if fused_race.lower() in ELEMENT_RACE:
+			print("HERE")
+			return DemonQueries().get_demon_by_name(fused_race)
 
 		return DemonQueries().get_closest_demon_in_race(fused_race, average_rank)
+
+	def get_fuse_with_element(self, race, element, original_rank) -> DemonData | None:
+		# How do I do this?
+		# Do I store all of pairs in the DB or just make a dictionary?
+
+		# FIXME: Man, you need to make the demon names consistently titled.
+		element = element.title()
+		print(race, element)
+
+		if race.lower() in ELEMENT_PAIRS[element]:
+			direction = 1
+		else:
+			direction = -1
+
+		print(f"RANK UP? {direction}")
+		return DemonQueries().get_next_demon_in_race(race, original_rank, direction)

@@ -215,3 +215,31 @@ class DemonQueries:
 			).fetchone()
 
 			return self.get_demon_by_id(d_id[0])
+
+	def get_next_demon_in_race(self, race: str, rank: int, direction: int) -> DemonData | None:
+		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+			cursor = conn.cursor()
+
+			if direction == -1:
+				d_id = cursor.execute(
+					"""
+					SELECT id FROM demons
+					WHERE race = ? AND rank < ?
+					""",
+					(race, rank),
+				).fetchone()
+				print(f"UP {d_id}")
+			else:
+				d_id = cursor.execute(
+					"""
+					SELECT id FROM demons
+					WHERE race = ? AND rank > ?
+					""",
+					(race, rank),
+				).fetchone()
+				print(f"DOWN {d_id}")
+
+		if d_id is None:
+			return None
+
+		return self.get_demon_by_id(d_id[0])

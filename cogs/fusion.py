@@ -43,15 +43,22 @@ class Fusion(commands.Cog):
 				return
 
 		average_rank = demon_1.rank + demon_2.rank // 2
-		demon_result = self.fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
 
-		if not demon_result:
-			view = MessageView(f"**{name_1} + {name_2} = Nothing")
+		if demon_1.race == "Element" or demon_2.race == "Element":
+			print("INFO: Fusing Demon with Element")
+			element, demon = (demon_1, demon_2) if demon_1.race == "Element" else (demon_2, demon_1)
+			demon_result = self.fusion_queries.get_fuse_with_element(demon.race, element.name, original_rank=demon.rank)
+		else:
+			print("INFO: 2 Regular Demons")
+			demon_result = self.fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
+
+		if not demon_result or demon_result.id in [demon_1.id, demon_2.id]:
+			view = MessageView(f"**{name_1}** + **{name_2}** = **Nothing! So sorry about that champ!**")
 			await ctx.send(view=view)
 			return
 
 		# TODO: Balance these MAG prices around the place.
-		cost = int(10000 * (average_rank * 0.01))
+		cost = int(10000 * (demon_result.rank * 0.01))
 
 		view = MessageView(
 			f"**{name_1}** + **{name_2}** = **{demon_result.name}**",
@@ -80,10 +87,16 @@ class Fusion(commands.Cog):
 		currency_queries.update_mag(player.id, server.id, -cost)
 		await self.player_db.set_demon_in_party(player.id, server.id, demon_1.id, party_add=False)
 		await self.player_db.set_demon_in_party(player.id, server.id, demon_2.id, party_add=False)
+
+		new_demon = await self.player_db.add_demon_to_compendium(player.id, server.id, demon_result.id, demon_result.rank)
 		await self.player_db.set_demon_in_party(player.id, server.id, demon_result.id, party_add=True)
 
+		registered_text = ""
+		if new_demon:
+			registered_text = f"\n\n**{demon_result.race} {demon_result.name}** has been registered to your compendium."
+
 		view = MessageView(
-			f"You have fused **{demon_result.name}**!",
+			f"You have fused **{demon_result.name}**! {registered_text}",
 			demon_result.profile_url,
 			demon_result.colour,
 		)
