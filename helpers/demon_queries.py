@@ -17,7 +17,7 @@ class DemonData:
 		personality_type: str,
 		gem: str,
 		image_url: str,
-		profile_url: str | None,
+		profile_url: str,
 	):
 		"""
 		Initialise the DemonData object with the provided attributes.
@@ -148,7 +148,7 @@ class DemonQueries:
 		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			cursor = conn.cursor()
 			row = cursor.execute("""
-				SELECT id, name, race, rank, colour, personality, gem, image_url
+				SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
 				FROM demons
 				ORDER BY RANDOM()
 				LIMIT 1
