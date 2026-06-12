@@ -3,7 +3,7 @@ import typing
 
 from discord.ext import commands
 
-from helpers import checks, player_queries
+from helpers import checks, currency_queries, player_queries
 from helpers.views import MessageView
 
 # TODO: Remove this from encounters.py. Needs to be streamlined.
@@ -17,7 +17,7 @@ class Utility(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name="stuff", aliases=["st"], description="Check the stuff.")
-	async def mag_check_command(self, ctx):
+	async def stuff_check_command(self, ctx):
 		"""Command to view MAG, daily timer, all that jazz."""
 		player_id = ctx.author.id
 		server_id = ctx.guild.id
@@ -39,6 +39,18 @@ class Utility(commands.Cog):
 			daily_string = f"Daily available in **{hours}h**, **{minutes}m** and **{seconds}s**."
 
 		view = MessageView(f"{daily_string}\n\nMAG: **{mag}**")
+		await ctx.send(view=view)
+
+	@checks.is_developer()
+	@commands.command(name="give_mag", aliases=["gm"], description="Give the MAG.")
+	async def give_mag_command(self, ctx, amount: int):
+		"""Command to view MAG, daily timer, all that jazz."""
+		player_id = ctx.author.id
+		server_id = ctx.guild.id
+		currency_queries.update_mag(player_id, server_id, amount)
+		mag = currency_queries.get_mag(player_id, server_id)
+
+		view = MessageView(f"Added {amount} MAG.\n\nTotal MAG: **{mag}**")
 		await ctx.send(view=view)
 
 
