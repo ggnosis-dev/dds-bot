@@ -48,7 +48,6 @@ class FusionQueries:
 			return None
 
 		if fused_race.lower() in ELEMENT_RACE:
-			print("HERE")
 			return DemonQueries().get_demon_by_name(fused_race)
 
 		return DemonQueries().get_closest_demon_in_race(fused_race, average_rank)
@@ -59,12 +58,10 @@ class FusionQueries:
 
 		# FIXME: Man, you need to make the demon names consistently titled.
 		element = element.title()
-		print(race, element)
 
 		if race.lower() in ELEMENT_PAIRS[element]:
 			direction = 1
 		else:
 			direction = -1
 
-		print(f"RANK UP? {direction}")
 		return DemonQueries().get_next_demon_in_race(race, original_rank, direction)
