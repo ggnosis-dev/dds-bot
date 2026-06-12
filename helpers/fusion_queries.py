@@ -30,21 +30,12 @@ class FusionQueries:
 
 			return race_result[0] if race_result else None
 
-	def get_fused_demon(self, demon_id_1: int, demon_id_2: int) -> DemonData | None:
-		demon_1 = DemonQueries().get_demon_by_id(demon_id_1)
-		demon_2 = DemonQueries().get_demon_by_id(demon_id_2)
-
-		if not demon_1 or not demon_2:
-			raise RuntimeError(
-				f"ERROR: Demons were not found (1: {demon_id_1} {bool(demon_1)}) (2: {demon_id_2} {bool(demon_2)})"
-			)
-
-		average_rank = demon_1.rank + demon_2.rank // 2
-		fused_race = self.get_fused_race(demon_1.race, demon_2.race)
+	def get_fused_demon(self, race_1: str, race_2: str, average_rank: int) -> DemonData | None:
+		fused_race = self.get_fused_race(race_1, race_2)
 
 		# Some races won't fuse together deliberately.
 		if not fused_race:
-			print(f"INFO: {demon_1.race} + {demon_2.race} cannot fuse together.")
+			print(f"INFO: {race_1} + {race_2} cannot fuse together.")
 			return None
 
 		if fused_race.lower() == "element":
