@@ -19,41 +19,34 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> bool:
 	# Get gem type and the player's stored rank for demon.
 	gem_name, stored_rank = query_one(
 		"""
-		SELECT d.gem, pd.stored_rank FROM demons d
-		JOIN player_demons pd ON pd.demon_id = d.id
-		WHERE d.id = ?
+			SELECT d.gem, pd.stored_rank FROM demons d
+			JOIN player_demons pd ON pd.demon_id = d.id
+			WHERE d.id = ?
 		""",
 		(demon_id,),
 	)
 
-	if gem_name is None:
-		return False
-
 	increment = stored_rank * GEM_EXP_MULTIPLIER
 
-	# Increase gem meter by exp, returning meter value. excluded.meter is the value that was going to be insert
-	# into the meter.
+	# Increase gem meter, returning meter value. excluded.meter is the value that was going to be insert into the meter.
 	meter_val = query_one(
 		"""
-		INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
-		VALUES (?, ?, ?, ?, 0)
-		ON CONFLICT (player_id, server_id, gem_name) DO
-		UPDATE SET meter = meter + excluded.meter
-		RETURNING meter
+			INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
+			VALUES (?, ?, ?, ?, 0)
+			ON CONFLICT (player_id, server_id, gem_name) DO
+			UPDATE SET meter = meter + excluded.meter
+			RETURNING meter
 		""",
 		(player_id, server_id, gem_name, increment),
 	)[0]
-
-	# Get the meter value after the update to check if a gem has been found.
-	print(f"DEBUG: Player {player_id} | Server {server_id} | Gem {gem_name} meter: {meter_val:.2f}")
 
 	# Add gem to count and reset meter if gem found.
 	if meter_val >= GEM_METER_FULL:
 		query_write(
 			"""
-			UPDATE player_gems
-			SET meter = 0, quantity = quantity + 1
-			WHERE player_id = ? AND server_id = ? AND gem_name = ?
+				UPDATE player_gems
+				SET meter = 0, quantity = quantity + 1
+				WHERE player_id = ? AND server_id = ? AND gem_name = ?
 			""",
 			(player_id, server_id, gem_name),
 		)
@@ -66,21 +59,19 @@ async def add_gem(player_id: int, server_id: int, demon_id: int, number: int) ->
 	# Get gem type.
 	gem_name = query_one(
 		"""
-		SELECT d.gem FROM demons d
-		JOIN player_demons pd ON pd.demon_id = d.id
-		WHERE d.id = ?
+			SELECT d.gem FROM demons d
+			JOIN player_demons pd ON pd.demon_id = d.id
+			WHERE d.id = ?
 		""",
 		(demon_id,),
 	)[0]
 
-	print(f"DEBUG: Player {player_id} | Server {server_id} | Gem {gem_name} | Number: {number}")
-
 	query_write(
 		"""
-		INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
-		VALUES (?, ?, ?, 0, ?)
-		ON CONFLICT (player_id, server_id, gem_name) DO
-		UPDATE SET quantity = quantity + ?
+			INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
+			VALUES (?, ?, ?, 0, ?)
+			ON CONFLICT (player_id, server_id, gem_name) DO
+			UPDATE SET quantity = quantity + ?
 		""",
 		(player_id, server_id, gem_name, number, number),
 	)
@@ -96,9 +87,9 @@ def get_player_gems(player_id: int, server_id: int) -> list[tuple]:
 	"""
 	result = query_all(
 		"""
-		SELECT gem_name, quantity FROM player_gems
-		WHERE player_id = ? AND server_id = ?
-		ORDER BY gem_name ASC
+			SELECT gem_name, quantity FROM player_gems
+			WHERE player_id = ? AND server_id = ?
+			ORDER BY gem_name ASC
 		""",
 		(player_id, server_id),
 	)
@@ -110,8 +101,8 @@ def get_gem_progress(player_id: int, server_id: int, gem_name: str) -> int:
 	"""Get gem meter progress."""
 	result = query_one(
 		"""
-		SELECT meter FROM player_gems
-		WHERE player_id = ? AND server_id = ? AND gem_name = ?
+			SELECT meter FROM player_gems
+			WHERE player_id = ? AND server_id = ? AND gem_name = ?
 		""",
 		(player_id, server_id, gem_name),
 	)
