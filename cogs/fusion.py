@@ -11,7 +11,6 @@ class Fusion(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.demon_queries = demon_queries.DemonQueries()
 		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
@@ -26,8 +25,8 @@ class Fusion(commands.Cog):
 		name_1 = parts[0].strip().title()
 		name_2 = parts[1].strip().title()
 
-		demon_1 = self.demon_queries.get_demon_by_name(name_1)
-		demon_2 = self.demon_queries.get_demon_by_name(name_2)
+		demon_1 = demon_queries.get_demon_by_name(name_1)
+		demon_2 = demon_queries.get_demon_by_name(name_2)
 
 		player = ctx.author
 		server = ctx.guild

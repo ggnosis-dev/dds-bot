@@ -8,7 +8,7 @@ from pathlib import Path
 from PIL import Image, ImageEnhance, ImageOps
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from queries.demon_queries import DemonQueries
+from queries import demon_queries
 
 # Directories for sprites and backgrounds.
 SPRITES_DIR = Path(__file__).parent.parent / "sprites"
@@ -87,7 +87,7 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 		raise FileNotFoundError(f"Race directory not found: {race_dir}")
 
 	# Search database for characters in a race.
-	d_names = DemonQueries().get_demon_names_by_race(race)
+	d_names = demon_queries.get_demon_names_by_race(race)
 
 	# Match name by using isalnum. (e.g. "Jack O' Lantern" -> "jackolantern")
 	d_names = [normalise_name(n) for n in d_names]

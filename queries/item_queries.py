@@ -2,7 +2,7 @@ import json
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH
-from queries.demon_queries import DemonQueries
+from queries import demon_queries
 
 
 class ItemQueries:
@@ -85,7 +85,7 @@ class ItemQueries:
 
 	def use_incense(self, player_id: int, server_id: int, demon_id: int, item_id: str) -> bool:
 		exclusive_to = self.items[item_id].get("exclusive_to")
-		demon_race = DemonQueries().get_demon_race_by_id(demon_id)
+		demon_race = demon_queries.get_demon_race_by_id(demon_id)
 
 		# Some incense may be special and work for all demons.
 		if exclusive_to is not None:

@@ -1,245 +1,133 @@
-import sqlite3
-
-from database_paths import PLAYERS_DB_PATH
-from shared_enums import Personality
+from entities.demon_data import DemonData, convert_row_to_demon_data
+from helpers.db import query_all, query_one
 
 
-class DemonData:
-	"""Data class for a demon's information."""
+def get_demon_by_id(demon_id: int) -> DemonData | None:
+	"""
+	Retrieve a demon's data from the database using its unique ID.
 
-	def __init__(
-		self,
-		id: int,
-		name: str,
-		race: str,
-		rank: int,
-		colour: int,
-		personality_type: str,
-		gem: str,
-		image_url: str,
-		profile_url: str,
-	):
+	Args:
+		demon_id (int): Identifier of the demon to retrieve data for.
+	Returns:
+		DemonData | None: Demon's data if found, otherwise None.
+	"""
+	row = query_one(
 		"""
-		Initialise the DemonData object with the provided attributes.
+			SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
+			FROM demons
+			WHERE id = ?
+		""",
+		(demon_id,),
+	)
 
-		Args:
-			id (int): Demon's unique ID.
-			name (str): Demon name.
-			race (str): Demon race.
-			rank (int): Demon's Rank signifies its strength and base rarity.
-			colour (int): Colour is used for styling and various embeds.
-			personality_type (str): Personality type, stored as a string in DB but converted to a Personality enum.
-			image_url (str): Image URL for demon's art.
+	return convert_row_to_demon_data(row) if row else None
+
+
+def get_demon_id_by_name(demon_name: str) -> int | None:
+	"""Retrieve a demon's ID from the database using its name."""
+	response = query_one(
 		"""
-		self.id = id
-		self.name = name
-		self.race = race
-		self.rank = rank
-		self.colour = colour
-		self.personality_type = Personality[personality_type]
-		self.gem = gem
-		self.image_url = image_url
-		self.profile_url = profile_url
+			SELECT id FROM demons
+			WHERE LOWER(name) = LOWER(?)
+		""",
+		(demon_name,),
+	)[0]
+
+	return response if response else None
 
 
-class DemonQueries:
-	"""Class for managing demon data retrieval from the database."""
+def get_demon_by_name(demon_name: str) -> DemonData | None:
+	"""Helper to get demon by name. Makes name lowercase in query."""
+	d_id = get_demon_id_by_name(demon_name)
+	return get_demon_by_id(d_id) if d_id else None
 
-	def _convert_row_to_demon_data(self, row: tuple) -> DemonData:
+
+def get_demon_name_by_id(demon_id: int) -> str:
+	"""Retrieve a demon's name from the database using its ID."""
+	response = query_one(
 		"""
-		Convert retrieved DB row into a DemonData object.
+			SELECT name FROM demons
+			WHERE id = ?
+			""",
+		(demon_id,),
+	)[0]
 
-		Args:
-			row (tuple): A tuple containing demon data (id, name, race, rank, colour, personality, image_url, profile_url).
-		Returns:
-			DemonData: Normalised DemonData object created from values provided.
+	return response if response else ""
+
+
+def get_random_demon() -> DemonData:
+	"""Retrieve a random demon's data from the database. Does not need a profile."""
+	row = query_one(
 		"""
-		id, name, race, rank, colour, personality_type, gem, image_url, profile_url = row
-		return DemonData(
-			id=id,
-			name=name,
-			race=race,
-			rank=rank,
-			colour=colour,
-			personality_type=personality_type,
-			gem=gem,
-			image_url=image_url,
-			profile_url=profile_url,
-		)
-
-	def get_demon_by_id(self, demon_id: int) -> DemonData | None:
+			SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
+			FROM demons
+			ORDER BY RANDOM()
+			LIMIT 1
 		"""
-		Retrieve a demon's data from the database using its unique ID.
+	)
 
-		Args:
-			demon_id (int): Identifier of the demon to retrieve data for.
-		Returns:
-			DemonData | None: Demon's data if found, otherwise None.
+	if not row:
+		raise RuntimeError("ERROR: No demons could be found in the database.")
+
+	return convert_row_to_demon_data(row)
+
+
+def get_demon_race_by_id(demon_id: int) -> str:
+	"""Get demon's race from the database using its ID."""
+	response = query_one(
 		"""
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			row = cursor.execute(
-				"""
-				SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
-				FROM demons
-				WHERE id = ?
-				""",
-				(demon_id,),
-			).fetchone()
+			SELECT race FROM demons
+			WHERE id = ?
+		""",
+		(demon_id,),
+	)[0]
 
-			if row:
-				return self._convert_row_to_demon_data(row)
-			return None
+	return response
 
-	def get_demon_id_by_name(self, demon_name: str) -> int | None:
+
+def get_demon_names_by_race(race: str) -> list[str]:
+	"""Return a list of all demon names from  a race."""
+	race = race.title()
+	rows = query_all(
 		"""
-		Retrieve a demon's ID from the database using its name.
+			SELECT name FROM demons
+			WHERE race = ?
+		""",
+		(race,),
+	)
 
-		Args:
-			demon_name (str): Name of the demon to retrieve the ID for.
-		Returns:
-			int | None: Demon's ID if found else None.
+	return [row[0] for row in rows]
+
+
+def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
+	d_id = query_one(
 		"""
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			response = cursor.execute(
-				"""
-				SELECT id FROM demons
-				WHERE LOWER(name) = LOWER(?)
-				""",
-				(demon_name,),
-			).fetchone()
+			SELECT id FROM demons
+			WHERE race = ?
+			ORDER BY
+				-- Order by absolute rank minus passed in rank.
+				ABS(rank - ?),
+				-- If there's a tie, prioritise the smaller one.
+				rank
+			LIMIT 1
+		""",
+		(race, rank),
+	)[0]
 
-			return response[0] if response else None
+	return get_demon_by_id(d_id)
 
-	def get_demon_by_name(self, demon_name: str) -> DemonData | None:
-		"""Helper to get demon by name. Makes name lowercase in query."""
-		d_id = self.get_demon_id_by_name(demon_name)
-		return self.get_demon_by_id(d_id) if d_id else None
 
-	def get_demon_name_by_id(self, demon_id: int) -> str:
-		"""
-		Retrieve a demon's name from the database using its ID.
+def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | None:
+	query = f"""
+		SELECT id FROM demons
+		WHERE race = ? AND rank {">" if direction == 1 else "<"} ?
+	"""
+	d_id = query_one(
+		query,
+		(race, rank),
+	)[0]
 
-		Args:
-			demon_id (int): Identifier of the demon to retrieve the name for.
-		Returns:
-			str: Demon's name if found, otherwise an empty string.
-		"""
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			response = cursor.execute(
-				"""
-				SELECT name FROM demons
-				WHERE id = ?
-				""",
-				(demon_id,),
-			).fetchone()
+	if d_id is None:
+		return None
 
-			return response[0] if response else ""
-
-	def get_random_demon(self) -> DemonData:
-		"""
-		Retrieve a random demon's data from the database. Does not need a profile.
-
-		Returns:
-			DemonData: Random demon's data.
-		"""
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			row = cursor.execute("""
-				SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
-				FROM demons
-				ORDER BY RANDOM()
-				LIMIT 1
-			""").fetchone()
-
-			if not row:
-				raise RuntimeError("ERROR: No demons found in the database.")
-
-			return self._convert_row_to_demon_data(row)
-
-	def get_demon_race_by_id(self, demon_id: int) -> str:
-		"""
-		Get demon's race from the database using its ID.
-
-		Args:
-			demon_id (int): Identifier of the demon to retrieve race for.
-		Returns:
-			str: Demon's race.
-		"""
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			response = cursor.execute(
-				"""
-				SELECT race FROM demons
-				WHERE id = ?
-				""",
-				(demon_id,),
-			).fetchone()
-
-			if response is None:
-				raise RuntimeError(f"ERROR: Demon with ID {demon_id} not found in the database.")
-
-			return response[0]
-
-	def get_demon_names_by_race(self, race: str) -> list[str]:
-		"""Return a list of all demon names from  a race."""
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			rows = cursor.execute(
-				"""
-				SELECT name FROM demons
-				WHERE LOWER(race) = LOWER(?)
-				""",
-				(race,),
-			).fetchall()
-
-			return [row[0] for row in rows]
-
-	def get_closest_demon_in_race(self, race: str, rank: int) -> DemonData | None:
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-			d_id = cursor.execute(
-				"""
-				SELECT id FROM demons
-				WHERE race = ?
-				ORDER BY
-					-- Order by absolute rank minus passed in rank.
-					ABS(rank - ?),
-					-- If there's a tie, prioritise the smaller one.
-					rank
-				LIMIT 1
-				""",
-				(race, rank),
-			).fetchone()
-
-			return self.get_demon_by_id(d_id[0])
-
-	def get_next_demon_in_race(self, race: str, rank: int, direction: int) -> DemonData | None:
-		with sqlite3.connect(PLAYERS_DB_PATH) as conn:
-			cursor = conn.cursor()
-
-			if direction == -1:
-				d_id = cursor.execute(
-					"""
-					SELECT id FROM demons
-					WHERE race = ? AND rank < ?
-					""",
-					(race, rank),
-				).fetchone()
-				print(f"UP {d_id}")
-			else:
-				d_id = cursor.execute(
-					"""
-					SELECT id FROM demons
-					WHERE race = ? AND rank > ?
-					""",
-					(race, rank),
-				).fetchone()
-				print(f"DOWN {d_id}")
-
-		if d_id is None:
-			return None
-
-		return self.get_demon_by_id(d_id[0])
+	return get_demon_by_id(d_id)

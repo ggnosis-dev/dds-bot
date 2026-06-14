@@ -1,5 +1,6 @@
+from entities.demon_data import DemonData
 from helpers.db import query_one
-from queries.demon_queries import DemonData, DemonQueries
+from queries import demon_queries
 
 ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
 
@@ -34,17 +35,11 @@ def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> DemonData | 
 		return None
 
 	if fused_race in ELEMENT_RACE:
-		return DemonQueries().get_demon_by_name(fused_race)
+		return demon_queries.get_demon_by_name(fused_race)
 
-	return DemonQueries().get_closest_demon_in_race(fused_race, average_rank)
+	return demon_queries.get_closest_demon_in_race(fused_race, average_rank)
 
 
 def get_fuse_with_element(race, element, original_rank) -> DemonData | None:
-	# How do I do this?
-	# Do I store all of pairs in the DB or just make a dictionary?
-	if race in ELEMENT_PAIRS[element]:
-		direction = 1
-	else:
-		direction = -1
-
-	return DemonQueries().get_next_demon_in_race(race, original_rank, direction)
+	direction = 1 if race in ELEMENT_PAIRS[element] else -1
+	return demon_queries.get_next_demon_in_race(race, original_rank, direction)

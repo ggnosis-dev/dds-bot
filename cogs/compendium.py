@@ -16,7 +16,6 @@ class Compendium(commands.Cog):
 	def __init__(self, bot: commands.Bot) -> None:
 		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
-		self.demon_db = demon_queries.DemonQueries()
 		self.player_db = player_queries.PlayerQueries()
 
 	@commands.command(name="compendium", aliases=["comp", "c"], help="Displays the player's compendium.")
@@ -49,7 +48,7 @@ class Compendium(commands.Cog):
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = ctx.author
 		demon_name = demon_name.title()
-		demon = self.demon_db.get_demon_by_name(demon_name)
+		demon = demon_queries.get_demon_by_name(demon_name)
 
 		if demon is None:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")

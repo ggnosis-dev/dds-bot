@@ -2,6 +2,7 @@ import typing
 
 from discord.ext import commands
 
+from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
 from queries import demon_queries, gem_queries, player_queries
@@ -13,7 +14,6 @@ class Demon(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.demon_db = demon_queries.DemonQueries()
 		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
@@ -23,7 +23,7 @@ class Demon(commands.Cog):
 		player = ctx.author
 		server = ctx.guild
 		demon_name = demon_name.title()
-		demon_id = self.demon_db.get_demon_id_by_name(demon_name)
+		demon_id = demon_queries.get_demon_id_by_name(demon_name)
 
 		# Repeat the same message to avoid giving away whether a demon exists or not.
 		if demon_id is None:
@@ -52,7 +52,7 @@ class Demon(commands.Cog):
 			await ctx.send("There is currently no demon leading your party. Select one using `>select {Demon Name}`.")
 			return
 
-		d = typing.cast(demon_queries.DemonData, self.demon_db.get_demon_by_id(d_id))
+		d = typing.cast(DemonData, demon_queries.get_demon_by_id(d_id))
 		gem_progress = round(gem_queries.get_gem_progress(player.id, server.id, d.gem) / 10)
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * gem_progress + f"{Unicode.UNFILLED_CIRCLE.value} " * (
 			10 - gem_progress

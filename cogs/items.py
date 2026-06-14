@@ -12,7 +12,6 @@ class Items(commands.Cog):
 		self.bot = bot
 		self.item_queries = item_queries.ItemQueries()
 		self.player_queries = player_queries.PlayerQueries()
-		self.demon_db = demon_queries.DemonQueries()
 
 	@checks.has_profile()
 	@commands.command(name="use", aliases=["u"], description="Use an item on a demon.")
@@ -44,7 +43,7 @@ class Items(commands.Cog):
 
 		# Get target demon ID.
 		if demon_name:
-			demon_id = self.demon_db.get_demon_id_by_name(demon_name)
+			demon_id = demon_queries.get_demon_id_by_name(demon_name)
 
 			if demon_id is None:
 				await ctx.send(f"A **{demon_name}** was not found in your party...")
@@ -64,7 +63,7 @@ class Items(commands.Cog):
 
 		# Use the incense item and apply its effect.
 		if self.item_queries.use_incense(player.id, server.id, demon_id, item_id):
-			demon_name = self.demon_db.get_demon_name_by_id(demon_id)
+			demon_name = demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(
 				(f"{player.mention} used **{item_name}** on **{demon_name}**!Their stored rank has **increased** by **3**."),
 			)

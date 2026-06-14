@@ -9,10 +9,10 @@ import discord
 
 from discord.ext import commands
 
+from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
-from queries import currency_queries, gem_queries, player_queries
-from queries.demon_queries import DemonData, DemonQueries
+from queries import currency_queries, demon_queries, gem_queries, player_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 dedicated_channel = 1486290442877407333
@@ -60,7 +60,6 @@ class Encounters(commands.Cog):
 		    bot (commands.Bot): The bot instance to access other cogs and send messages.
 		"""
 		self.bot = bot
-		self.demon_db = DemonQueries()
 		self.player_db = player_queries.PlayerQueries()
 
 	@checks.is_developer()
@@ -90,7 +89,7 @@ class Encounters(commands.Cog):
 				raise RuntimeError("ERROR: Could not find the channel to send the encounter to.")
 
 			await ctx.send("Starting your first encounter...")
-			demon = self.demon_db.get_demon_by_id(1)
+			demon = demon_queries.get_demon_by_id(1)
 
 			if demon is None:
 				raise RuntimeError("ERROR: Demon at ID 1 not found in the database.")
@@ -135,7 +134,7 @@ class Encounters(commands.Cog):
 			return
 
 		# If daily is available, send a random demon.
-		demon = self.demon_db.get_random_demon()
+		demon = demon_queries.get_random_demon()
 		view = EncounterViewInitial(demon, self, user_exclusive_to=ctx.author, count=1)
 		await send_to_channel.send(view=view)
 		await self.player_db.set_daily_timer(player.id, server.id, now)
@@ -149,7 +148,7 @@ class Encounters(commands.Cog):
 		Args:
 		    send_to_channel (discord.TextChannel): Channel to send the encounter to.
 		"""
-		demon = self.demon_db.get_random_demon() if name is None else self.demon_db.get_demon_by_name(name)
+		demon = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(name)
 
 		if demon is None:
 			raise RuntimeError(f"ERROR: Demon ID for {name} was not found.")

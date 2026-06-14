@@ -19,7 +19,6 @@ class Party(commands.Cog):
 	def __init__(self, bot: commands.Bot):
 		"""Init the Party cog with reference to bot instance and database classes."""
 		self.bot = bot
-		self.demon_db = demon_queries.DemonQueries()
 		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
@@ -55,7 +54,7 @@ class Party(commands.Cog):
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = ctx.author
 		demon_name = demon_name.title()
-		demon_id = self.demon_db.get_demon_id_by_name(demon_name)
+		demon_id = demon_queries.get_demon_id_by_name(demon_name)
 
 		if demon_id is None:
 			msg = MessageView(f"A **{demon_name}** was not found in your party...")

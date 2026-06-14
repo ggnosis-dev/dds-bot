@@ -4,10 +4,10 @@ import discord
 
 from discord.ext import commands
 
+from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
-from queries import gem_queries, player_queries
-from queries.demon_queries import DemonData, DemonQueries
+from queries import demon_queries, gem_queries, player_queries
 from shared_enums import Emotes
 
 
@@ -45,7 +45,7 @@ class Gems(commands.Cog):
 
 		if gem_found:
 			try:
-				d = typing.cast(DemonData, DemonQueries().get_demon_by_id(selected_demon_id))
+				d = typing.cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
 				view = MessageView(
 					f"{message.author.mention}, your **{d.name}** has found a **{d.gem.title()}**!",
 					d.profile_url,

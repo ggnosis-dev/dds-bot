@@ -3,7 +3,7 @@ import sqlite3
 from database_paths import PLAYERS_DB_PATH
 
 
-def get_db_connection() -> sqlite3.Connection:
+def _get_db_connection() -> sqlite3.Connection:
 	"""Helper method to get a connection to the players database."""
 	conn = sqlite3.connect(PLAYERS_DB_PATH)
 
@@ -14,7 +14,7 @@ def get_db_connection() -> sqlite3.Connection:
 
 def query_one(query: str, params: tuple = ()) -> tuple:
 	"""Queries and returns one entry."""
-	with get_db_connection() as conn:
+	with _get_db_connection() as conn:
 		cursor = conn.cursor()
 		cursor.execute(query, params)
 
@@ -23,7 +23,7 @@ def query_one(query: str, params: tuple = ()) -> tuple:
 
 def query_all(query: str, params: tuple = ()) -> list[tuple]:
 	"""Queries and returns many entry."""
-	with get_db_connection() as conn:
+	with _get_db_connection() as conn:
 		cursor = conn.cursor()
 		cursor.execute(query, params)
 
@@ -32,7 +32,7 @@ def query_all(query: str, params: tuple = ()) -> list[tuple]:
 
 def query_write(query: str, params: tuple = ()) -> int:
 	"""Queries and returns the rowcount which can be used for True/False checks."""
-	with get_db_connection() as conn:
+	with _get_db_connection() as conn:
 		cursor = conn.cursor()
 		cursor.execute(query, params)
 
