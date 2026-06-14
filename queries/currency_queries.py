@@ -1,4 +1,4 @@
-from helpers.database import query_count, query_one
+from helpers.database import query_one, query_write
 
 
 def get_mag(player_id: int, server_id: int) -> int:
@@ -15,7 +15,7 @@ def get_mag(player_id: int, server_id: int) -> int:
 
 def update_mag(player_id: int, server_id: int, amount: int) -> bool:
 	"""Update the amount of magnetite a player has."""
-	rows_affected = query_count(
+	rows_affected = query_write(
 		"""
 		UPDATE players
 		SET mag = mag + ?

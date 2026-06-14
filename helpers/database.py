@@ -12,7 +12,7 @@ def get_db_connection() -> sqlite3.Connection:
 	return conn
 
 
-def query_one(query: str, params: tuple = ()) -> tuple | None:
+def query_one(query: str, params: tuple = ()) -> tuple:
 	"""Queries and returns one entry."""
 	with get_db_connection() as conn:
 		cursor = conn.cursor()
@@ -21,7 +21,7 @@ def query_one(query: str, params: tuple = ()) -> tuple | None:
 		return cursor.fetchone()
 
 
-def query_many(query: str, params: tuple = ()) -> list[tuple]:
+def query_all(query: str, params: tuple = ()) -> list[tuple]:
 	"""Queries and returns many entry."""
 	with get_db_connection() as conn:
 		cursor = conn.cursor()
@@ -30,8 +30,8 @@ def query_many(query: str, params: tuple = ()) -> list[tuple]:
 		return cursor.fetchall()
 
 
-def query_count(query: str, params: tuple = ()) -> int:
-	"""Queries and returns the rowcount."""
+def query_write(query: str, params: tuple = ()) -> int:
+	"""Queries and returns the rowcount which can be used for True/False checks."""
 	with get_db_connection() as conn:
 		cursor = conn.cursor()
 		cursor.execute(query, params)
