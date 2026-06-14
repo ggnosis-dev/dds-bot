@@ -11,7 +11,7 @@ from discord.ext import commands
 
 from helpers import checks
 from helpers.views import MessageView
-from queries import currency_queries, player_queries
+from queries import currency_queries, gem_queries, player_queries
 from queries.demon_queries import DemonData, DemonQueries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
@@ -202,7 +202,7 @@ class Encounters(commands.Cog):
 				gems_to_add = self._gems_for_rank(demon.rank)
 				mag_multiplier = 0.9
 				print(gems_to_add)
-				await self.player_db.add_gem(player.id, server_id, demon.id, gems_to_add)
+				await gem_queries.add_gem(player.id, server_id, demon.id, gems_to_add)
 
 		mag_to_add = int((demon.rank * 10) / mag_multiplier)
 		currency_queries.update_mag(player.id, server_id, mag_to_add)

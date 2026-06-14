@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from helpers import checks
 from helpers.views import MessageView
-from queries import player_queries
+from queries import gem_queries, player_queries
 from queries.demon_queries import DemonData, DemonQueries
 from shared_enums import Emotes
 
@@ -41,7 +41,7 @@ class Gems(commands.Cog):
 			return
 
 		# Increase exp towards finding a gem.
-		gem_found = await self.player_db.increase_gems(player_id, guild_id, selected_demon_id)
+		gem_found = await gem_queries.increase_gems(player_id, guild_id, selected_demon_id)
 
 		if gem_found:
 			try:
@@ -61,7 +61,7 @@ class Gems(commands.Cog):
 		player_id = ctx.author.id
 		server_id = ctx.guild.id
 
-		collected_gems = self.player_db.get_player_gems(player_id, server_id)
+		collected_gems = gem_queries.get_player_gems(player_id, server_id)
 		view = GemCollectionView(ctx.author.name, collected_gems)
 		await ctx.send(view=view)
 

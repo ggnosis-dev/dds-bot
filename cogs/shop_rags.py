@@ -7,7 +7,7 @@ from discord.ext import commands
 import database_paths
 
 from helpers import checks
-from queries import player_queries
+from queries import gem_queries, player_queries
 from shared_enums import Emotes
 
 PAGE_SIZE = 5
@@ -33,7 +33,7 @@ class RagsShop(commands.Cog):
 		server_id = ctx.guild.id
 
 		try:
-			gem_collection = self.player_db.get_player_gems(player_id, server_id)
+			gem_collection = gem_queries.get_player_gems(player_id, server_id)
 			view = RagsShopView(ctx.author.name, gem_collection)
 			await ctx.send(view=view)
 		except Exception as e:

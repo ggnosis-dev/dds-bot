@@ -4,7 +4,7 @@ from discord.ext import commands
 
 from helpers import checks
 from helpers.views import MessageView
-from queries import demon_queries, player_queries
+from queries import demon_queries, gem_queries, player_queries
 from shared_enums import DemonRegistration, Unicode
 
 
@@ -53,7 +53,7 @@ class Demon(commands.Cog):
 			return
 
 		d = typing.cast(demon_queries.DemonData, self.demon_db.get_demon_by_id(d_id))
-		gem_progress = round(self.player_db.get_gem_progress(player.id, server.id, d.gem) / 10)
+		gem_progress = round(gem_queries.get_gem_progress(player.id, server.id, d.gem) / 10)
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * gem_progress + f"{Unicode.UNFILLED_CIRCLE.value} " * (
 			10 - gem_progress
 		)
