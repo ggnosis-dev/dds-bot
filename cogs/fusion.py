@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from helpers import checks, currency_queries, demon_queries, fusion_queries, player_queries
+from helpers import checks, costs, currency_queries, demon_queries, fusion_queries, player_queries
 from helpers.views import ConfirmationView, MessageView
 from shared_enums import DemonRegistration
 
@@ -56,7 +56,7 @@ class Fusion(commands.Cog):
 			return
 
 		# TODO: Balance these MAG prices around the place.
-		cost = int(10000 * (demon_result.rank * 0.01))
+		cost = costs.fusion_cost(demon_result.rank)
 
 		view = MessageView(
 			f"**{name_1}** + **{name_2}** = **{demon_result.name}**",

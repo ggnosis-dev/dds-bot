@@ -53,7 +53,7 @@ class ServerCompendium(commands.Cog):
 			await ctx.send(view=msg)
 			return
 
-		# Send a confirmation view with the cost.
+		# Send a confirmation view.
 		view = ConfirmationView(
 			f"Do you wish to loan your **{demon.race} {demon.name}** to the **{server.name}'s Compendium**?\n\n"
 			f"-# You will not be able to use the demon again until taken back.",
@@ -81,7 +81,7 @@ class ServerCompendium(commands.Cog):
 				await ctx.send(view=msg)
 				return
 
-			# Send a confirmation view with the cost.
+			# Send a confirmation view.
 			view = ConfirmationView(
 				f"**{stored_owner}** is already loaning their **{demon.name}** to **{server.name}'s Compendium**."
 				"-# Do you wish to replace it? The demon will be returned to its owner.\n\n"

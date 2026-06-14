@@ -1,9 +1,10 @@
-import json
 import typing
 
 import discord
 
 from discord.ext import commands
+
+import database_paths
 
 from helpers import checks, player_queries
 from shared_enums import Emotes
@@ -48,10 +49,7 @@ class RagsShopView(discord.ui.LayoutView):
 		self.user_name = user_name
 		self.gem_collection = gem_collection
 		self.page = 1
-
-		with open("data/items.json") as data:
-			self.shop_items = json.load(data)
-
+		self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
 		self._build_shop_layout()
 
 	class PageButton(discord.ui.Button):

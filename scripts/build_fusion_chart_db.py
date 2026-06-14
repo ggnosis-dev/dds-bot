@@ -1,11 +1,11 @@
 import csv
 import sqlite3
 
-from database_paths import FUSION_CSV_PATH, PLAYERS_DB_PATH, ensure_db_dir_exists
+from database_paths import FUSION_CSV, PLAYERS_DB_PATH, ensure_db_dir_exists
 
 ensure_db_dir_exists()
 
-with open(FUSION_CSV_PATH, newline="") as f:
+with open(FUSION_CSV, newline="") as f:
 	reader = csv.reader(f)
 
 	# Top row is a list of races (skip 1 due to blank cell).

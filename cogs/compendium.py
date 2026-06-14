@@ -4,7 +4,7 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks, currency_queries, demon_queries, player_queries
+from helpers import checks, costs, currency_queries, demon_queries, player_queries
 from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
 from shared_enums import DemonRegistration
 
@@ -48,16 +48,17 @@ class Compendium(commands.Cog):
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = ctx.author
 		demon_name = demon_name.title()
-		demon_id = self.demon_db.get_demon_id_by_name(demon_name)
-		cost = 200
+		demon = self.demon_db.get_demon_by_name(demon_name)
 
-		if demon_id is None:
+		if demon is None:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
 			await ctx.send(view=msg)
 			return
 
+		cost = costs.summon_cost(demon.rank)
+
 		# Check if demon is in compendium before summoning to give a more informative message.
-		in_comp = await self.player_db.check_demon_registration(player.id, guild.id, demon_id)
+		in_comp = await self.player_db.check_demon_registration(player.id, guild.id, demon.id)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
@@ -85,7 +86,7 @@ class Compendium(commands.Cog):
 			return
 
 		currency_queries.update_mag(player.id, guild.id, -cost)
-		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, True)
+		await self.player_db.set_demon_in_party(player.id, guild.id, demon.id, True)
 		msg = MessageView(f"You have summoned **{demon_name}** to your party!")
 		await ctx.send(view=msg)
 

@@ -3,13 +3,13 @@ import sqlite3
 from database_paths import PLAYERS_DB_PATH
 from helpers.demon_queries import DemonData, DemonQueries
 
-ELEMENT_RACE = ["erthys", "aeros", "aquans", "flaemis"]
+ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
 
 ELEMENT_PAIRS = {
-	"Erthys": ["beast", "femme", "jaki"],
-	"Aeros": ["fairy", "flight"],
-	"Aquans": ["fairy", "wilder"],
-	"Flaemis": ["beast", "femme", "flight", "jaki", "wilder"],
+	"Erthys": ["Beast", "Femme", "Jaki"],
+	"Aeros": ["Fairy", "Flight"],
+	"Aquans": ["Fairy", "Wilder"],
+	"Flaemis": ["Beast", "Femme", "Flight", "Jaki", "Wilder"],
 }
 
 
@@ -55,10 +55,6 @@ class FusionQueries:
 	def get_fuse_with_element(self, race, element, original_rank) -> DemonData | None:
 		# How do I do this?
 		# Do I store all of pairs in the DB or just make a dictionary?
-
-		# FIXME: Man, you need to make the demon names consistently titled.
-		element = element.title()
-
 		if race.lower() in ELEMENT_PAIRS[element]:
 			direction = 1
 		else:
