@@ -1,4 +1,4 @@
-from helpers.database import query_one, query_write
+from helpers.db import query_one, query_write
 
 
 def get_mag(player_id: int, server_id: int) -> int:
