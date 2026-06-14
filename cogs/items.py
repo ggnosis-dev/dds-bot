@@ -10,7 +10,6 @@ from shared_enums import DemonRegistration, Emotes
 class Items(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.item_queries = item_queries.ItemQueries()
 		self.player_queries = player_queries.PlayerQueries()
 
 	@checks.has_profile()
@@ -28,7 +27,7 @@ class Items(commands.Cog):
 		demon_name = parts[1].strip().title() if len(parts) > 1 else None
 		player = ctx.author
 		server = ctx.guild
-		item_id = self.item_queries.get_item_id_by_name(item_name)
+		item_id = item_queries.get_item_id_by_name(item_name)
 		demon_id = None
 
 		# Check if item is valid.
@@ -37,7 +36,7 @@ class Items(commands.Cog):
 			return
 
 		# Check if player has the item.
-		if not self.item_queries.get_player_has_item(player.id, server.id, item_id):
+		if not item_queries.get_player_has_item(player.id, server.id, item_id):
 			await ctx.send(f"You don't have any **{item_name}** in your inventory.")
 			return
 
@@ -62,7 +61,7 @@ class Items(commands.Cog):
 			return
 
 		# Use the incense item and apply its effect.
-		if self.item_queries.use_incense(player.id, server.id, demon_id, item_id):
+		if item_queries.use_incense(player.id, server.id, demon_id, item_id):
 			demon_name = demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(
 				(f"{player.mention} used **{item_name}** on **{demon_name}**!Their stored rank has **increased** by **3**."),
@@ -75,7 +74,7 @@ class Items(commands.Cog):
 		player = ctx.author
 		server = ctx.guild
 
-		items = self.item_queries.get_player_items(player.id, server.id)
+		items = item_queries.get_player_inventory(player.id, server.id)
 
 		if not items:
 			await ctx.send("Your inventory is empty.")
