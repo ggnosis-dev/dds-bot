@@ -12,7 +12,6 @@ class Fusion(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.demon_queries = demon_queries.DemonQueries()
-		self.fusion_queries = fusion_queries.FusionQueries()
 		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
@@ -47,9 +46,9 @@ class Fusion(commands.Cog):
 
 		if demon_1.race == "Element" or demon_2.race == "Element":
 			element, demon = (demon_1, demon_2) if demon_1.race == "Element" else (demon_2, demon_1)
-			demon_result = self.fusion_queries.get_fuse_with_element(demon.race, element.name, original_rank=demon.rank)
+			demon_result = fusion_queries.get_fuse_with_element(demon.race, element.name, original_rank=demon.rank)
 		else:
-			demon_result = self.fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
+			demon_result = fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
 
 		if not demon_result or demon_result.id in [demon_1.id, demon_2.id]:
 			view = MessageView(f"**{name_1}** + **{name_2}** = **Nothing! So sorry about that champ!**")

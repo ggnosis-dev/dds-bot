@@ -1,6 +1,4 @@
-import sqlite3
-
-from database_paths import PLAYERS_DB_PATH
+from helpers.db import query_one
 from queries.demon_queries import DemonData, DemonQueries
 
 ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
@@ -13,51 +11,40 @@ ELEMENT_PAIRS = {
 }
 
 
-class FusionQueries:
-	def _get_db_connection(self) -> sqlite3.Connection:
-		"""Helper method to get a connection to the players database."""
-		conn = sqlite3.connect(PLAYERS_DB_PATH)
+def get_fused_race(race_1: str, race_2: str) -> str | None:
+	# Database has race_1 in alphabetically order.
+	race_1, race_2 = sorted([race_1, race_2])
+	race_result = query_one(
+		"""
+			SELECT race_result FROM fusion_chart
+			WHERE race_1 = ? AND race_2 = ?
+		""",
+		(race_1, race_2),
+	)
 
-		# Enforce foreign key constraints for the connection.
-		conn.execute("PRAGMA foreign_keys = ON")
-		return conn
+	return race_result[0] if race_result else None
 
-	def get_fused_race(self, race_1: str, race_2: str) -> str | None:
-		# Database has race_1 in alphabetically order.
-		race_1, race_2 = sorted([race_1, race_2])
 
-		with self._get_db_connection() as conn:
-			cursor = conn.cursor()
+def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> DemonData | None:
+	fused_race = get_fused_race(race_1, race_2)
 
-			race_result = cursor.execute(
-				"""
-				SELECT race_result FROM fusion_chart
-				WHERE race_1 = ? AND race_2 = ?
-				""",
-				(race_1, race_2),
-			).fetchone()
+	# Some races won't fuse together deliberately.
+	if not fused_race:
+		print(f"INFO: {race_1} + {race_2} cannot fuse together.")
+		return None
 
-			return race_result[0] if race_result else None
+	if fused_race in ELEMENT_RACE:
+		return DemonQueries().get_demon_by_name(fused_race)
 
-	def get_fused_demon(self, race_1: str, race_2: str, average_rank: int) -> DemonData | None:
-		fused_race = self.get_fused_race(race_1, race_2)
+	return DemonQueries().get_closest_demon_in_race(fused_race, average_rank)
 
-		# Some races won't fuse together deliberately.
-		if not fused_race:
-			print(f"INFO: {race_1} + {race_2} cannot fuse together.")
-			return None
 
-		if fused_race.lower() in ELEMENT_RACE:
-			return DemonQueries().get_demon_by_name(fused_race)
+def get_fuse_with_element(race, element, original_rank) -> DemonData | None:
+	# How do I do this?
+	# Do I store all of pairs in the DB or just make a dictionary?
+	if race in ELEMENT_PAIRS[element]:
+		direction = 1
+	else:
+		direction = -1
 
-		return DemonQueries().get_closest_demon_in_race(fused_race, average_rank)
-
-	def get_fuse_with_element(self, race, element, original_rank) -> DemonData | None:
-		# How do I do this?
-		# Do I store all of pairs in the DB or just make a dictionary?
-		if race.lower() in ELEMENT_PAIRS[element]:
-			direction = 1
-		else:
-			direction = -1
-
-		return DemonQueries().get_next_demon_in_race(race, original_rank, direction)
+	return DemonQueries().get_next_demon_in_race(race, original_rank, direction)
