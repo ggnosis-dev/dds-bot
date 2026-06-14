@@ -3,8 +3,9 @@ import typing
 
 from discord.ext import commands
 
-from helpers import checks, currency_queries, player_queries
+from helpers import checks
 from helpers.views import MessageView
+from queries import currency_queries, player_queries
 
 # TODO: Remove this from encounters.py. Needs to be streamlined.
 DAILY_COOLDOWN = 43200

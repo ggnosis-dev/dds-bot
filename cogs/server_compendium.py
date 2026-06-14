@@ -4,8 +4,9 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks, demon_queries, player_queries
+from helpers import checks
 from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
+from queries import demon_queries, player_queries
 from shared_enums import DemonRegistration
 
 

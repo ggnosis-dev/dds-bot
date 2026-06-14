@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from helpers.player_queries import PlayerQueries
+from queries.player_queries import PlayerQueries
 
 
 class IsDeveloperCheck(commands.CheckFailure):

@@ -4,9 +4,10 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks, player_queries
-from helpers.demon_queries import DemonData, DemonQueries
+from helpers import checks
 from helpers.views import MessageView
+from queries import player_queries
+from queries.demon_queries import DemonData, DemonQueries
 from shared_enums import Emotes
 
 

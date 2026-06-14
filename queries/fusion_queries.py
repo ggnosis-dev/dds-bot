@@ -1,7 +1,7 @@
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH
-from helpers.demon_queries import DemonData, DemonQueries
+from queries.demon_queries import DemonData, DemonQueries
 
 ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
 

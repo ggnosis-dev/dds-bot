@@ -1,7 +1,8 @@
 from discord.ext import commands
 
-from helpers import checks, costs, currency_queries, demon_queries, fusion_queries, player_queries
+from helpers import checks, costs
 from helpers.views import ConfirmationView, MessageView
+from queries import currency_queries, demon_queries, fusion_queries, player_queries
 from shared_enums import DemonRegistration
 
 

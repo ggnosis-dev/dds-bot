@@ -9,9 +9,10 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks, currency_queries, player_queries
-from helpers.demon_queries import DemonData, DemonQueries
+from helpers import checks
 from helpers.views import MessageView
+from queries import currency_queries, player_queries
+from queries.demon_queries import DemonData, DemonQueries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 dedicated_channel = 1486290442877407333

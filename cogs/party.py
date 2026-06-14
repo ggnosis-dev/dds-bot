@@ -4,8 +4,9 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks, demon_queries, player_queries
+from helpers import checks
 from helpers.views import ConfirmationView, MessageView
+from queries import demon_queries, player_queries
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -70,9 +71,7 @@ class Party(commands.Cog):
 			return
 
 		# Send a confirmation view.
-		view = ConfirmationView(
-			f"Are you sure you want to release **{demon_name}**?", confirmLabel="Yes", denyLabel="No"
-		)
+		view = ConfirmationView(f"Are you sure you want to release **{demon_name}**?", confirmLabel="Yes", denyLabel="No")
 		result = await ConfirmationView.send_message(view, ctx)
 
 		if result is False or result is None:

@@ -6,7 +6,8 @@ from discord.ext import commands
 
 import database_paths
 
-from helpers import checks, player_queries
+from helpers import checks
+from queries import player_queries
 from shared_enums import Emotes
 
 PAGE_SIZE = 5

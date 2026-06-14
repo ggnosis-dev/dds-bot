@@ -2,7 +2,7 @@ import json
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH
-from helpers.demon_queries import DemonQueries
+from queries.demon_queries import DemonQueries
 
 
 class ItemQueries:

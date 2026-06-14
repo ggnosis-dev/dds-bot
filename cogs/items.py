@@ -2,7 +2,8 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks, demon_queries, item_queries, player_queries
+from helpers import checks
+from queries import demon_queries, item_queries, player_queries
 from shared_enums import DemonRegistration, Emotes
 
 
