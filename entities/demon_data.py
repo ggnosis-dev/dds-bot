@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from shared_enums import Personality
+
 
 @dataclass
 class DemonData:
@@ -12,7 +14,7 @@ class DemonData:
 		race (str): Demon race.
 		rank (int): Demon's Rank signifies its strength and base rarity.
 		colour (int): Colour is used for styling and various embeds.
-		personality_type (str): Personality type, stored as a string in DB but converted to a Personality enum.
+		personality_type (Personality): Personality type, stored as a string in DB but converted to a Personality enum.
 		gem (str): Gem that the demon can hunt for.
 		image_url (str): Image URL for demon's encounter art.
 		profile_url (str): Image URL for the profile art.
@@ -23,7 +25,7 @@ class DemonData:
 	race: str
 	rank: int
 	colour: int
-	personality_type: str
+	personality_type: Personality
 	gem: str
 	image_url: str
 	profile_url: str
@@ -46,7 +48,7 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		race=race,
 		rank=rank,
 		colour=colour,
-		personality_type=personality_type,
+		personality_type=Personality[personality_type],
 		gem=gem,
 		image_url=image_url,
 		profile_url=profile_url,
