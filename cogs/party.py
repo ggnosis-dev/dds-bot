@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from helpers import checks
 from helpers.views import ConfirmationView, MessageView
-from queries import demon_queries, player_demons_queries, player_queries
+from queries import demon_queries, player_demons_queries
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -30,12 +30,11 @@ class Party(commands.Cog):
 			ctx (discord.Context): Context of the command call.
 			mentioned (discord.Member | None): Optional user to check party for.
 		"""
-		print("TRUE")
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = mentioned if mentioned is not None else ctx.author
 
 		party_list = await player_demons_queries.check_party(player.id, guild.id)
-		selected_demon_id = player_queries.get_selected_demon_id(player.id, guild.id)  # type: ignore
+		selected_demon_id = player_demons_queries.get_selected_demon_id(player.id, guild.id)
 
 		view = PartyView(player.name, party_list, selected_demon_id)
 		await ctx.send(view=view)
