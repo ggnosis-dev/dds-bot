@@ -9,7 +9,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# TESTS:
-	# cursor.execute('DROP TABLE IF EXISTS players')
+	# cursor.execute("DROP TABLE IF EXISTS players")
 	# cursor.execute('DROP TABLE IF EXISTS player_demons')
 	# cursor.execute('DROP TABLE IF EXISTS server_demons')
 	# cursor.execute('DROP TABLE IF EXISTS player_gems')
@@ -19,8 +19,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		CREATE TABLE IF NOT EXISTS players (
 			player_id 			INTEGER,
 			server_id 			INTEGER,
-			mag 				INTEGER DEFAULT 0,
 			selected_demon_id	INTEGER DEFAULT 1,
+			mag 				INTEGER DEFAULT 0,
 			daily_timer			INTEGER DEFAULT 0,
 			PRIMARY KEY (player_id, server_id)
 			FOREIGN KEY (selected_demon_id) REFERENCES demons(id)
