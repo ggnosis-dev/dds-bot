@@ -1,4 +1,4 @@
-from entities.player_data import DemonEntry
+from entities.comp_data import DemonEntry
 from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
 

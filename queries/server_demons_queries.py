@@ -1,4 +1,4 @@
-from entities.player_data import DemonEntry, ServerCompendiumDemon
+from entities.comp_data import DemonEntry, ServerCompendiumDemon
 from helpers.db import query_all, query_one, query_write
 
 
