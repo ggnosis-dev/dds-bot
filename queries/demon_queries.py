@@ -37,7 +37,7 @@ def get_demon_id_by_name(demon_name: str) -> int | None:
 
 
 def get_demon_by_name(demon_name: str) -> DemonData | None:
-	"""Helper to get demon by name. Makes name lowercase in query."""
+	"""Helper to get demon by name."""
 	d_id = get_demon_id_by_name(demon_name)
 	return get_demon_by_id(d_id) if d_id else None
 
