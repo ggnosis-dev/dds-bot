@@ -77,7 +77,7 @@ async def add_gem(player_id: int, server_id: int, demon_id: int, number: int) ->
 	)
 
 
-def get_player_gems(player_id: int, server_id: int) -> list[tuple]:
+def get_player_gems(player_id: int, server_id: int) -> list[dict]:
 	"""
 	Get a player's gem collection.
 

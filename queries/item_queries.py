@@ -94,3 +94,63 @@ def use_incense(player_id: int, server_id: int, demon_id: int, item_id: str) -> 
 	)
 
 	return bool(q1 and q2)
+
+
+def attempt_purchase_item(player_id: int, server_id: int, item_id: str, cost: dict) -> bool:
+	"""
+	Attempt to purchase item for the player. Checks if the player has enough gems and deducts the cost if they do.
+
+	Args:
+		player_id (int): Player ID.
+		server_id (int): Server ID.
+		item_id (str): ID of the item being purchased.
+		cost (int): Cost of the item in gems.
+	Returns:
+		bool: True if the purchase was successful, False if player didn't have enough.
+	"""
+
+	gem_names = list(cost.keys())
+
+	# Get number of placeholders for the IN clause.
+	gem_placeholders = ",".join("?" * len(gem_names))
+
+	# Get player's gem counts.
+	rows = query_all(
+		f"""
+			SELECT gem_name, quantity FROM player_gems
+			WHERE player_id = ? AND server_id = ? AND gem_name IN ({gem_placeholders})
+		""",
+		(player_id, server_id, *gem_names),
+	)
+
+	# Convert rows into a set for easier access. Gem: Quantity.
+	player_gems = {row[0]: row[1] for row in rows}
+
+	# Compare player's gems with cost.
+	for gem, required_amount in cost.items():
+		if player_gems.get(gem, 0) < required_amount:
+			return False
+
+	# Deduct gems.
+	for gem, required_amount in cost.items():
+		query_write(
+			"""
+				UPDATE player_gems
+				SET quantity = quantity - ?
+				WHERE player_id = ? AND server_id = ? AND gem_name = ?
+			""",
+			(required_amount, player_id, server_id, gem),
+		)
+
+	# Add item to inventory. If it doesn't exist already, set to 1.
+	query_write(
+		"""
+			INSERT INTO player_items (player_id, server_id, item_id, quantity)
+			VALUES (?, ?, ?, 1)
+			ON CONFLICT (player_id, server_id, item_id) DO
+			UPDATE SET quantity = quantity + 1
+		""",
+		(player_id, server_id, item_id),
+	)
+
+	return True
