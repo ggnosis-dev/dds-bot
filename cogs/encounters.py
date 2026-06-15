@@ -368,14 +368,14 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		match new_entry:
 			case DemonRegistration.UNREGISTERED:
-				status = f"{d_race} {d_name} was registered to {user.mention}'s compendium! +{mag_received} MAG"
+				status = f"> {d_race} {d_name} was registered to {user.name}'s compendium! +{mag_received} MAG"
 
 			case DemonRegistration.IN_COMP:
-				status = f"{d_race} {d_name} has joined {user.mention}'s party! +{mag_received} MAG"
+				status = f"> {d_race} {d_name} has joined {user.name}'s party! +{mag_received} MAG"
 
 			case DemonRegistration.IN_PARTY:
 				gem_name = self.demon.gem.title()
-				status = f"{d_race} {d_name} gifted {user.mention} {gems_added} {gem_name}! +{mag_received} MAG"
+				status = f"> {d_race} {d_name} gifted {user.name} {gems_added} {gem_name}! +{mag_received} MAG"
 
 		await self._handle_demon_interacted(interaction, status)
 
@@ -389,7 +389,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		"""
 		await self._handle_demon_interacted(
 			interaction,
-			f"{self.demon.race} {self.demon.name} has fled from {interaction.user.mention}...",
+			f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}...",
 		)
 
 	async def _encounter_followup(self, interaction: discord.Interaction) -> None:
@@ -435,7 +435,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		parent_view._update_icon_count()
 
 		if parent_view.status_display is not None:
-			parent_view.status_display.content = parent_view.status_display.content + f"\n-# > *{status_message}*"
+			parent_view.status_display.content = parent_view.status_display.content + f"\n-# `{status_message}`"
 
 		# If this is a followup view...
 		if parent_view is not self and parent_view.message is not None:
