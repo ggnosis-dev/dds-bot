@@ -4,7 +4,7 @@ import discord
 
 from discord.ext import commands
 
-from entities.view_data import Columns
+from entities.view_data import Columns, get_args
 from helpers import checks, costs
 from helpers.views import CompendiumView, ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, player_demons_queries
@@ -19,7 +19,7 @@ class Compendium(commands.Cog):
 		self.bot = bot
 
 	@commands.command(name="compendium", aliases=["comp", "c"], help="Displays the player's compendium.")
-	async def compendium_command(self, ctx: commands.Context, mentioned: discord.Member | None = None) -> None:
+	async def compendium_command(self, ctx: commands.Context, *args: str) -> None:
 		"""
 		Command to display player's seen demons which is stored in their compendium.
 
@@ -27,11 +27,17 @@ class Compendium(commands.Cog):
 			ctx (discord.Context): Context of the command call.
 			mentioned (discord.Member | None): Optional user to check compendium for.
 		"""
-		guild = typing.cast(discord.Guild, ctx.guild)
+		server = typing.cast(discord.Guild, ctx.guild)
+		columns = list(Columns.PLAYER_DEFAULT)
+		mentioned = None
+
+		if args:
+			columns, mentioned = get_args(args, server, columns)
+
 		player = mentioned if mentioned is not None else ctx.author
 
-		comp_list = await player_demons_queries.check_compendium(player.id, guild.id)
-		view = CompendiumView(player.name, comp_list, Columns.PLAYER_DEFAULT)
+		comp_list = await player_demons_queries.check_compendium(player.id, server.id)
+		view = CompendiumView(player.name, comp_list, columns)
 		await ctx.send(view=view)
 
 	@checks.has_profile()
