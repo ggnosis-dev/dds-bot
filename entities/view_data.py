@@ -1,3 +1,5 @@
+import discord
+
 from dataclasses import dataclass
 
 from shared_enums import Emotes
@@ -26,3 +28,25 @@ class Columns:
 
 	PLAYER_DEFAULT = [EMOTE, RACE, NAME, RANK]
 	SERVER_DEFAULT = PLAYER_DEFAULT + [OWNER]
+
+
+def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
+	mentioned = None
+
+	for arg in args:
+		arg = arg.lower()
+
+		# arg is a mention like <@111122223333>, extract numeric id.
+		if arg.startswith("<@") and arg.endswith(">"):
+			digits = "".join(ch for ch in arg if ch.isdigit())
+			mentioned = server.get_member(int(digits)) if digits else None
+
+		elif "gemstone".startswith(arg):
+			if Columns.GEM not in column_layout:
+				column_layout.append(Columns.GEM)
+
+		elif "personality".startswith(arg):
+			if Columns.PERSONALITY not in column_layout:
+				column_layout.append(Columns.PERSONALITY)
+
+	return mentioned, column_layout

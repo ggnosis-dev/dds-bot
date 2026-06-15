@@ -4,7 +4,7 @@ import discord
 
 from discord.ext import commands
 
-from entities.view_data import Columns
+from entities.view_data import Columns, get_args
 from helpers import checks
 from helpers.views import CompendiumView, ConfirmationView, MessageView
 from queries import demon_queries, player_demons_queries
@@ -20,7 +20,7 @@ class Party(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name="party", aliases=["p"], help="Displays the player's current party.")
-	async def party_command(self, ctx: commands.Context, mentioned: discord.Member | None = None) -> None:
+	async def party_command(self, ctx: commands.Context, *args: str) -> None:
 		"""
 		Command to display player's current party.
 
@@ -28,13 +28,19 @@ class Party(commands.Cog):
 			ctx (discord.Context): Context of the command call.
 			mentioned (discord.Member | None): Optional user to check party for.
 		"""
-		guild = typing.cast(discord.Guild, ctx.guild)
+		server = typing.cast(discord.Guild, ctx.guild)
+		mentioned = None
+		columns = list(Columns.PLAYER_DEFAULT)
+
+		if args:
+			mentioned, columns = get_args(args, server, columns)
+
 		player = mentioned if mentioned is not None else ctx.author
 
-		party_list = await player_demons_queries.check_party(player.id, guild.id)
-		sd_id = player_demons_queries.get_selected_demon_id(player.id, guild.id)
+		party_list = await player_demons_queries.check_party(player.id, server.id)
+		sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
 
-		view = CompendiumView(player.name, party_list, Columns.PLAYER_DEFAULT, selected_demon_id=sd_id)
+		view = CompendiumView(player.name, party_list, columns, selected_demon_id=sd_id)
 		await ctx.send(view=view)
 
 	@checks.has_profile()
