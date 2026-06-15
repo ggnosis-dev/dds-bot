@@ -148,7 +148,7 @@ async def check_server_compendium(server_id: int) -> list[DemonEntry]:
 
 	entries = []
 	for row in rows:
-		did, oid, name, race, pers, rank, gem = row
+		did, name, race, pers, gem, oid, rank = row
 
 		entries.append(
 			DemonEntry(
