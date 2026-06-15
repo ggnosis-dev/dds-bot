@@ -3,14 +3,13 @@ import discord
 from discord.ext import commands
 
 from helpers import checks
-from queries import demon_queries, item_queries, player_queries
+from queries import demon_queries, item_queries, player_demons_queries
 from shared_enums import DemonRegistration, Emotes
 
 
 class Items(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_queries = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(name="use", aliases=["u"], description="Use an item on a demon.")
@@ -48,7 +47,7 @@ class Items(commands.Cog):
 				await ctx.send(f"A **{demon_name}** was not found in your party...")
 				return
 		else:
-			demon_id = self.player_queries.get_selected_demon_id(player.id, server.id)
+			demon_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
 
 			# No demon was specified in command, and player doesn't have a demon selected.
 			if demon_id is None:
@@ -56,7 +55,10 @@ class Items(commands.Cog):
 				return
 
 		# Check if in player's party.
-		if await self.player_queries.check_demon_registration(player.id, server.id, demon_id) != DemonRegistration.IN_PARTY:
+		if (
+			await player_demons_queries.check_demon_registration(player.id, server.id, demon_id)
+			!= DemonRegistration.IN_PARTY
+		):
 			await ctx.send(f"A **{demon_name}** was not found in your party...")
 			return
 
@@ -64,7 +66,7 @@ class Items(commands.Cog):
 		if item_queries.use_incense(player.id, server.id, demon_id, item_id):
 			demon_name = demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(
-				(f"{player.mention} used **{item_name}** on **{demon_name}**!Their stored rank has **increased** by **3**."),
+				(f"{player.mention} used **{item_name}** on **{demon_name}**! Their rank has **increased** by **3**."),
 			)
 
 	@checks.has_profile()

@@ -71,7 +71,7 @@ def check_player_exists(player_id, server_id) -> bool:
 	"""
 	response = query_one(
 		"""
-			SELECT id FROM players
+			SELECT 1 FROM players
 			WHERE player_id = ? AND server_id = ?
 		""",
 		(player_id, server_id),

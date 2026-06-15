@@ -7,7 +7,7 @@ from discord.ext import commands
 import database_paths
 
 from helpers import checks
-from queries import gem_queries, player_queries
+from queries import gem_queries, item_queries
 from shared_enums import Emotes
 
 PAGE_SIZE = 5
@@ -19,7 +19,6 @@ class RagsShop(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(
@@ -45,7 +44,7 @@ class RagsShopView(discord.ui.LayoutView):
 	1. Button should be next to each item.
 	"""
 
-	def __init__(self, user_name: str, gem_collection: list[tuple]):
+	def __init__(self, user_name: str, gem_collection: list[dict]):
 		super().__init__()
 		self.user_name = user_name
 		self.gem_collection = gem_collection
@@ -140,7 +139,7 @@ class RagsShopView(discord.ui.LayoutView):
 			player = interaction.user
 			server = typing.cast(discord.Guild, interaction.guild)
 
-			check = player_queries.PlayerQueries().attempt_purchase_item(
+			check = item_queries.attempt_purchase_item(
 				player_id=player.id, server_id=server.id, item_id=item_id, cost=item["cost"]
 			)
 

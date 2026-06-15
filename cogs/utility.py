@@ -1,5 +1,4 @@
 import time
-import typing
 
 from discord.ext import commands
 
@@ -14,7 +13,6 @@ DAILY_COOLDOWN = 43200
 class Utility(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_queries = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(name="stuff", aliases=["st"], description="Check the stuff.")
@@ -22,14 +20,17 @@ class Utility(commands.Cog):
 		"""Command to view MAG, daily timer, all that jazz."""
 		player_id = ctx.author.id
 		server_id = ctx.guild.id
-		player_data = typing.cast(player_queries.PlayerData, await self.player_queries.get_player(player_id, server_id))
-		mag = player_data.mag
-
-		# Get current time and subtract it from when the player's timer was set.
-		now = int(time.time())
-		time_since = now - player_data.daily_timer
-
+		player_data = await player_queries.get_player(player_id, server_id)
 		daily_string = "Daily is available!"
+		mag = 0
+		time_since = 0
+
+		if player_data:
+			mag = player_data.mag
+
+			# Get current time and subtract it from when the player's timer was set.
+			time_now = int(time.time())
+			time_since = time_now - player_data.daily_timer
 
 		# If still time, send a message with how long remaining.
 		if time_since < DAILY_COOLDOWN:

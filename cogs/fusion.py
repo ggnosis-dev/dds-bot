@@ -2,7 +2,7 @@ from discord.ext import commands
 
 from helpers import checks, costs
 from helpers.views import ConfirmationView, MessageView
-from queries import currency_queries, demon_queries, fusion_queries, player_queries
+from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
 from shared_enums import DemonRegistration
 
 
@@ -11,7 +11,6 @@ class Fusion(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(name="fuse", aliases=["f", "fusion"], description="Fuse two demons together to create another.")
@@ -37,7 +36,7 @@ class Fusion(commands.Cog):
 
 		# Check if in party.
 		for i in demon_1.id, demon_2.id:
-			if await self.player_db.check_demon_registration(player.id, server.id, i) != DemonRegistration.IN_PARTY:
+			if await player_demons_queries.check_demon_registration(player.id, server.id, i) != DemonRegistration.IN_PARTY:
 				await ctx.send(f"{i} not in party")
 				return
 
@@ -82,11 +81,13 @@ class Fusion(commands.Cog):
 			return
 
 		currency_queries.update_mag(player.id, server.id, -cost)
-		await self.player_db.set_demon_in_party(player.id, server.id, demon_1.id, party_add=False)
-		await self.player_db.set_demon_in_party(player.id, server.id, demon_2.id, party_add=False)
+		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_1.id, set_in_party=False)
+		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_2.id, set_in_party=False)
 
-		new_demon = await self.player_db.add_demon_to_compendium(player.id, server.id, demon_result.id, demon_result.rank)
-		await self.player_db.set_demon_in_party(player.id, server.id, demon_result.id, party_add=True)
+		new_demon = await player_demons_queries.add_demon_to_compendium(
+			player.id, server.id, demon_result.id, demon_result.rank
+		)
+		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_result.id, set_in_party=True)
 
 		registered_text = ""
 		if new_demon:

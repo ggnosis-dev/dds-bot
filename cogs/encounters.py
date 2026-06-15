@@ -12,7 +12,7 @@ from discord.ext import commands
 from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
-from queries import currency_queries, demon_queries, gem_queries, player_queries
+from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 dedicated_channel = 1486290442877407333
@@ -60,7 +60,6 @@ class Encounters(commands.Cog):
 		    bot (commands.Bot): The bot instance to access other cogs and send messages.
 		"""
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@checks.is_developer()
 	@checks.has_profile()
@@ -82,7 +81,7 @@ class Encounters(commands.Cog):
 		Stores new player data into the DB and begins a forced encounter with a Pixie that acts
 		as a tutorial.
 		"""
-		if await self.player_db.setup_player(ctx):
+		if await player_queries.setup_player(ctx):
 			send_to_channel = self.bot.get_channel(dedicated_channel) or ctx.channel
 
 			if not isinstance(send_to_channel, discord.TextChannel):
@@ -112,7 +111,7 @@ class Encounters(commands.Cog):
 
 		player = ctx.author
 		server = ctx.guild
-		player_data = await self.player_db.get_player(player.id, server.id)
+		player_data = await player_queries.get_player(player.id, server.id)
 
 		if player_data is None:
 			return
@@ -137,7 +136,7 @@ class Encounters(commands.Cog):
 		demon = demon_queries.get_random_demon()
 		view = EncounterViewInitial(demon, self, user_exclusive_to=ctx.author, count=1)
 		await send_to_channel.send(view=view)
-		await self.player_db.set_daily_timer(player.id, server.id, now)
+		await player_queries.set_daily_timer(player.id, server.id, now)
 
 	async def _start_encounter(self, send_to_channel: discord.TextChannel, name: str | None = None) -> None:
 		"""
@@ -182,25 +181,24 @@ class Encounters(commands.Cog):
 
 		mag_multiplier = 0
 		gems_to_add = 0
-		new_entry = await self.player_db.check_demon_registration(player.id, server_id, demon.id)
+		new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
 
 		match new_entry:
 			case DemonRegistration.UNREGISTERED:
 				# Added demon to COMP with a little bonus MAG.
 				mag_multiplier = 0.6
-				await self.player_db.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
-				await self.player_db.set_demon_in_party(player.id, server_id, demon.id)
+				await player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
+				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
 
 			case DemonRegistration.IN_COMP:
 				# Only add demon to player's party.
 				mag_multiplier = 0.3
-				await self.player_db.set_demon_in_party(player.id, server_id, demon.id)
+				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
 
 			case DemonRegistration.IN_PARTY:
 				# Add gem to player and increase MAG paid.
 				gems_to_add = self._gems_for_rank(demon.rank)
 				mag_multiplier = 0.9
-				print(gems_to_add)
 				await gem_queries.add_gem(player.id, server_id, demon.id, gems_to_add)
 
 		mag_to_add = int((demon.rank * 10) / mag_multiplier)

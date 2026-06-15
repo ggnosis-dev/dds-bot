@@ -7,14 +7,13 @@ from discord.ext import commands
 from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
-from queries import demon_queries, gem_queries, player_queries
+from queries import demon_queries, gem_queries, player_demons_queries
 from shared_enums import Emotes
 
 
 class Gems(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.Cog.listener()
@@ -35,7 +34,7 @@ class Gems(commands.Cog):
 
 		player_id = message.author.id
 		guild_id = message.guild.id
-		selected_demon_id = self.player_db.get_selected_demon_id(player_id, guild_id)
+		selected_demon_id = player_demons_queries.get_selected_demon_id(player_id, guild_id)
 
 		if selected_demon_id is None:
 			return
@@ -67,7 +66,7 @@ class Gems(commands.Cog):
 
 
 class GemCollectionView(discord.ui.LayoutView):
-	def __init__(self, user_name: str, collected_gems: list[tuple], colour: int = 0xE93700) -> None:
+	def __init__(self, user_name: str, collected_gems: list[dict], colour: int = 0xE93700) -> None:
 		"""
 		View class for displaying a player's gem collection.
 

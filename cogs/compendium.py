@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from helpers import checks, costs
 from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
-from queries import currency_queries, demon_queries, player_queries
+from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
 
 
@@ -16,7 +16,6 @@ class Compendium(commands.Cog):
 	def __init__(self, bot: commands.Bot) -> None:
 		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@commands.command(name="compendium", aliases=["comp", "c"], help="Displays the player's compendium.")
 	async def compendium_command(self, ctx: commands.Context, mentioned: discord.Member | None = None) -> None:
@@ -30,7 +29,7 @@ class Compendium(commands.Cog):
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = mentioned if mentioned is not None else ctx.author
 
-		comp_list = await self.player_db.check_compendium(player.id, guild.id)
+		comp_list = await player_demons_queries.check_compendium(player.id, guild.id)
 		view = CompendiumView(player.name, comp_list, Columns.PLAYER_DEFAULT)
 		await ctx.send(view=view)
 
@@ -58,7 +57,7 @@ class Compendium(commands.Cog):
 		cost = costs.summon_cost(demon.rank)
 
 		# Check if demon is in compendium before summoning to give a more informative message.
-		in_comp = await self.player_db.check_demon_registration(player.id, guild.id, demon.id)
+		in_comp = await player_demons_queries.check_demon_registration(player.id, guild.id, demon.id)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
@@ -86,7 +85,7 @@ class Compendium(commands.Cog):
 			return
 
 		currency_queries.update_mag(player.id, guild.id, -cost)
-		await self.player_db.set_demon_in_party(player.id, guild.id, demon.id, True)
+		await player_demons_queries.set_demon_in_party(player.id, guild.id, demon.id)
 		msg = MessageView(f"You have summoned **{demon_name}** to your party!")
 		await ctx.send(view=msg)
 

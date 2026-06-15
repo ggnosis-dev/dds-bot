@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import discord
 
-from queries.player_queries import DemonEntry
+from entities.player_data import DemonEntry
 from shared_enums import Emotes
 
 COMP_PAGE_SIZE = 5

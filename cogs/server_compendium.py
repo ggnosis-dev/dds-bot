@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from helpers import checks
 from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
-from queries import demon_queries, player_queries
+from queries import demon_queries, player_demons_queries, server_demons_queries
 from shared_enums import DemonRegistration
 
 
@@ -16,13 +16,12 @@ class ServerCompendium(commands.Cog):
 	def __init__(self, bot: commands.Bot) -> None:
 		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@commands.command(name="server_comp", aliases=["servcomp", "sc"], help="Displays the server's compendium.")
 	async def server_comp_command(self, ctx: commands.Context) -> None:
 		server = typing.cast(discord.Guild, ctx.guild)
 
-		comp_list = await self.player_db.check_server_compendium(server.id)
+		comp_list = await server_demons_queries.check_server_compendium(server.id)
 
 		for entry in comp_list:
 			if entry.owner_id is not None:
@@ -46,7 +45,7 @@ class ServerCompendium(commands.Cog):
 			return
 
 		# Check if demon is in party.
-		in_party = await self.player_db.check_demon_registration(player.id, server.id, demon.id)
+		in_party = await player_demons_queries.check_demon_registration(player.id, server.id, demon.id)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"**{demon_name}** was not found in your party...")
@@ -66,10 +65,10 @@ class ServerCompendium(commands.Cog):
 		if result is False or result is None:
 			return
 
-		success = await self.player_db.add_demon_to_server_compendium(player.id, server.id, demon.id)
+		success = await server_demons_queries.add_demon_to_server_compendium(player.id, server.id, demon.id)
 
 		if success is False:
-			stored_demon = await self.player_db.get_server_compendium_demon(server.id, demon.id)
+			stored_demon = await server_demons_queries.get_server_compendium_demon(server.id, demon.id)
 			stored_owner = typing.cast(discord.Member, self.bot.get_user(stored_demon.player_id))
 
 			# Ask to overwrite if stronger.
@@ -95,7 +94,7 @@ class ServerCompendium(commands.Cog):
 			if result is False or result is None:
 				return
 
-			await self.player_db.replace_server_compendium_demon(player.id, server.id, demon.id)
+			await server_demons_queries.replace_server_compendium_demon(player.id, server.id, demon.id)
 			msg = MessageView(
 				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
 				f"Compendium** for the time being. {stored_owner.mention}'s {demon.name} has been returned to its COMP.",
@@ -126,7 +125,7 @@ class ServerCompendium(commands.Cog):
 			await ctx.send(view=msg)
 			return
 
-		stored_demon = await self.player_db.get_server_compendium_demon(server.id, demon.id)
+		stored_demon = await server_demons_queries.get_server_compendium_demon(server.id, demon.id)
 
 		if stored_demon is not None and player.id == stored_demon.player_id:
 			view = ConfirmationView(
@@ -141,7 +140,7 @@ class ServerCompendium(commands.Cog):
 			if result is False or result is None:
 				return
 
-			if await self.player_db.return_server_comp_demon(server.id, demon.id):
+			if await server_demons_queries.return_server_comp_demon(server.id, demon.id):
 				msg = MessageView(
 					f"**{demon.race} {demon.name}** has been returned to you.", demon.profile_url, demon.colour
 				)

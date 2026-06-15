@@ -5,7 +5,7 @@ from discord.ext import commands
 from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
-from queries import demon_queries, gem_queries, player_queries
+from queries import demon_queries, gem_queries, player_demons_queries
 from shared_enums import DemonRegistration, Unicode
 
 
@@ -14,7 +14,6 @@ class Demon(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(name="select", aliases=["s", "sel"], description="Select a demon to lead your party.")
@@ -31,13 +30,13 @@ class Demon(commands.Cog):
 			return
 
 		# Check if in player's party.
-		in_party = await self.player_db.check_demon_registration(player.id, server.id, demon_id)
+		in_party = await player_demons_queries.check_demon_registration(player.id, server.id, demon_id)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			await ctx.send(f"A **{demon_name}** is not in your party...")
 			return
 
-		self.player_db.set_selected_demon(ctx.author.id, ctx.guild.id, demon_id)
+		player_demons_queries.set_selected_demon(ctx.author.id, ctx.guild.id, demon_id)
 		await ctx.send(f"**{demon_name}** has been selected to lead your party!")
 
 	@checks.has_profile()
@@ -46,7 +45,7 @@ class Demon(commands.Cog):
 		player = ctx.author
 		server = ctx.guild
 
-		d_id = self.player_db.get_selected_demon_id(player.id, server.id)
+		d_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
 
 		if d_id is None:
 			await ctx.send("There is currently no demon leading your party. Select one using `>select {Demon Name}`.")

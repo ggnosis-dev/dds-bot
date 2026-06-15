@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from helpers import checks
 from helpers.views import ConfirmationView, MessageView
-from queries import demon_queries, player_queries
+from queries import demon_queries, player_demons_queries, player_queries
 from shared_enums import DemonRegistration, Emotes
 
 ## Constants
@@ -19,7 +19,6 @@ class Party(commands.Cog):
 	def __init__(self, bot: commands.Bot):
 		"""Init the Party cog with reference to bot instance and database classes."""
 		self.bot = bot
-		self.player_db = player_queries.PlayerQueries()
 
 	@checks.has_profile()
 	@commands.command(name="party", aliases=["p"], help="Displays the player's current party.")
@@ -31,11 +30,12 @@ class Party(commands.Cog):
 			ctx (discord.Context): Context of the command call.
 			mentioned (discord.Member | None): Optional user to check party for.
 		"""
+		print("TRUE")
 		guild = typing.cast(discord.Guild, ctx.guild)
 		player = mentioned if mentioned is not None else ctx.author
 
-		party_list = await self.player_db.check_party(player.id, guild.id)
-		selected_demon_id = self.player_db.get_selected_demon_id(player.id, guild.id)  # type: ignore
+		party_list = await player_demons_queries.check_party(player.id, guild.id)
+		selected_demon_id = player_queries.get_selected_demon_id(player.id, guild.id)  # type: ignore
 
 		view = PartyView(player.name, party_list, selected_demon_id)
 		await ctx.send(view=view)
@@ -62,7 +62,7 @@ class Party(commands.Cog):
 			return
 
 		# Check if demon is in party.
-		in_party = await self.player_db.check_demon_registration(player.id, guild.id, demon_id)
+		in_party = await player_demons_queries.check_demon_registration(player.id, guild.id, demon_id)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"A **{demon_name}** was not found in your party...")
@@ -76,7 +76,7 @@ class Party(commands.Cog):
 		if result is False or result is None:
 			return
 
-		await self.player_db.set_demon_in_party(player.id, guild.id, demon_id, party_add=False)
+		await player_demons_queries.set_demon_in_party(player.id, guild.id, demon_id, set_in_party=False)
 		msg = MessageView(
 			f"### Good-Bye...\n**{demon_name}** will have a happy life in a faraway forest."
 			f"You will never see your **{demon_name}** again."
