@@ -1,6 +1,6 @@
-import discord
-
 from dataclasses import dataclass
+
+import discord
 
 from shared_enums import Emotes
 
@@ -49,4 +49,4 @@ def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
 			if Columns.PERSONALITY not in column_layout:
 				column_layout.append(Columns.PERSONALITY)
 
-	return mentioned, column_layout
+	return column_layout, mentioned

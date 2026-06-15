@@ -4,7 +4,7 @@ import discord
 
 from discord.ext import commands
 
-from entities.view_data import Columns
+from entities.view_data import Columns, get_args
 from helpers import checks
 from helpers.views import CompendiumView, ConfirmationView, MessageView
 from queries import demon_queries, player_demons_queries, server_demons_queries
@@ -19,17 +19,24 @@ class ServerCompendium(commands.Cog):
 		self.bot = bot
 
 	@commands.command(name="server_comp", aliases=["servcomp", "sc"], help="Displays the server's compendium.")
-	async def server_comp_command(self, ctx: commands.Context) -> None:
+	async def server_comp_command(self, ctx: commands.Context, *args: str) -> None:
 		server = typing.cast(discord.Guild, ctx.guild)
+		columns = list(Columns.SERVER_DEFAULT)
+		mentioned = None
 
-		comp_list = await server_demons_queries.check_server_compendium(server.id)
+		if args:
+			columns, mentioned = get_args(args, server, columns)
+			mentioned = mentioned.id if mentioned else None
 
+		comp_list = await server_demons_queries.check_server_compendium(server.id, mentioned)
+
+		# Because the server COMP only stores user IDs, we need to retrieve their names.
 		for entry in comp_list:
 			if entry.owner_id is not None:
 				player = server.get_member(entry.owner_id)
 				entry.owner = player.display_name if player else "Unknown"
 
-		view = CompendiumView(server.name, comp_list, Columns.SERVER_DEFAULT)
+		view = CompendiumView(server.name, comp_list, columns)
 		await ctx.send(view=view)
 
 	@checks.has_profile()

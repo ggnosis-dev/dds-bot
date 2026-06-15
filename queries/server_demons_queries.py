@@ -128,10 +128,14 @@ async def return_server_comp_demon(server_id: int, demon_id: int) -> bool:
 	return rows_affected > 0
 
 
-async def check_server_compendium(server_id: int) -> list[DemonEntry]:
+async def check_server_compendium(server_id: int, owner_id: int | None = None) -> list[DemonEntry]:
 	"""Retrieve list of the demons currently in the server COMP."""
+	# If an owner_id is provided, we will only check WHERE that player's ID is found.
+	params = (server_id, owner_id) if owner_id else (server_id,)
+	show_only_owner = "WHERE sd.player_id = ?" if owner_id else ""
+
 	rows = query_all(
-		"""
+		f"""
 			SELECT d.id, d.name, d.race, d.personality, d.gem, pd.player_id, pd.stored_rank
 			FROM demons d
 			LEFT JOIN server_demons sd
@@ -141,9 +145,10 @@ async def check_server_compendium(server_id: int) -> list[DemonEntry]:
 				ON pd.player_id = sd.player_id
 				AND pd.server_id = sd.server_id
 				AND pd.demon_id = sd.demon_id
+				{show_only_owner}
 			ORDER BY d.race ASC, d.id ASC
 		""",
-		(server_id,),
+		params,
 	)
 
 	entries = []
