@@ -1,3 +1,5 @@
+import random
+
 from discord.ext import commands
 
 from helpers import checks, costs
@@ -53,7 +55,6 @@ class Fusion(commands.Cog):
 			await ctx.send(view=view)
 			return
 
-		# TODO: Balance these MAG prices around the place.
 		cost = costs.fusion_cost(demon_result.rank)
 
 		view = MessageView(
@@ -80,6 +81,10 @@ class Fusion(commands.Cog):
 		if result is False or result is None:
 			return
 
+		is_fusion_accident = random.random() < 0.01
+		if is_fusion_accident:
+			demon_result = demon_queries.get_random_demon()
+
 		currency_queries.update_mag(player.id, server.id, -cost)
 		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_1.id, set_in_party=False)
 		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_2.id, set_in_party=False)
@@ -89,12 +94,22 @@ class Fusion(commands.Cog):
 		)
 		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_result.id, set_in_party=True)
 
-		registered_text = ""
+		fuse_complete_text = ""
+
+		if is_fusion_accident:
+			fuse_complete_text = "Hmm... It seems an unexpected demon was born... "
+
+		fuse_complete_text += (
+			f"\n\n-# **{demon_result.name}**:"
+			f"\n-# I'm **{demon_result.race} {demon_result.name}**. Well, it's nice to meet you."
+		)
 		if new_demon:
-			registered_text = f"\n\n**{demon_result.race} {demon_result.name}** has been registered to your compendium."
+			fuse_complete_text += (
+				f"\n\n-# `> {demon_result.race} {demon_result.name} has been registered to your compendium.`"
+			)
 
 		view = MessageView(
-			f"You have fused **{demon_result.name}**! {registered_text}",
+			fuse_complete_text,
 			demon_result.profile_url,
 			demon_result.colour,
 		)
