@@ -4,8 +4,9 @@ import discord
 
 from discord.ext import commands
 
+from entities.view_data import Columns
 from helpers import checks, costs
-from helpers.views import Columns, CompendiumView, ConfirmationView, MessageView
+from helpers.views import CompendiumView, ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
 
