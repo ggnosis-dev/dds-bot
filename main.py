@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 
 import discord
@@ -16,11 +17,21 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix=">", intents=intents)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("discord")
+logger.info("This message will show in logs!")
+logging.basicConfig(filename="bot_errors.log", level=logging.ERROR)
 
 
 @bot.event
 async def on_ready():
 	print(f"{bot.user} has connected to Discord!")
+
+
+@bot.command()
+async def ping(ctx):
+	print("Command 'ping'.")
+	await ctx.send("Pong")
 
 
 async def load_cogs():
