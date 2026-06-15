@@ -252,7 +252,7 @@ class CompendiumView(discord.ui.LayoutView):
 
 				# This will be an emote column if width is 0.
 				if col.width == 0:
-					if entry.in_party is not None:
+					if entry.in_party:
 						new_row += Emotes.ICON.value
 						continue
 
