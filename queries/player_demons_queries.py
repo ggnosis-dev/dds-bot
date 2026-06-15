@@ -77,9 +77,12 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
 		(user_id, server_id, demon_id),
-	)[0]
+	)
 
-	match response:
+	if response is None:
+		return DemonRegistration.UNREGISTERED
+
+	match response[0]:
 		case 0:
 			return DemonRegistration.IN_COMP
 		case 1:
