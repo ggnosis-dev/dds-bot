@@ -4,10 +4,8 @@ import typing
 import discord
 
 from entities.comp_data import DemonEntry
-from entities.view_data import ColumnConfig
+from entities.view_data import COMP_PAGE_SIZE, ColumnConfig
 from shared_enums import Emotes
-
-COMP_PAGE_SIZE = 10
 
 
 class MessageView(discord.ui.LayoutView):
@@ -134,6 +132,7 @@ class CompendiumView(discord.ui.LayoutView):
 		columns: list[ColumnConfig],
 		page: int = 1,
 		colour: int = 0xE93700,
+		selected_demon_id: int | None = None,
 	) -> None:
 		"""
 		Init for the compendium view.
@@ -152,6 +151,7 @@ class CompendiumView(discord.ui.LayoutView):
 		self.columns = columns
 		self.page = page
 		self.colour = colour
+		self.selected_demon_id = selected_demon_id
 		self.filtered_race = "all"
 
 		self._build_layout()
@@ -220,7 +220,43 @@ class CompendiumView(discord.ui.LayoutView):
 
 		container.add_item(ui.TextDisplay(f"-# {header}"))
 
+		# Only render selected if first page and selected has been passed in.
+		if self.selected_demon_id is not None and self.page == 1:
+			selected_demon = None
+
+			# Find the selected demon if it exists in the list.
+			for entry in page_entries:
+				if entry.demon_id != self.selected_demon_id:
+					continue
+
+				selected_demon = entry
+				break
+
+			# Draw selected demon at the top of the list on the first page.
+			# FIXME: Bunch of code that can be reused here.
+			if selected_demon:
+				new_row = ""
+
+				for col in self.columns:
+					value = getattr(selected_demon, col.key)
+
+					if col.width == 0:
+						new_row += Emotes.ONE.value
+						continue
+
+					if selected_demon.in_party is None and selected_demon.owner_id is None:
+						placeholder = "???" if col.align == ">" else "?????"
+						new_row += f"{tab}`{placeholder:{col.align}{col.width}}`"
+
+					else:
+						text = str(value).title() if not selected_demon.owner else value
+						new_row += f"{tab}`{text:{col.align}{col.width}}`"
+
+				container.add_item(ui.TextDisplay(new_row))
+
 		for entry in page_entries:
+			if entry.demon_id == self.selected_demon_id:
+				continue
 			new_row = ""
 
 			for col in self.columns:

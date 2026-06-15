@@ -88,26 +88,41 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 			return DemonRegistration.UNREGISTERED
 
 
-async def check_party(user_id: int, server_id: int) -> list[dict]:
+async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 	"""
 	Query the database for the player's current party. Joins the player_demons table with the demon database.
 
 	Returns:
 		list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
 	"""
-	# Retrieve the player's party.
-	response = query_all(
+	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, pd.stored_rank
-			FROM player_demons pd
-			JOIN demons d ON pd.demon_id = d.id
-			WHERE pd.player_id = ? AND pd.server_id = ? AND pd.in_party = 1
+			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party, d.gem
+			FROM demons d
+			JOIN player_demons pd ON pd.demon_id = d.id
+				AND pd.player_id = ? AND pd.server_id = ?
+			WHERE pd.in_party = 1
 			ORDER BY d.race ASC, d.id ASC
 		""",
 		(user_id, server_id),
 	)
 
-	return response if response else []
+	entries = []
+	for row in rows:
+		demon_id, name, race, pers, rank, in_party, gem = row
+
+		entries.append(
+			DemonEntry(
+				demon_id=demon_id,
+				name=name,
+				race=race,
+				personality=pers,
+				rank=rank,
+				in_party=in_party,
+				gem=gem,
+			)
+		)
+	return entries
 
 
 async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
