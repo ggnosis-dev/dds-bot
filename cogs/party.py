@@ -33,7 +33,7 @@ class Party(commands.Cog):
 		columns = list(Columns.PLAYER_DEFAULT)
 
 		if args:
-			mentioned, columns = get_args(args, server, columns)
+			columns, mentioned = get_args(args, server, columns)
 
 		player = mentioned if mentioned is not None else ctx.author
 
