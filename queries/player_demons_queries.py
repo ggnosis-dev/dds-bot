@@ -80,10 +80,10 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 	)[0]
 
 	match response:
+		case 0:
+			return DemonRegistration.IN_COMP
 		case 1:
 			return DemonRegistration.IN_PARTY
-		case 2:
-			return DemonRegistration.IN_COMP
 		case _:
 			return DemonRegistration.UNREGISTERED
 
