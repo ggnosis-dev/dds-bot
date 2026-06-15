@@ -21,7 +21,7 @@ def query_one(query: str, params: tuple = ()) -> tuple:
 		return cursor.fetchone()
 
 
-def query_all(query: str, params: tuple = ()) -> list[tuple]:
+def query_all(query: str, params: tuple = ()) -> list[dict]:
 	"""Queries and returns many entry."""
 	with _get_db_connection() as conn:
 		cursor = conn.cursor()
