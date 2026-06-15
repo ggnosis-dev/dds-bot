@@ -1,14 +1,13 @@
 import asyncio
 import typing
 
-from dataclasses import dataclass
-
 import discord
 
-from entities.player_data import DemonEntry
+from entities.comp_data import DemonEntry
+from entities.view_data import ColumnConfig
 from shared_enums import Emotes
 
-COMP_PAGE_SIZE = 5
+COMP_PAGE_SIZE = 10
 
 
 class MessageView(discord.ui.LayoutView):
@@ -123,16 +122,6 @@ class ConfirmationView(discord.ui.LayoutView):
 			view._disable_buttons()
 
 			await interaction.response.edit_message(view=view)
-
-
-@dataclass
-class ColumnConfig:
-	# Key should match the database column's name.
-	key: str
-	label: str
-	width: int = 0
-	header_tabs: int = 1
-	align: str = "^"
 
 
 class Columns:
