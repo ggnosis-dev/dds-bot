@@ -7,5 +7,7 @@ class PlayerData:
 	server_id: int
 	selected_demon_id: int
 	mag: int
+	party_size: int
+	party_cap: int
 	daily_timer: int
 	encounter_timer: int

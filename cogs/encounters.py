@@ -19,7 +19,6 @@ from .utility import WINDOW_HOURS, get_current_encounter_window
 
 dedicated_channel = 1486290442877407333
 
-DAILY_COOLDOWN = 43200
 DIALOGUE_OPTIONS = [
 	{
 		"label": "Cheerful",
@@ -182,7 +181,13 @@ class Encounters(commands.Cog):
 
 		mag_multiplier = 0
 		gems_to_add = 0
-		new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
+		party_has_space = player_demons_queries.get_party_has_space(player.id, server_id)
+
+		# Check if party has space before anything. If it doesn't, assign CANT_JOIN.
+		if party_has_space:
+			new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
+		else:
+			new_entry = DemonRegistration.CANT_JOIN
 
 		match new_entry:
 			case DemonRegistration.UNREGISTERED:
@@ -196,7 +201,8 @@ class Encounters(commands.Cog):
 				mag_multiplier = 0.3
 				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
 
-			case DemonRegistration.IN_PARTY:
+			case DemonRegistration.IN_PARTY | DemonRegistration.CANT_JOIN:
+				print("HERE")
 				# Add gem to player and increase MAG paid.
 				gems_to_add = self._gems_for_rank(demon.rank)
 				mag_multiplier = 0.9
@@ -377,6 +383,13 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			case DemonRegistration.IN_PARTY:
 				gem_name = self.demon.gem.title()
 				status = f"> {d_race} {d_name} gifted {user.name} {gems_added} {gem_name}! +{mag_received} MAG"
+
+			case DemonRegistration.CANT_JOIN:
+				gem_name = self.demon.gem.title()
+				status = (
+					f"> Party is {d_race} {d_name} could not join {user.name}. Party was full. {gems_added} {gem_name}! "
+					f"+{mag_received} MAG"
+				)
 
 		await self._handle_demon_interacted(interaction, status)
 

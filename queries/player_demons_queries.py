@@ -24,6 +24,9 @@ async def set_demon_in_party(player_id: int, server_id: int, demon_id: int, set_
 		(set_in_party, player_id, server_id, demon_id, set_in_party),
 	)
 
+	add_remove = 1 if set_in_party else -1
+	await update_party(player_id, server_id, add_remove)
+
 	return rows_affected > 0
 
 
@@ -200,3 +203,54 @@ def get_selected_demon_id(player_id: int, server_id: int) -> int | None:
 	)[0]
 
 	return response if response else None
+
+
+async def update_party(player_id: int, server_id: int, party_add: int = 1) -> bool:
+	"""
+	Add or subract to the player's current party count.
+
+	Returns:
+		bool: True if successful, False otherwise.
+	"""
+	# If adding to party, we will only allow if party_size < party_cap.
+	# If removing from party, need to make sure we have one left.
+	if party_add > 0:
+		where = "WHERE party_size < party_cap"
+	else:
+		where = "WHERE party_size > 1"
+
+	rows_affected = query_write(
+		f"""
+			UPDATE players
+			SET party_size = party_size + ?
+			{where}
+				AND player_id = ?
+				AND server_id = ?
+		""",
+		(party_add, player_id, server_id),
+	)
+
+	if rows_affected == 0:
+		raise RuntimeError("ERROR: Attempted Party size updated. Shouldn't have reached this hence missing a check.")
+
+	return rows_affected > 0
+
+
+def get_party_has_space(player_id: int, server_id: int) -> bool:
+	"""
+	Check if the player's party is full.
+
+	Returns:
+		bool: True if successful, False otherwise.
+	"""
+	response = query_one(
+		"""
+			SELECT 1 FROM players
+			WHERE party_size < party_cap
+				AND player_id = ?
+				AND server_id = ?
+		""",
+		(player_id, server_id),
+	)[0]
+
+	return response

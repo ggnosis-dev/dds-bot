@@ -101,13 +101,15 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 	if response is None:
 		return None
 
-	player_id, server_id, selected_demon_id, mag, d_timer, e_timer = response
+	player_id, server_id, selected_demon_id, mag, p_size, p_cap, d_timer, e_timer = response
 
 	return PlayerData(
 		player_id=player_id,
 		server_id=server_id,
 		selected_demon_id=selected_demon_id,
 		mag=mag,
+		party_size=p_size,
+		party_cap=p_cap,
 		daily_timer=d_timer,
 		encounter_timer=e_timer,
 	)
