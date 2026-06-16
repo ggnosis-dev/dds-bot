@@ -1,5 +1,7 @@
 import random
 
+import discord
+
 from discord.ext import commands
 
 from helpers import checks, costs
@@ -17,7 +19,7 @@ class Fusion(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name="fuse", aliases=["f", "fusion"], description="Fuse two demons together to create another.")
-	async def fuse_command(self, ctx, *, input_str: str) -> None:
+	async def fuse_command(self, ctx, *, input_str: str | None = None) -> None:
 		player = ctx.author
 		server = ctx.guild
 
@@ -29,14 +31,19 @@ class Fusion(commands.Cog):
 
 		# Using try, finally apparently runs finally even if an unhandled exception occurs.
 		try:
-			await self._fuse_demons(ctx, input_str, player, server)
+			parts = input_str.split(";") if input_str else None
+			await self._fuse_demons(ctx, player, server, parts)
 		finally:
 			self.players_in_fusion.discard(player.id)
 
-	async def _fuse_demons(self, ctx, input_str, player, server):
-		parts = input_str.split(";")
-
-		if len(parts) <= 1:
+	async def _fuse_demons(
+		self,
+		ctx: commands.Context,
+		player: discord.Member,
+		server: discord.Guild,
+		parts: list[str] | None = None,
+	):
+		if not parts or len(parts) <= 1:
 			await ctx.send("Select the demons you wish to fuse by using `>fuse {demon 1}; {demon 2}`.")
 			return
 
