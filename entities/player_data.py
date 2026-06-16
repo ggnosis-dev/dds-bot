@@ -8,3 +8,4 @@ class PlayerData:
 	selected_demon_id: int
 	mag: int
 	daily_timer: int
+	encounter_timer: int

@@ -15,6 +15,8 @@ from helpers.views import MessageView
 from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
+from .utility import WINDOW_HOURS, get_current_encounter_window
+
 dedicated_channel = 1486290442877407333
 
 DAILY_COOLDOWN = 43200
@@ -64,8 +66,8 @@ class Encounters(commands.Cog):
 	@checks.is_developer()
 	@checks.has_profile()
 	@commands.command(
-		name="encounter",
-		aliases=["e"],
+		name="test_encounter",
+		aliases=["te"],
 		help="Start a test encounter with a random demon.",
 	)
 	async def test_encounter_command(self, ctx, *, name: str | None = None) -> None:
@@ -98,11 +100,11 @@ class Encounters(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(
-		name="daily",
-		aliases=["d"],
+		name="encounter",
+		aliases=["e"],
 		description="Starts a special daily encounter with a demon.",
 	)
-	async def daily_demon_command(self, ctx) -> None:
+	async def encounter_demon_command(self, ctx) -> None:
 		"""Command to trigger a daily demon encounter."""
 		send_to_channel = self.bot.get_channel(dedicated_channel) or ctx.channel
 
@@ -116,27 +118,26 @@ class Encounters(commands.Cog):
 		if player_data is None:
 			return
 
-		# Get current time and subtract it from when the player's timer was set.
+		# Get the time and the period where the current encounter window started.
 		now = int(time.time())
-		time_since = now - player_data.daily_timer
+		current_window = get_current_encounter_window(now)
 
-		# If still time, send a message with how long remaining.
-		if time_since < DAILY_COOLDOWN:
-			remaining = DAILY_COOLDOWN - time_since
+		# If encounter has already been made in this period, send a message with how long remaining.
+		if current_window < player_data.encounter_timer:
+			window_seconds = WINDOW_HOURS * 3600
+			remaining = (current_window + window_seconds) - now
 			hours, remainder = divmod(remaining, 3600)
 			minutes, seconds = divmod(remainder, 60)
 
-			view = MessageView(
-				f"Daily encounter is on cooldown. Try again in **{hours}h**, **{minutes}m** and **{seconds}s**."
-			)
+			view = MessageView(f"Encounter is on cooldown. Try again in **{hours}h**, **{minutes}m** and **{seconds}s**.")
 			await ctx.send(view=view)
 			return
 
-		# If daily is available, send a random demon.
+		# If encounter is available, send a random demon.
 		demon = demon_queries.get_random_demon()
 		view = EncounterViewInitial(demon, self, user_exclusive_to=ctx.author, count=1)
 		await send_to_channel.send(view=view)
-		await player_queries.set_daily_timer(player.id, server.id, now)
+		await player_queries.set_encounter_timer(player.id, server.id, now)
 
 	async def _start_encounter(self, send_to_channel: discord.TextChannel, name: str | None = None) -> None:
 		"""

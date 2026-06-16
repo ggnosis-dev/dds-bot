@@ -101,14 +101,15 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 	if response is None:
 		return None
 
-	player_id, server_id, selected_demon_id, mag, daily_timer = response
+	player_id, server_id, selected_demon_id, mag, d_timer, e_timer = response
 
 	return PlayerData(
 		player_id=player_id,
 		server_id=server_id,
 		selected_demon_id=selected_demon_id,
 		mag=mag,
-		daily_timer=daily_timer,
+		daily_timer=d_timer,
+		encounter_timer=e_timer,
 	)
 
 
@@ -116,10 +117,6 @@ async def set_daily_timer(player_id: int, server_id: int, time: int) -> bool:
 	"""
 	Set the player's daily timer.
 
-	Args:
-		player_id (int): Player ID.
-		server_id (int): Sever ID player belongs to.
-		time (int): Time to set the daily timer to.
 	Returns:
 		bool: True if successful, False otherwise.
 	"""
@@ -127,6 +124,25 @@ async def set_daily_timer(player_id: int, server_id: int, time: int) -> bool:
 		"""
 			UPDATE players
 			SET daily_timer = ?
+			WHERE player_id = ? AND server_id = ?
+		""",
+		(time, player_id, server_id),
+	)
+
+	return rows_affected > 0
+
+
+async def set_encounter_timer(player_id: int, server_id: int, time: int) -> bool:
+	"""
+	Set the player's encounter timer.
+
+	Returns:
+		bool: True if successful, False otherwise.
+	"""
+	rows_affected = query_write(
+		"""
+			UPDATE players
+			SET encounter_timer = ?
 			WHERE player_id = ? AND server_id = ?
 		""",
 		(time, player_id, server_id),
