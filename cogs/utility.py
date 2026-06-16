@@ -41,10 +41,11 @@ class Utility(commands.Cog):
 
 				daily_string = f"Daily available in **{hours}h**, **{minutes}m** and **{seconds}s**."
 
+			# Check for encounter.
 			current_window = get_current_encounter_window(time_now)
 
 			# If encounter has already been made in this period, send a message with how long remaining.
-			if current_window < player_data.daily_timer:
+			if current_window < player_data.encounter_timer:
 				window_seconds = WINDOW_HOURS * 3600
 				remaining = (current_window + window_seconds) - time_now
 				hours, remainder = divmod(remaining, 3600)
