@@ -30,7 +30,7 @@ async def on_ready():
 
 @bot.command()
 async def ping(ctx):
-	print("Command 'ping'.")
+	print("Pong")
 	await ctx.send("Pong")
 
 

@@ -98,6 +98,7 @@ class Utility(commands.Cog):
 		await ctx.send(view=view)
 
 
+# TODO: Probably should move this.
 def get_current_encounter_window(now: int) -> int:
 	"""Get the current encounter window in seconds. Man, this took me way too long."""
 	# Convert window hours to seconds.
