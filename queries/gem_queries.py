@@ -59,9 +59,8 @@ async def add_gem(player_id: int, server_id: int, demon_id: int, number: int) ->
 	# Get gem type.
 	gem_name = query_one(
 		"""
-			SELECT d.gem FROM demons d
-			JOIN player_demons pd ON pd.demon_id = d.id
-			WHERE d.id = ?
+			SELECT gem FROM demons
+			WHERE id = ?
 		""",
 		(demon_id,),
 	)[0]
