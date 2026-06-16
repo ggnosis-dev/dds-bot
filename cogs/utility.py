@@ -7,7 +7,7 @@ from helpers.costs import daily_mag
 from helpers.views import MessageView
 from queries import currency_queries, player_queries
 
-# TODO: Remove this from encounters.py. Needs to be streamlined.
+# TODO: Move these somewhere else. This file should be dedicated to utility commands.
 DAILY_COOLDOWN = 43200 * 2
 WINDOW_HOURS = 3
 
@@ -79,7 +79,7 @@ class Utility(commands.Cog):
 				add_mag = daily_mag()
 				total_mag = player_data.mag + add_mag
 				currency_queries.update_mag(player_id, server_id, add_mag)
-				daily_string = f"You've found **+{add_mag}**! Your total is now **{total_mag}**."
+				daily_string = f"You've found **+{add_mag}** MAG! Your total is now **{total_mag}** MAG."
 				await player_queries.set_daily_timer(player_id, server_id, time_now)
 
 		view = MessageView(f"{daily_string}")
@@ -88,7 +88,7 @@ class Utility(commands.Cog):
 	@checks.is_developer()
 	@commands.command(name="give_mag", aliases=["gm"], description="Give the MAG.")
 	async def give_mag_command(self, ctx, amount: int):
-		"""Command to view MAG, daily timer, all that jazz."""
+		"""Add MAG to self for testing."""
 		player_id = ctx.author.id
 		server_id = ctx.guild.id
 		currency_queries.update_mag(player_id, server_id, amount)
