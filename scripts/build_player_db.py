@@ -11,7 +11,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# TESTS:
 	# cursor.execute("DROP TABLE IF EXISTS players")
 	# cursor.execute("DROP TABLE IF EXISTS player_demons")
-	# cursor.execute("DROP TABLE IF EXISTS server_demons")
 	# cursor.execute('DROP TABLE IF EXISTS player_gems')
 	# cursor.execute('DROP TABLE IF EXISTS player_items')
 
@@ -31,14 +30,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	""")
 
 	cursor.execute("""
-		CREATE TABLE IF NOT EXISTS servers (
-			server_id		INTEGER PRIMARY KEY,
-			player_count	INTEGER DEFAULT 1,
-			server_level	INTEGER DEFAULT 1
-		)
-	""")
-
-	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS player_demons (
 			player_id 		INTEGER,
 			server_id 		INTEGER,
@@ -50,20 +41,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 				CHECK (on_loan IN (0, 1)),
 			PRIMARY KEY (player_id, server_id, demon_id)
 			FOREIGN KEY (demon_id) REFERENCES demons (id)
-		)
-	""")
-
-	cursor.execute("""
-		CREATE TABLE IF NOT EXISTS server_demons (
-			server_id		INTEGER,
-			player_id		INTEGER,
-			demon_id		INTEGER,
-			PRIMARY KEY (server_id, demon_id),
-			FOREIGN KEY (server_id)
-				REFERENCES servers (server_id),
-			-- A demon doesn't exist in server_demons in the usual sense, it's a reference pointing to player_demons.
-			FOREIGN KEY (player_id, server_id, demon_id)
-				REFERENCES player_demons (player_id, server_id, demon_id)
 		)
 	""")
 
@@ -86,10 +63,4 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			quantity		INTEGER DEFAULT 0,
 			UNIQUE(player_id, server_id, item_id)
 		)
-	""")
-
-	# Index for faster lookup of server's compendiums.
-	cursor.execute("""
-		CREATE INDEX IF NOT EXISTS idx_server_demons_lookup
-			ON server_demons (server_id, player_id, demon_id)
 	""")
