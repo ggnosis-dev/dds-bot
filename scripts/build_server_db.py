@@ -4,20 +4,25 @@ from database_paths import PLAYERS_DB_PATH, ensure_db_dir_exists
 
 ensure_db_dir_exists()
 
-# https://www.sqlitetutorial.net/sqlite-json/
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
-	# cursor.execute("DROP TABLE IF EXISTS servers")
-	# cursor.execute("DROP TABLE IF EXISTS server_demons")
+	cursor.execute("DROP TABLE IF EXISTS servers")
+	cursor.execute("DROP TABLE IF EXISTS server_demons")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS servers (
 			server_id		INTEGER PRIMARY KEY,
 			player_count	INTEGER DEFAULT 1,
 			server_level	INTEGER DEFAULT 1,
+			server_level_xp INTEGER DEFAULT 0,
 			-- Rank cap is upper bound of what a player can spawn.
-			rank_cap		INTEGER DEFAULT 5
+			rank_cap		INTEGER DEFAULT 5,
+
+			law_level		INTEGER DEFAULT 1,
+			law_rank_cap	INTEGER DEFAULT 5,
+			chaos_level		INTEGER DEFAULT 1,
+			chaos_rank_cap	INTEGER DEFAULT 5
 		)
 	""")
 

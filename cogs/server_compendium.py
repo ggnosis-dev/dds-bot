@@ -7,7 +7,7 @@ from discord.ext import commands
 from entities.view_data import Columns, get_args
 from helpers import checks
 from helpers.views import CompendiumView, ConfirmationView, MessageView
-from queries import demon_queries, player_demons_queries, server_demons_queries
+from queries import demon_queries, player_demons_queries, server_demons_queries, server_level_queries
 from shared_enums import DemonRegistration
 
 
@@ -18,7 +18,11 @@ class ServerCompendium(commands.Cog):
 		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
 
-	@commands.command(name="server_comp", aliases=["servcomp", "sc"], help="Displays the server's compendium.")
+	@commands.command(
+		name="server_comp",
+		aliases=["servcomp", "sc"],
+		help="Displays the server's compendium. Can provide @player to see their loaned demons.",
+	)
 	async def server_comp_command(self, ctx: commands.Context, *args: str) -> None:
 		server = typing.cast(discord.Guild, ctx.guild)
 		columns = list(Columns.SERVER_DEFAULT)
@@ -75,11 +79,12 @@ class ServerCompendium(commands.Cog):
 
 		success = await server_demons_queries.add_demon_to_server_compendium(player.id, server.id, demon.id)
 
+		# If a demon is already stored, check if they can overwrite it.
 		if success is False:
-			stored_demon = await server_demons_queries.get_server_compendium_demon(server.id, demon.id)
+			stored_demon = await server_demons_queries.get_single_serv_comp_demon(server.id, demon.id)
 			stored_owner = typing.cast(discord.Member, self.bot.get_user(stored_demon.player_id))
 
-			# Ask to overwrite if stronger.
+			# If weaker, send message regarding that.
 			if demon.rank <= stored_demon.stored_rank:
 				msg = MessageView(
 					f"**{stored_owner}**'s **{demon_name}** (Rank {stored_demon.stored_rank}) "
@@ -88,7 +93,7 @@ class ServerCompendium(commands.Cog):
 				await ctx.send(view=msg)
 				return
 
-			# Send a confirmation view.
+			# If stronger, prompt to overwrite.
 			view = ConfirmationView(
 				f"**{stored_owner}** is already loaning their **{demon.name}** to **{server.name}'s Compendium**."
 				"-# Do you wish to replace it? The demon will be returned to its owner.\n\n"
@@ -102,15 +107,28 @@ class ServerCompendium(commands.Cog):
 			if result is False or result is None:
 				return
 
-			await server_demons_queries.replace_server_compendium_demon(player.id, server.id, demon.id)
+			await server_demons_queries.replace_server_compendium_demon(
+				player.id,
+				server.id,
+				demon.id,
+			)
+
+			# Add experience to the server's level.
+			await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
+			await server_level_queries.try_server_level_up(server.id, demon.rank)
+
 			msg = MessageView(
 				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
-				f"Compendium** for the time being. {stored_owner.mention}'s {demon.name} has been returned to its COMP.",
+				f"Compendium** for the time being."
+				f"\n\n{stored_owner.mention}'s {demon.name} has been returned to its owner's COMP.",
 				image=demon.profile_url,
 				colour=demon.colour,
 			)
 			await ctx.send(view=msg)
 			return
+
+		# Add experience to the server's level.
+		await server_level_queries.try_server_level_up(server.id, demon.rank)
 
 		msg = MessageView(
 			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
@@ -129,11 +147,11 @@ class ServerCompendium(commands.Cog):
 		demon = demon_queries.get_demon_by_name(demon_name)
 
 		if demon is None:
-			msg = MessageView(f"**{demon_name}** was not found in your party...")
+			msg = MessageView(f"**{demon_name}** was not found on loan...")
 			await ctx.send(view=msg)
 			return
 
-		stored_demon = await server_demons_queries.get_server_compendium_demon(server.id, demon.id)
+		stored_demon = await server_demons_queries.get_single_serv_comp_demon(server.id, demon.id)
 
 		if stored_demon is not None and player.id == stored_demon.player_id:
 			view = ConfirmationView(
@@ -149,6 +167,9 @@ class ServerCompendium(commands.Cog):
 				return
 
 			if await server_demons_queries.return_server_comp_demon(server.id, demon.id):
+				# Remove the experience from the server's level.
+				await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
+
 				msg = MessageView(
 					f"**{demon.race} {demon.name}** has been returned to you.", demon.profile_url, demon.colour
 				)

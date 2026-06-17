@@ -3,7 +3,7 @@ from helpers.db import query_all, query_one, query_write
 
 
 async def _set_demon_on_loan(player_id: int, server_id: int, demon_id: int) -> None:
-	"""Helper to set a demon to on_loan."""
+	"""Helper to set a demon to on_loan in the player's demons table."""
 	query_write(
 		"""
 			UPDATE player_demons SET on_loan = 1
@@ -71,28 +71,6 @@ async def add_demon_to_server_compendium(
 	return True
 
 
-async def get_server_compendium_demon(server_id: int, demon_id: int) -> ServerCompendiumDemon:
-	response = query_one(
-		"""
-			SELECT sd.*, pd.stored_rank FROM server_demons sd
-			JOIN player_demons pd
-				ON sd.player_id = pd.player_id
-					AND sd.server_id = pd.server_id
-					AND sd.demon_id = pd.demon_id
-			WHERE sd.server_id = ? AND sd.demon_id = ?
-		""",
-		(server_id, demon_id),
-	)
-
-	pid, sid, did, rank = response
-	return ServerCompendiumDemon(
-		player_id=pid,
-		server_id=sid,
-		demon_id=did,
-		stored_rank=rank,
-	)
-
-
 async def replace_server_compendium_demon(player_id: int, server_id: int, demon_id: int) -> None:
 	"""Returns the original loaned demon to its original owner, then set new one."""
 	# Release old loaned demon.
@@ -126,6 +104,29 @@ async def return_server_comp_demon(server_id: int, demon_id: int) -> bool:
 	)
 
 	return rows_affected > 0
+
+
+# --------- CHECKS --------- #
+async def get_single_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendiumDemon:
+	response = query_one(
+		"""
+			SELECT sd.*, pd.stored_rank FROM server_demons sd
+			JOIN player_demons pd
+				ON sd.player_id = pd.player_id
+					AND sd.server_id = pd.server_id
+					AND sd.demon_id = pd.demon_id
+			WHERE sd.server_id = ? AND sd.demon_id = ?
+		""",
+		(server_id, demon_id),
+	)
+
+	sid, pid, did, rank = response
+	return ServerCompendiumDemon(
+		server_id=sid,
+		player_id=pid,
+		demon_id=did,
+		stored_rank=rank,
+	)
 
 
 async def check_server_compendium(server_id: int, owner_id: int | None = None) -> list[DemonEntry]:

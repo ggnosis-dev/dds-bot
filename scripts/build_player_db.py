@@ -9,8 +9,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# TESTS:
-	# cursor.execute("DROP TABLE IF EXISTS players")
-	# cursor.execute("DROP TABLE IF EXISTS player_demons")
+	cursor.execute("DROP TABLE IF EXISTS players")
+	cursor.execute("DROP TABLE IF EXISTS player_demons")
 	# cursor.execute('DROP TABLE IF EXISTS player_gems')
 	# cursor.execute('DROP TABLE IF EXISTS player_items')
 

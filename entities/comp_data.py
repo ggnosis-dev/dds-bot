@@ -5,8 +5,8 @@ from dataclasses import dataclass
 class ServerCompendiumDemon:
 	"""Thin data class used for operations."""
 
-	player_id: int
 	server_id: int
+	player_id: int
 	demon_id: int
 	stored_rank: int
 
