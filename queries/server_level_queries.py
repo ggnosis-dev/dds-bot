@@ -16,7 +16,13 @@ MAX_LEVEL = 10
 # TODO: Might end up storing the experience in a table. Might help to organise the rewards too.
 def get_xp_threshold(level: int) -> int:
 	"""XP required to hit next level using a linear interpolate. Eases in due to the power of 2."""
-	point_t = level / (MAX_LEVEL - 1) ** 2
+	# level / (MAX_LEVEL - 1) ** 2
+	# 9 / (9)^2 = 0.1111
+	# 8 / (9)^2 = 0.0987
+	# (level / (MAX_LEVEL - 1)) ** 2
+	# (9 / (10 - 1))^2 = 1
+	# (8 / (9))^2 = 0.79
+	point_t = (level / (MAX_LEVEL - 1)) ** 2
 	return int((1 - point_t) * XP_START + point_t * XP_END)
 
 
@@ -34,9 +40,11 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 
 	# Check to see if we are higher or lower than the threshold to next level.
 	while server_level < MAX_LEVEL and xp >= get_xp_threshold(server_level):
+		print(get_xp_threshold(server_level))
 		server_level += 1
 
 	while server_level > 1 and xp < get_xp_threshold(server_level - 1):
+		print(get_xp_threshold(server_level))
 		server_level -= 1
 
 	rows_affected = query_write(
