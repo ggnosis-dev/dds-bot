@@ -14,26 +14,36 @@ def _get_db_connection() -> sqlite3.Connection:
 
 def query_one(query: str, params: tuple = ()) -> tuple:
 	"""Queries and returns one entry."""
-	with _get_db_connection() as conn:
-		cursor = conn.cursor()
-		cursor.execute(query, params)
+	try:
+		with _get_db_connection() as conn:
+			cursor = conn.cursor()
+			cursor.execute(query, params)
+			response = cursor.fetchone()
 
-		return cursor.fetchone()
+			return response
+	except Exception as e:
+		raise RuntimeError(f"ERROR: query_one failed: {e}\nQuery: {query}\nParams: {params}")
 
 
 def query_all(query: str, params: tuple = ()) -> list[dict]:
 	"""Queries and returns many entry."""
-	with _get_db_connection() as conn:
-		cursor = conn.cursor()
-		cursor.execute(query, params)
+	try:
+		with _get_db_connection() as conn:
+			cursor = conn.cursor()
+			cursor.execute(query, params)
 
-		return cursor.fetchall()
+			return cursor.fetchall()
+	except Exception as e:
+		raise RuntimeError(f"ERROR: query_all failed: {e}\nQuery: {query}\nParams: {params}")
 
 
 def query_write(query: str, params: tuple = ()) -> int:
 	"""Queries and returns the rowcount which can be used for True/False checks."""
-	with _get_db_connection() as conn:
-		cursor = conn.cursor()
-		cursor.execute(query, params)
+	try:
+		with _get_db_connection() as conn:
+			cursor = conn.cursor()
+			cursor.execute(query, params)
 
-		return cursor.rowcount
+			return cursor.rowcount
+	except Exception as e:
+		raise RuntimeError(f"ERROR: query_write failed: {e}\nQuery: {query}\nParams: {params}")
