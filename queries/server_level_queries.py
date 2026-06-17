@@ -13,7 +13,6 @@ MAX_LEVEL = 10
 
 
 # https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
-# TODO: Might end up storing the experience in a table. Might help to organise the rewards too.
 def get_xp_threshold(level: int) -> int:
 	"""XP required to hit next level using a linear interpolate. Eases in due to the power of 2."""
 	# level / (MAX_LEVEL - 1) ** 2
@@ -57,3 +56,16 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 	)
 
 	return rows_affected > 0
+
+
+async def get_server_status(server_id: int) -> tuple[int, int, int]:
+	s_level, s_xp, s_rank = query_one(
+		"""
+			SELECT server_level, server_level_xp, server_rank_cap
+			FROM servers
+			WHERE server_id = ?
+		""",
+		(server_id,),
+	)
+
+	return s_level, s_xp, s_rank
