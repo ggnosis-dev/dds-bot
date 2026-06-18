@@ -26,3 +26,7 @@ class DemonEntry:
 	# For server demon only.
 	owner_id: int | None = None
 	owner: str | None = None
+
+	@property
+	def is_unseen(self) -> bool:
+		return self.in_party is None and self.owner_id is None

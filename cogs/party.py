@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from entities.view_data import Columns, get_args
 from helpers import checks
-from helpers.views import CompendiumView, ConfirmationView, MessageView
+from helpers.views import ConfirmationView, MessageView, PartyView
 from queries import demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
 
@@ -40,7 +40,7 @@ class Party(commands.Cog):
 		party_list = await player_demons_queries.check_party(player.id, server.id)
 		sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
 
-		view = CompendiumView(player.name, party_list, columns, selected_demon_id=sd_id)
+		view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id)
 		await ctx.send(view=view)
 
 	@checks.has_profile()
