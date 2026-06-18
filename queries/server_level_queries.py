@@ -69,6 +69,16 @@ async def get_server_status(server_id: int) -> ServerStats:
 		(server_id,),
 	)
 
-	s_xp_required = get_xp_threshold(s_level)
+	next_level_xp = get_xp_threshold(s_level)
+	prev_level_xp = get_xp_threshold(s_level - 1)
+	current_level_xp = s_xp - prev_level_xp
+	s_xp_required = next_level_xp - prev_level_xp
 
-	return ServerStats(server_id, s_level, s_xp, s_xp_required, rank_cap)
+	return ServerStats(
+		server_id=server_id,
+		level=s_level,
+		current_level_xp=current_level_xp,
+		xp_required=s_xp_required,
+		rank_cap=rank_cap,
+		total_xp=s_xp,
+	)

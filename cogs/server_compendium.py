@@ -184,7 +184,7 @@ class ServerCompendium(commands.Cog):
 		stats = await server_level_queries.get_server_status(server.id)
 
 		# OO#######	xp / xp required
-		progress_xp = int((stats.xp / stats.xp_required) * 10)
+		progress_xp = int((stats.current_level_xp / stats.xp_required) * 10)
 
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * progress_xp + f"{Unicode.UNFILLED_CIRCLE.value} " * (
 			10 - progress_xp
@@ -193,9 +193,9 @@ class ServerCompendium(commands.Cog):
 		msg = MessageView(
 			f"### {server.name}'s Server Statistics"
 			f"\n\nServer Level: **{stats.level}**"
+			f"\n\nTotal Experience: **{stats.total_xp}**"
 			f"\n\nMaximum Encounter Rank: **{stats.rank_cap}**"
-			f"\n\nTotal Experience: **{stats.xp}**"
-			f"\n\nExperience to Next Level: **{stats.xp_required - stats.xp}**"
+			f"\n\nExperience to Next Level: **{stats.current_level_xp}** / **{stats.xp_required}**"
 			f"\n{progress_bar}",
 		)
 		await ctx.send(view=msg)

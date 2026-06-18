@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class ServerStats:
 	server_id: int
 	level: int
-	xp: int
+	current_level_xp: int
 	xp_required: int
 	rank_cap: int
+	total_xp: int

@@ -413,7 +413,7 @@ class ServerCompendiumView(BaseCompendiumView):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(
 			discord.ui.TextDisplay(
-				f"-# **Server Level: {self.server_stats.level} | Server Experience: {self.server_stats.xp}**"
+				f"-# **Server Level: {self.server_stats.level} | Server Experience: {self.server_stats.total_xp}**"
 			)
 		)
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Server Compendium"))
