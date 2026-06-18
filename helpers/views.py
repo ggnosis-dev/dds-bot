@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 import discord
 
 from entities.comp_data import DemonEntry
+from entities.server_data import ServerStats
 from entities.view_data import COMP_PAGE_SIZE, ColumnConfig
 from shared_enums import Emotes
 
@@ -400,14 +401,29 @@ class PartyView(BaseCompendiumView):
 
 
 class ServerCompendiumView(BaseCompendiumView):
+	def __init__(
+		self,
+		*args,
+		server_stats=ServerStats,
+		**kwargs,
+	) -> None:
+		self.server_stats = server_stats
+		super().__init__(*args, **kwargs)
+
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay(f"-# **Server Level: {1} | Maximum Rank for Encounters: {10}**"))
+		container.add_item(
+			discord.ui.TextDisplay(
+				f"-# **Server Level: {self.server_stats.level} | Server Experience: {self.server_stats.xp}**"
+			)
+		)
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Server Compendium"))
 
 		# Average rank/Weighted rank.
 		if self.page == 1:
 			container.add_item(discord.ui.TextDisplay("-# Loan your demon by using `>loan`."))
-			container.add_item(discord.ui.TextDisplay("-# Use `>server_status` to see information on Server Level and EXP."))
+			container.add_item(
+				discord.ui.TextDisplay("-# Use `>server_stats` to see detailed information on server level and experience.")
+			)
 
 		race_select = self._build_race_filter()
 		container.add_item(race_select)

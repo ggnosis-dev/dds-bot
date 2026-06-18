@@ -180,10 +180,10 @@ class ServerCompendium(commands.Cog):
 	)
 	async def server_stats_command(self, ctx) -> None:
 		server = typing.cast(discord.Guild, ctx.guild)
-		s_level, s_xp, s_xp_required, rank_cap = await server_level_queries.get_server_status(server.id)
+		stats = await server_level_queries.get_server_status(server.id)
 
 		# OO#######	xp / xp required
-		progress_xp = int((s_xp / s_xp_required) * 10)
+		progress_xp = int((stats.xp / stats.xp_required) * 10)
 
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * progress_xp + f"{Unicode.UNFILLED_CIRCLE.value} " * (
 			10 - progress_xp
@@ -191,10 +191,10 @@ class ServerCompendium(commands.Cog):
 
 		msg = MessageView(
 			f"### {server.name}'s Server Statistics"
-			f"\n\nServer Level: **{s_level}**"
-			f"\n\nMaximum Encounter Rank: **{rank_cap}**"
-			f"\n\nTotal Experience: **{s_xp}**"
-			f"\n\nExperience to Next Level: **{s_xp_required - s_xp}**"
+			f"\n\nServer Level: **{stats.level}**"
+			f"\n\nMaximum Encounter Rank: **{stats.rank_cap}**"
+			f"\n\nTotal Experience: **{stats.xp}**"
+			f"\n\nExperience to Next Level: **{stats.xp_required - stats.xp}**"
 			f"\n{progress_bar}",
 		)
 		await ctx.send(view=msg)

@@ -1,3 +1,4 @@
+from entities.server_data import ServerStats
 from helpers.db import query_one, query_write
 
 """
@@ -58,7 +59,7 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 	return rows_affected > 0
 
 
-async def get_server_status(server_id: int) -> tuple[int, int, int, int]:
+async def get_server_status(server_id: int) -> ServerStats:
 	s_level, s_xp, rank_cap = query_one(
 		"""
 			SELECT server_level, server_level_xp, rank_cap
@@ -70,4 +71,4 @@ async def get_server_status(server_id: int) -> tuple[int, int, int, int]:
 
 	s_xp_required = get_xp_threshold(s_level)
 
-	return s_level, s_xp, s_xp_required, rank_cap
+	return ServerStats(server_id, s_level, s_xp, s_xp_required, rank_cap)
