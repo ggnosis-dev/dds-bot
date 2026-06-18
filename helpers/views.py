@@ -262,7 +262,7 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
 
-		if self.page != self.total_pages:
+		if self.total_pages != 1:
 			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))
 			container.add_item(page_nav)
 
