@@ -8,7 +8,7 @@ from entities.view_data import Columns, get_args
 from helpers import checks
 from helpers.views import ConfirmationView, MessageView, ServerCompendiumView
 from queries import demon_queries, player_demons_queries, server_demons_queries, server_level_queries
-from shared_enums import DemonRegistration
+from shared_enums import DemonRegistration, Unicode
 
 
 class ServerCompendium(commands.Cog):
@@ -174,6 +174,31 @@ class ServerCompendium(commands.Cog):
 					f"**{demon.race} {demon.name}** has been returned to you.", demon.profile_url, demon.colour
 				)
 				await ctx.send(view=msg)
+
+	@commands.command(
+		name="server_stats", aliases=["ss"], help="View the server's current level, experience and maximum ranks."
+	)
+	async def server_stats_command(self, ctx) -> None:
+		server = typing.cast(discord.Guild, ctx.guild)
+		s_level, s_xp, s_xp_required, rank_cap = await server_level_queries.get_server_status(server.id)
+
+		# OO#######	xp / xp required
+		progress_xp = int((s_xp / s_xp_required) * 10)
+
+		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * progress_xp + f"{Unicode.UNFILLED_CIRCLE.value} " * (
+			10 - progress_xp
+		)
+
+		msg = MessageView(
+			f"### {server.name}'s Server Statistics"
+			f"\n\nServer Level: **{s_level}**"
+			f"\n\nMaximum Encounter Rank: **{rank_cap}**"
+			f"\n\nTotal Experience: **{s_xp}**"
+			f"\n\nExperience to Next Level: **{s_xp_required - s_xp}**"
+			f"\n{progress_bar}",
+		)
+		await ctx.send(view=msg)
+		return
 
 
 async def setup(bot: commands.Bot) -> None:
