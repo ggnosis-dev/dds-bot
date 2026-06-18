@@ -203,12 +203,16 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 			await interaction.response.edit_message(view=view)
 
 	@abstractmethod
-	def _build_header(self, container) -> discord.ui.Container:
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		pass
 
-	def _build_table_header(self, container) -> discord.ui.Container:
-		header = ""
+	@abstractmethod
+	def _build_layout(self) -> None:
+		pass
+
+	def _build_table_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		tab = "\u2003"
+		header = ""
 
 		for col in self.columns:
 			header += f"{tab * col.header_tabs}{col.label:^{col.width}}"
@@ -217,7 +221,12 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 
 		return container
 
-	def _build_page_entry(self, container, entry, emote_override=None) -> discord.ui.Container:
+	def _build_page_entry(
+		self,
+		container: discord.ui.Container,
+		entry: DemonEntry,
+		emote_override=None,
+	) -> discord.ui.Container:
 		tab = "\u2003"
 		new_row = ""
 
@@ -249,7 +258,7 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 
 		return container
 
-	def _build_footer(self, container) -> discord.ui.Container:
+	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
 
@@ -258,10 +267,6 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 			container.add_item(page_nav)
 
 		return container
-
-	@abstractmethod
-	def _build_layout(self) -> None:
-		pass
 
 	def _build_race_filter(self) -> discord.ui.ActionRow:
 		"""
@@ -307,7 +312,7 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 
 
 class CompendiumView(BaseCompendiumView):
-	def _build_header(self, container) -> discord.ui.Container:
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Compendium"))
 
 		race_select = self._build_race_filter()
@@ -317,7 +322,7 @@ class CompendiumView(BaseCompendiumView):
 
 		return container
 
-	def _build_layout(self):
+	def _build_layout(self) -> None:
 		container = discord.ui.Container(accent_color=self.colour)
 		page_entries = self._get_page_entries()
 
@@ -340,7 +345,7 @@ class PartyView(BaseCompendiumView):
 		self.selected_demon_id = selected_demon_id
 		super().__init__(*args, **kwargs)
 
-	def _build_header(self, container):
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Party"))
 
 		# Mention if player doesn't have a leader.
@@ -354,22 +359,7 @@ class PartyView(BaseCompendiumView):
 
 		return container
 
-	def _build_selected_demon_row(self, container):
-		# Only render selected if first page and selected has been passed in.
-		if self.selected_demon_id is None or self.page != 1:
-			return container
-
-		# Find the selected demon if it exists in the list.
-		entry_ids = {entry.demon_id: entry for entry in self.entries}
-		selected_demon = entry_ids.get(self.selected_demon_id)
-
-		# Draw selected demon at the top of the list on the first page.
-		if selected_demon:
-			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.ONE)
-
-		return container
-
-	def _build_layout(self):
+	def _build_layout(self) -> None:
 		container = discord.ui.Container(accent_color=self.colour)
 		page_entries = self._get_page_entries()
 
@@ -385,3 +375,18 @@ class PartyView(BaseCompendiumView):
 		container = self._build_footer(container)
 
 		self.add_item(container)
+
+	def _build_selected_demon_row(self, container: discord.ui.Container) -> discord.ui.Container:
+		# Only render selected if first page and selected has been passed in.
+		if self.selected_demon_id is None or self.page != 1:
+			return container
+
+		# Find the selected demon if it exists in the list.
+		entry_ids = {entry.demon_id: entry for entry in self.entries}
+		selected_demon = entry_ids.get(self.selected_demon_id)
+
+		# Draw selected demon at the top of the list on the first page.
+		if selected_demon:
+			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.ONE)
+
+		return container
