@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from entities.view_data import Columns, get_args
 from helpers import checks
-from helpers.views import CompendiumView, ConfirmationView, MessageView
+from helpers.views import ConfirmationView, MessageView, ServerCompendiumView
 from queries import demon_queries, player_demons_queries, server_demons_queries, server_level_queries
 from shared_enums import DemonRegistration
 
@@ -40,7 +40,7 @@ class ServerCompendium(commands.Cog):
 				player = server.get_member(entry.owner_id)
 				entry.owner = player.display_name if player else "Unknown"
 
-		view = CompendiumView(server.name, comp_list, columns)
+		view = ServerCompendiumView(server.name, comp_list, columns)
 		await ctx.send(view=view)
 
 	@checks.has_profile()

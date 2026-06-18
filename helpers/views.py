@@ -1,3 +1,10 @@
+"""
+Things to do:
+	- Make a "Filters" button on the compendium views that open up the filter dropdown
+		- Extend this to include the column options maybe?
+		- Definitely good for sorting.
+"""
+
 import asyncio
 import typing
 
@@ -390,3 +397,33 @@ class PartyView(BaseCompendiumView):
 			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.ONE)
 
 		return container
+
+
+class ServerCompendiumView(BaseCompendiumView):
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		container.add_item(discord.ui.TextDisplay(f"-# **Server Level: {1} | Maximum Rank for Encounters: {10}**"))
+		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Server Compendium"))
+
+		# Average rank/Weighted rank.
+		if self.page == 1:
+			container.add_item(discord.ui.TextDisplay("-# Loan your demon by using `>loan`."))
+			container.add_item(discord.ui.TextDisplay("-# Use `>server_status` to see information on Server Level and EXP."))
+
+		race_select = self._build_race_filter()
+		container.add_item(race_select)
+
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		return container
+
+	def _build_layout(self) -> None:
+		container = discord.ui.Container(accent_color=self.colour)
+		page_entries = self._get_page_entries()
+
+		container = self._build_header(container)
+		container = self._build_table_header(container)
+		for entry in page_entries:
+			container = self._build_page_entry(container, entry)
+		container = self._build_footer(container)
+
+		self.add_item(container)
