@@ -404,7 +404,7 @@ class ServerCompendiumView(BaseCompendiumView):
 	def __init__(
 		self,
 		*args,
-		server_stats=ServerStats,
+		server_stats: ServerStats,
 		**kwargs,
 	) -> None:
 		self.server_stats = server_stats

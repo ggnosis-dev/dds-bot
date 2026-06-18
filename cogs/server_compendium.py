@@ -33,6 +33,7 @@ class ServerCompendium(commands.Cog):
 			mentioned = mentioned.id if mentioned else None
 
 		comp_list = await server_demons_queries.check_server_compendium(server.id, mentioned)
+		stats = await server_level_queries.get_server_status(server.id)
 
 		# Because the server COMP only stores user IDs, we need to retrieve their names.
 		for entry in comp_list:
@@ -40,7 +41,7 @@ class ServerCompendium(commands.Cog):
 				player = server.get_member(entry.owner_id)
 				entry.owner = player.display_name if player else "Unknown"
 
-		view = ServerCompendiumView(server.name, comp_list, columns)
+		view = ServerCompendiumView(server.name, comp_list, columns, server_stats=stats)
 		await ctx.send(view=view)
 
 	@checks.has_profile()
