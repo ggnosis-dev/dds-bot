@@ -9,5 +9,6 @@ class PlayerData:
 	mag: int
 	party_size: int
 	party_cap: int
+	party_average_rank: int
 	daily_timer: int
 	encounter_timer: int

@@ -22,6 +22,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			mag 				INTEGER DEFAULT 0,
 			party_size			INTEGER DEFAULT 0,
 			party_cap			INTEGER DEFAULT 10,
+			party_average_rank	INTEGER DEFAULT 0,
 			daily_timer			INTEGER DEFAULT 0,
 			encounter_timer		INTEGER DEFAULT 0,
 			PRIMARY KEY (player_id, server_id)
