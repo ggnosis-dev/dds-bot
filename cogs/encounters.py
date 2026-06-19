@@ -193,13 +193,13 @@ class Encounters(commands.Cog):
 				mag_multiplier = 0.6
 				await player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
 				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
-				await player_demons_queries.calculate_party_average(player.id, server_id)
+				await player_demons_queries.update_party_average(player.id, server_id)
 
 			case DemonRegistration.IN_COMP:
 				# Only add demon to player's party.
 				mag_multiplier = 0.3
 				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
-				await player_demons_queries.calculate_party_average(player.id, server_id)
+				await player_demons_queries.update_party_average(player.id, server_id)
 
 			case DemonRegistration.IN_PARTY | DemonRegistration.CANT_JOIN:
 				print("HERE")

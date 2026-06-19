@@ -266,7 +266,7 @@ async def calculate_party_average(player_id: int, server_id: int) -> int:
 	for demon in party:
 		ranks.append(demon.rank)
 
-	average = sum(ranks) // len(ranks)
+	average = max(1, sum(ranks) // len(ranks))
 
 	return average
 
@@ -286,3 +286,16 @@ async def update_party_average(player_id: int, server_id: int) -> bool:
 	)
 
 	return rows_affected > 0
+
+
+async def get_party_average(player_id: int, server_id: int) -> int:
+	response = query_one(
+		"""
+			SELECT party_average_rank FROM players
+			WHERE player_id = ?
+				AND server_id = ?
+		""",
+		(player_id, server_id),
+	)[0]
+
+	return max(1, response)

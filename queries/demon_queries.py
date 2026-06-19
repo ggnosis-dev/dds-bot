@@ -1,4 +1,4 @@
-from numpy import clip, random
+from numpy.random import triangular
 
 from entities.demon_data import DemonData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
@@ -74,14 +74,14 @@ def get_random_demon() -> DemonData:
 
 
 def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
-	# loc - the mean/centre.
-	# scale - spread (probably want this higher if closer to 0 or 100)
-	# size - number of samples to get.
-	print(f"WEIGHTED RANK: {weighted_rank} | SCALE: 10 | LOW: 1 | MAX CAP: {max_rank}")
-	rank = random.normal(loc=weighted_rank, scale=10)
-	print("Random distribution rank: ", rank)
-	rank_2 = int(clip(rank, a_min=1, a_max=max_rank))
-	print(f"RANK TO SEND: {rank_2}")
+	try:
+		rank = round(triangular(1, max_rank, weighted_rank))
+	except Exception as e:
+		print(f"ERROR: {type(e)}: {e}")
+		print(f"weighted_rank={weighted_rank}, max_rank={max_rank}")
+		raise
+
+	print(rank)
 
 	row = query_one(
 		"""
@@ -91,7 +91,7 @@ def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 			-- Retrieve the top result.
 			LIMIT 1
 		""",
-		(rank_2,),
+		(rank,),
 	)
 	print(row)
 
