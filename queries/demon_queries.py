@@ -75,13 +75,12 @@ def get_random_demon() -> DemonData:
 
 def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 	try:
-		rank = round(triangular(1, max_rank, weighted_rank))
+		weighted_rank = min(weighted_rank, max_rank)
+		rank = round(triangular(left=0.5, mode=weighted_rank, right=max_rank + 0.5))
 	except Exception as e:
 		print(f"ERROR: {type(e)}: {e}")
 		print(f"weighted_rank={weighted_rank}, max_rank={max_rank}")
 		raise
-
-	print(rank)
 
 	row = query_one(
 		"""
