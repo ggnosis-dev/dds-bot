@@ -39,8 +39,9 @@ class Party(commands.Cog):
 
 		party_list = await player_demons_queries.check_party(player.id, server.id)
 		sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
+		weighted_rank = await player_demons_queries.get_party_average(player.id, server.id)
 
-		view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id)
+		view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id, weighted_rank=weighted_rank)
 		await ctx.send(view=view)
 
 	@checks.has_profile()

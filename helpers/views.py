@@ -348,9 +348,11 @@ class PartyView(BaseCompendiumView):
 		self,
 		*args,
 		selected_demon_id: int | None = None,
+		weighted_rank: int,
 		**kwargs,
 	) -> None:
 		self.selected_demon_id = selected_demon_id
+		self.weighted_rank = weighted_rank
 		super().__init__(*args, **kwargs)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
@@ -361,7 +363,7 @@ class PartyView(BaseCompendiumView):
 			container.add_item(discord.ui.TextDisplay("-# No demon is leading your party. Use `>select` to choose a leader"))
 
 		# Average rank/Weighted rank.
-		container.add_item(discord.ui.TextDisplay(f"-# Encounters are currently weighted at: {20}"))
+		container.add_item(discord.ui.TextDisplay(f"-# Encounters are currently weighted at: {self.weighted_rank}"))
 
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
