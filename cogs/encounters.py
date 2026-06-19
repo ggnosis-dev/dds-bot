@@ -12,7 +12,7 @@ from discord.ext import commands
 from entities.demon_data import DemonData
 from helpers import checks
 from helpers.views import MessageView
-from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries
+from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries, server_level_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 from .utility import WINDOW_HOURS, get_current_encounter_window
@@ -54,12 +54,7 @@ class Encounters(commands.Cog):
 	"""
 
 	def __init__(self, bot: commands.Bot):
-		"""
-		Init for the Encounters cog.
-
-		Args:
-		    bot (commands.Bot): The bot instance to access other cogs and send messages.
-		"""
+		"""Init for the Encounters cog."""
 		self.bot = bot
 
 	@checks.is_developer()
@@ -132,8 +127,11 @@ class Encounters(commands.Cog):
 			await ctx.send(view=view)
 			return
 
-		# If encounter is available, send a random demon.
-		demon = demon_queries.get_random_demon()
+		# If encounter is available, calculate rank of demon then select a random one from it.
+		average_rank = player_data.party_average_rank
+		server_cap = await server_level_queries.get_rank_cap(server.id)
+		demon = demon_queries.get_demon_by_distribution(average_rank, server_cap)
+
 		view = EncounterViewInitial(demon, self, user_exclusive_to=ctx.author, count=1)
 		await send_to_channel.send(view=view)
 		await player_queries.set_encounter_timer(player.id, server.id, now)
@@ -195,11 +193,13 @@ class Encounters(commands.Cog):
 				mag_multiplier = 0.6
 				await player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
 				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
+				await player_demons_queries.calculate_party_average(player.id, server_id)
 
 			case DemonRegistration.IN_COMP:
 				# Only add demon to player's party.
 				mag_multiplier = 0.3
 				await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
+				await player_demons_queries.calculate_party_average(player.id, server_id)
 
 			case DemonRegistration.IN_PARTY | DemonRegistration.CANT_JOIN:
 				print("HERE")

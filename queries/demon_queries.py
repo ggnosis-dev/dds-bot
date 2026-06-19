@@ -1,3 +1,5 @@
+from numpy import clip, random
+
 from entities.demon_data import DemonData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
 
@@ -59,12 +61,39 @@ def get_random_demon() -> DemonData:
 	"""Retrieve a random demon's data from the database. Does not need a profile."""
 	row = query_one(
 		"""
-			SELECT id, name, race, rank, colour, personality, gem, image_url, profile_url
-			FROM demons
+			SELECT * FROM demons
 			ORDER BY RANDOM()
 			LIMIT 1
 		"""
 	)
+
+	if not row:
+		raise RuntimeError("ERROR: No demons could be found in the database.")
+
+	return convert_row_to_demon_data(row)
+
+
+def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
+	# loc - the mean/centre.
+	# scale - spread (probably want this higher if closer to 0 or 100)
+	# size - number of samples to get.
+	print(f"WEIGHTED RANK: {weighted_rank} | SCALE: 10 | LOW: 1 | MAX CAP: {max_rank}")
+	rank = random.normal(loc=weighted_rank, scale=10)
+	print("Random distribution rank: ", rank)
+	rank_2 = int(clip(rank, a_min=1, a_max=max_rank))
+	print(f"RANK TO SEND: {rank_2}")
+
+	row = query_one(
+		"""
+			SELECT * FROM demons
+			-- Order by proximity to rank. Then if a tie exists, order by random.
+			ORDER BY ABS(rank - ?), RANDOM()
+			-- Retrieve the top result.
+			LIMIT 1
+		""",
+		(rank_2,),
+	)
+	print(row)
 
 	if not row:
 		raise RuntimeError("ERROR: No demons could be found in the database.")
