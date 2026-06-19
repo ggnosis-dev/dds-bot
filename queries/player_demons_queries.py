@@ -101,6 +101,7 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 	Returns:
 		list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
 	"""
+	print("DEBUG: check_party")
 	rows = query_all(
 		"""
 			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party, d.gem
@@ -254,3 +255,34 @@ def get_party_has_space(player_id: int, server_id: int) -> bool:
 	)[0]
 
 	return response
+
+
+async def calculate_party_average(player_id: int, server_id: int) -> int:
+	print("DEBUG: calculate_party_average")
+	party = await check_party(player_id, server_id)
+	ranks = []
+
+	# Isolate rank.
+	for demon in party:
+		ranks.append(demon.rank)
+
+	average = sum(ranks) // len(ranks)
+
+	return average
+
+
+async def update_party_average(player_id: int, server_id: int) -> bool:
+	print("DEBUG: update_party_average")
+	average_rank = await calculate_party_average(player_id, server_id)
+
+	rows_affected = query_write(
+		"""
+			UPDATE players
+			SET party_average_rank = ?
+			WHERE player_id = ?
+				AND server_id = ?
+		""",
+		(average_rank, player_id, server_id),
+	)
+
+	return rows_affected > 0
