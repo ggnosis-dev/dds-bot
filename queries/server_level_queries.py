@@ -59,6 +59,18 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 	return rows_affected > 0
 
 
+async def get_rank_cap(server_id: int) -> int:
+	response = query_one(
+		"""
+			SELECT rank_cap FROM servers
+			WHERE server_id = ?
+		""",
+		(server_id,),
+	)[0]
+
+	return response
+
+
 async def get_server_status(server_id: int) -> ServerStats:
 	s_level, s_xp, rank_cap = query_one(
 		"""
