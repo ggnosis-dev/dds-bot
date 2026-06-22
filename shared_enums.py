@@ -49,3 +49,11 @@ class GemList(Enum):
 	SAPPHIRE = 12
 	TOPAZ = 13
 	TURQUOISE = 14
+
+
+class LevelRewardType(Enum):
+	RANK = 0
+	SP_FUSION = 1
+	MISC = 2
+	# MULT = 1
+	# COOLDOWN = 2

@@ -92,7 +92,6 @@ def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 		""",
 		(rank,),
 	)
-	print(row)
 
 	if not row:
 		raise RuntimeError("ERROR: No demons could be found in the database.")
