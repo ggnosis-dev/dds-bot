@@ -1,5 +1,6 @@
-from entities.server_data import ServerStats
+from entities.server_data import LEVEL_REWARDS, LevelReward, ServerStats
 from helpers.db import query_one, query_write
+from shared_enums import LevelRewardType
 
 """
 Server level:
@@ -38,25 +39,30 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 		(rank, server_id),
 	)
 
+	old_level = server_level
+
 	# Check to see if we are higher or lower than the threshold to next level.
 	while server_level < MAX_LEVEL and xp >= get_xp_threshold(server_level):
-		print(get_xp_threshold(server_level))
 		server_level += 1
 
 	while server_level > 1 and xp < get_xp_threshold(server_level - 1):
-		print(get_xp_threshold(server_level))
 		server_level -= 1
 
-	rows_affected = query_write(
+	# Exit early if there's no change in level.
+	if server_level == old_level:
+		return False
+
+	query_write(
 		"""
-			UPDATE servers
-			SET server_level = ?
+			UPDATE servers SET server_level = ?
 			WHERE server_id = ?
 		""",
 		(server_level, server_id),
 	)
 
-	return rows_affected > 0
+	await _do_server_level_update(server_id, old_level, server_level)
+
+	return True
 
 
 async def get_rank_cap(server_id: int) -> int:
@@ -94,3 +100,37 @@ async def get_server_status(server_id: int) -> ServerStats:
 		rank_cap=rank_cap,
 		total_xp=s_xp,
 	)
+
+
+async def _do_server_level_update(server_id: int, old_level: int, new_level: int) -> None:
+	leveled_up = new_level > old_level
+	levels_to_update = range(old_level + 1, new_level) if leveled_up else range(old_level, new_level, -1)
+
+	for level in levels_to_update:
+		# Use [] as default so we can still iterate it. When blank, we'll do rank cap increase.
+		rewards = LEVEL_REWARDS.get(level, [])
+		for r in rewards:
+			await _apply_reward(server_id, r, leveled_up)
+
+	return
+
+
+async def _apply_reward(server_id: int, rewards: LevelReward, level_up: bool) -> None:
+	reverse = -1 if not level_up else 1
+
+	match rewards.type:
+		case LevelRewardType.SP_FUSION:
+			pass
+		case LevelRewardType.MISC:
+			pass
+		case LevelRewardType.RANK | _:
+			pass
+			# Raise the cap.
+			# query_write(
+			# 	"""
+			# 		UPDATE servers
+			# 		SET server_level_cap = server_level_cap + ?
+			# 		WHERE server_id = ?
+			# 	""",
+			# 	(level, server_id),
+			# )
