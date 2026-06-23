@@ -5,7 +5,7 @@ from discord.ext import commands
 from helpers import checks
 from helpers.costs import daily_mag
 from helpers.views import MessageView
-from queries import currency_queries, player_queries
+from queries import currency_queries, player_queries, server_level_queries
 
 # TODO: Move these somewhere else. This file should be dedicated to utility commands.
 DAILY_COOLDOWN = 43200 * 2
@@ -22,12 +22,22 @@ class Utility(commands.Cog):
 		player_id = ctx.author.id
 		server_id = ctx.guild.id
 		player_data = await player_queries.get_player(player_id, server_id)
+		server_data = await server_level_queries.get_server_status(server_id)
 		daily_string = "Daily is available!"
 		encounter_time_up = "Encounter is available!"
+		encounter_string = None
 		mag = 0
 
-		if player_data:
+		if player_data and server_data:
 			mag = player_data.mag
+			rank_average = player_data.party_average_rank
+
+			rank_cap = server_data.rank_cap
+
+			encounter_string = (
+				f"Encounters can spawn up to **Rank {rank_cap}** "
+				f"with weight at your **Party's Average Rank** of **{rank_average}**."
+			)
 
 			# Get current time and subtract it from when the player's timer was set.
 			time_now = int(time.time())
@@ -53,7 +63,7 @@ class Utility(commands.Cog):
 
 				encounter_time_up = f"Encounter available in **{hours}h**, **{minutes}m** and **{seconds}s**."
 
-		view = MessageView(f"{encounter_time_up}\n\n{daily_string}\n\nMAG: **{mag}**")
+		view = MessageView(f"{encounter_time_up}\n\n{daily_string}\n\nMAG: **{mag}**\n\n{encounter_string}")
 		await ctx.send(view=view)
 
 	@checks.has_profile()
