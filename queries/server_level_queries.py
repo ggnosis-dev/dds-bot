@@ -130,38 +130,25 @@ async def _do_server_level_update(server_id: int, old_level: int, new_level: int
 		print(f"DEBUG: Applying rank ({level}) reward to server: {server_id} | Reward is: {reward.r_type}.")
 		await _apply_reward(server_id, reward, leveled_up)
 
-	return
-
 
 async def _apply_reward(server_id: int, reward: LevelReward, level_up: bool) -> None:
 	reverse = -1 if not level_up else 1
 
 	match reward.r_type:
-		case LevelRewardType.SP_FUSION | LevelRewardType.MISC:
+		case LevelRewardType.KEY | LevelRewardType.SP_FUSION_KEY:
 			print("DEBUG: Applying key reward.")
 
-			if reverse > 0:
-				query_write(
-					"""
-						INSERT INTO server_unlocks (server_id, unlock_key)
-						VALUES (?, ?)
-					""",
-					(server_id, reward.value),
-				)
+			if level_up:
+				query = "INSERT INTO server_unlocks (server_id, unlock_key) VALUES (?, ?)"
 			else:
-				query_write(
-					"""
-						DELETE FROM server_unlocks
-						WHERE server_id = ? AND unlock_key = ?
-					""",
-					(server_id, reward.value),
-				)
+				query = "DELETE FROM server_unlocks WHERE server_id = ? AND unlock_key = ?"
+
+			query_write(query, (server_id, reward.value))
 
 		case LevelRewardType.RANK | _:
 			print("DEBUG: Applying rank reward.")
 			value = reward.value * reverse
 
-			# Raise the cap.
 			query_write(
 				"""
 					UPDATE servers
