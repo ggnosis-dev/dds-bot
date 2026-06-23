@@ -9,9 +9,12 @@ Server level:
 	- Have a list of perks to provide, right now we'll limit them just to rank cap increases.
 """
 
-XP_START = 10
-XP_END = 100
+XP_START = 5
+XP_END = 150
 MAX_LEVEL = 10
+
+
+# FIXME: Cleanup pleeeease
 
 
 # https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
@@ -23,11 +26,13 @@ def get_xp_threshold(level: int) -> int:
 	# (level / (MAX_LEVEL - 1)) ** 2
 	# (9 / (10 - 1))^2 = 1
 	# (8 / (9))^2 = 0.79
-	point_t = (level / (MAX_LEVEL - 1)) ** 2
-	return int((1 - point_t) * XP_START + point_t * XP_END)
+	point_t = (level / MAX_LEVEL) ** 2
+	xp_required = int((1 - point_t) + point_t * XP_END)
+	return xp_required
 
 
 async def try_server_level_up(server_id: int, rank: int) -> bool:
+	print("INFO: try_server_level_up")
 	# Update server level XP and return the XP.
 	xp, server_level = query_one(
 		"""
@@ -42,12 +47,13 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 	old_level = server_level
 
 	# Check to see if we are higher or lower than the threshold to next level.
-	while server_level < MAX_LEVEL and xp >= get_xp_threshold(server_level):
+	while server_level < MAX_LEVEL and xp >= get_xp_threshold(server_level + 1):
 		server_level += 1
 
 	while server_level > 1 and xp < get_xp_threshold(server_level - 1):
 		server_level -= 1
 
+	print(server_level)
 	# Exit early if there's no change in level.
 	if server_level == old_level:
 		return False
@@ -87,9 +93,14 @@ async def get_server_status(server_id: int) -> ServerStats:
 		(server_id,),
 	)
 
-	next_level_xp = get_xp_threshold(s_level)
-	prev_level_xp = get_xp_threshold(s_level - 1)
+	next_level_xp = get_xp_threshold(s_level + 1)
+
+	# Level 1 should have 0 xp, don't try to calculate because we'll end up with negatives in next step.
+	prev_level_xp = get_xp_threshold(s_level) if s_level > 1 else 0
+
+	# Subtract the previous level requirement from the server XP to find how much they currently have towards the next level.
 	current_level_xp = s_xp - prev_level_xp
+
 	s_xp_required = next_level_xp - prev_level_xp
 
 	return ServerStats(
@@ -103,34 +114,59 @@ async def get_server_status(server_id: int) -> ServerStats:
 
 
 async def _do_server_level_update(server_id: int, old_level: int, new_level: int) -> None:
+	print("DEBUG: Do server level update.")
 	leveled_up = new_level > old_level
-	levels_to_update = range(old_level + 1, new_level) if leveled_up else range(old_level, new_level, -1)
+
+	if leveled_up:
+		# for i in range is not inclusive of the final index. So range(1, 2) will do 1, not 2. Add 1 to each side.
+		levels_to_update = range(old_level + 1, new_level + 1)
+	else:
+		# -1 tells us to step backwards.
+		levels_to_update = range(new_level + 1, old_level + 1, -1)
 
 	for level in levels_to_update:
-		# Use [] as default so we can still iterate it. When blank, we'll do rank cap increase.
-		rewards = LEVEL_REWARDS.get(level, [])
-		for r in rewards:
-			await _apply_reward(server_id, r, leveled_up)
+		# Use level 2 as default. This will do a standard rank cap increase.
+		reward = LEVEL_REWARDS.get(level, LEVEL_REWARDS[2])
+		print(f"DEBUG: Applying rank ({level}) reward to server: {server_id} | Reward is: {reward.r_type}.")
+		await _apply_reward(server_id, reward, leveled_up)
 
 	return
 
 
-async def _apply_reward(server_id: int, rewards: LevelReward, level_up: bool) -> None:
+async def _apply_reward(server_id: int, reward: LevelReward, level_up: bool) -> None:
 	reverse = -1 if not level_up else 1
 
-	match rewards.type:
-		case LevelRewardType.SP_FUSION:
-			pass
-		case LevelRewardType.MISC:
-			pass
+	match reward.r_type:
+		case LevelRewardType.SP_FUSION | LevelRewardType.MISC:
+			print("DEBUG: Applying key reward.")
+
+			if reverse > 0:
+				query_write(
+					"""
+						INSERT INTO server_unlocks (server_id, unlock_key)
+						VALUES (?, ?)
+					""",
+					(server_id, reward.value),
+				)
+			else:
+				query_write(
+					"""
+						DELETE FROM server_unlocks
+						WHERE server_id = ? AND unlock_key = ?
+					""",
+					(server_id, reward.value),
+				)
+
 		case LevelRewardType.RANK | _:
-			pass
+			print("DEBUG: Applying rank reward.")
+			value = reward.value * reverse
+
 			# Raise the cap.
-			# query_write(
-			# 	"""
-			# 		UPDATE servers
-			# 		SET server_level_cap = server_level_cap + ?
-			# 		WHERE server_id = ?
-			# 	""",
-			# 	(level, server_id),
-			# )
+			query_write(
+				"""
+					UPDATE servers
+					SET rank_cap = rank_cap + ?
+					WHERE server_id = ?
+				""",
+				(value, server_id),
+			)
