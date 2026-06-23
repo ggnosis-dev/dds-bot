@@ -31,12 +31,11 @@ class Utility(commands.Cog):
 		if player_data and server_data:
 			mag = player_data.mag
 			rank_average = player_data.party_average_rank
-
 			rank_cap = server_data.rank_cap
 
 			encounter_string = (
-				f"Encounters can spawn up to **Rank {rank_cap}** "
-				f"with weight at your **Party's Average Rank** of **{rank_average}**."
+				f"Encounters can spawn up to **Rank {rank_cap}** (Server Cap)."
+				f"\nEncounters are weighted to **Rank {rank_average}** (Your Party Average)."
 			)
 
 			# Get current time and subtract it from when the player's timer was set.
