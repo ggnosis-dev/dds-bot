@@ -53,7 +53,7 @@ class GemList(Enum):
 
 class LevelRewardType(Enum):
 	RANK = 0
-	SP_FUSION = 1
-	MISC = 2
+	SP_FUSION_KEY = 1
+	KEY = 2
 	# MULT = 1
 	# COOLDOWN = 2
