@@ -9,6 +9,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("DROP TABLE IF EXISTS servers")
 	cursor.execute("DROP TABLE IF EXISTS server_demons")
+	cursor.execute("DROP TABLE IF EXISTS server_unlocks")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS servers (
@@ -37,6 +38,15 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			-- A demon doesn't exist in server_demons in the usual sense, it's a reference pointing to player_demons.
 			FOREIGN KEY 	(player_id, server_id, demon_id)
 				REFERENCES 	player_demons (player_id, server_id, demon_id)
+		)
+	""")
+
+	cursor.execute("""
+		CREATE TABLE IF NOT EXISTS server_unlocks (
+			-- Small relational table to keep track of what has been unlocked.
+			server_id		INTEGER,
+			unlock_key		INTEGER,
+			PRIMARY KEY (server_id, unlock_key)
 		)
 	""")
 
