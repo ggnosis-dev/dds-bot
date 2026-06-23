@@ -122,7 +122,7 @@ async def _do_server_level_update(server_id: int, old_level: int, new_level: int
 		levels_to_update = range(old_level + 1, new_level + 1)
 	else:
 		# -1 tells us to step backwards.
-		levels_to_update = range(new_level + 1, old_level + 1, -1)
+		levels_to_update = range(old_level + 1, new_level + 1, -1)
 
 	for level in levels_to_update:
 		# Use level 2 as default. This will do a standard rank cap increase.
