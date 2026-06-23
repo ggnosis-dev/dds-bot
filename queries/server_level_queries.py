@@ -50,7 +50,7 @@ async def try_server_level_up(server_id: int, rank: int) -> bool:
 	while server_level < MAX_LEVEL and xp >= get_xp_threshold(server_level + 1):
 		server_level += 1
 
-	while server_level > 1 and xp < get_xp_threshold(server_level - 1):
+	while server_level > 1 and xp < get_xp_threshold(server_level):
 		server_level -= 1
 
 	print(server_level)
