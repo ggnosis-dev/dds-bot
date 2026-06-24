@@ -1,4 +1,5 @@
 from entities.comp_data import DemonEntry
+from entities.player_data import PartyStats
 from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
 
@@ -299,3 +300,16 @@ async def get_party_average(player_id: int, server_id: int) -> int:
 	)[0]
 
 	return max(1, response)
+
+
+async def get_party_stats(player_id: int, server_id: int) -> PartyStats:
+	size, cap, average = query_one(
+		"""
+			SELECT party_size, party_cap, party_average_rank FROM players
+			WHERE player_id = ?
+				AND server_id = ?
+		""",
+		(player_id, server_id),
+	)
+
+	return PartyStats(size=size, cap=cap, average=average)

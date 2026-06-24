@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 import discord
 
 from entities.comp_data import DemonEntry
+from entities.player_data import PartyStats
 from entities.server_data import ServerStats
 from entities.view_data import COMP_PAGE_SIZE, ColumnConfig
 from shared_enums import Emotes
@@ -348,11 +349,11 @@ class PartyView(BaseCompendiumView):
 		self,
 		*args,
 		selected_demon_id: int | None = None,
-		weighted_rank: int,
+		party_stats: PartyStats,
 		**kwargs,
 	) -> None:
 		self.selected_demon_id = selected_demon_id
-		self.weighted_rank = weighted_rank
+		self.party_stats = party_stats
 		super().__init__(*args, **kwargs)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
@@ -362,8 +363,13 @@ class PartyView(BaseCompendiumView):
 		if not self.selected_demon_id:
 			container.add_item(discord.ui.TextDisplay("-# No demon is leading your party. Use `>select` to choose a leader"))
 
-		# Average rank/Weighted rank.
-		container.add_item(discord.ui.TextDisplay(f"-# Encounters are currently weighted at: {self.weighted_rank}"))
+		# Party stat information.
+		container.add_item(
+			discord.ui.TextDisplay(
+				f"-# Number in Party: **{self.party_stats.size}** / **{self.party_stats.cap}** "
+				f"• Average Rank: **{self.party_stats.average}**"
+			)
+		)
 
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
