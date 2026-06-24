@@ -11,3 +11,14 @@ def summon_cost(demon_rank: int) -> int:
 
 def daily_mag() -> int:
 	return random.randint(100, 500)
+
+
+def party_slot_cost(current_cap: int, number: int) -> int:
+	unit = 500
+	example = range(current_cap, current_cap + number)
+	cost = unit * current_cap
+
+	for _ in example:
+		cost += unit
+
+	return cost

@@ -152,3 +152,16 @@ async def set_encounter_timer(player_id: int, server_id: int, time: int) -> bool
 	)
 
 	return rows_affected > 0
+
+
+async def increase_party_slots(player_id: int, server_id: int, number: int) -> bool:
+	rows_affected = query_write(
+		"""
+			UPDATE players
+			SET party_cap = party_cap + ?
+			WHERE player_id = ? AND server_id = ?
+		""",
+		(number, player_id, server_id),
+	)
+
+	return rows_affected > 0

@@ -4,10 +4,14 @@ import discord
 
 from discord.ext import commands
 
+from entities.player_data import PlayerData
 from entities.view_data import Columns, get_args
 from helpers import checks
+from helpers.costs import party_slot_cost
 from helpers.views import ConfirmationView, MessageView, PartyView
 from queries import demon_queries, player_demons_queries
+from queries.currency_queries import update_mag
+from queries.player_queries import increase_party_slots
 from shared_enums import DemonRegistration
 
 
@@ -85,6 +89,33 @@ class Party(commands.Cog):
 			f"### Good-Bye...\n**{demon_name}** will have a happy life in a faraway forest."
 			f"You will never see your **{demon_name}** again."
 		)
+		await ctx.send(view=msg)
+
+	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
+		party_cap = p.party_cap
+		cost = party_slot_cost(party_cap, number)
+
+		# Check if player has enough, otherwise exit early.
+		if p.mag < cost:
+			msg = MessageView(f"The cost to increase party slots is **{cost}** MAG. You don't have enough Magnetite!")
+			await ctx.send(view=msg)
+			return
+
+		# Confirmation window.
+		view = ConfirmationView(
+			f"Would you like to increase your available party slots by **{number}**?\n\nCost: **{cost} MAG**",
+			confirmLabel="Yes",
+			denyLabel="No",
+		)
+		result = await ConfirmationView.send_message(view, ctx)
+		if result is False or result is None:
+			return
+
+		# Increase slots and take cash.
+		await increase_party_slots(p.player_id, p.server_id, number)
+		update_mag(p.player_id, p.server_id, -cost)
+
+		msg = MessageView(f"Your available party slots increased from **{party_cap} to {party_cap + number}!")
 		await ctx.send(view=msg)
 
 
