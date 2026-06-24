@@ -4,6 +4,7 @@ import discord
 
 from discord.ext import commands
 
+from entities.demon_data import DemonData
 from helpers import checks, costs
 from helpers.views import ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
@@ -121,13 +122,14 @@ class Fusion(commands.Cog):
 			return
 
 		# Fusion Accident code.
-		is_fusion_accident = random.random() < 0.01
+		is_fusion_accident = random.random() < 1
 		if is_fusion_accident:
-			demon_result = demon_queries.get_random_demon()
+			demon_result = await self._try_fusion_accident(player.id, server.id, demon_result)
 
-		currency_queries.update_mag(player.id, server.id, -cost)
+		# Remove demons being fused from party.
 		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_1.id, set_in_party=False)
 		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_2.id, set_in_party=False)
+		currency_queries.update_mag(player.id, server.id, -cost)
 
 		new_demon = await player_demons_queries.add_demon_to_compendium(
 			player.id, server.id, demon_result.id, demon_result.rank
@@ -154,6 +156,16 @@ class Fusion(commands.Cog):
 			demon_result.colour,
 		)
 		await ctx.send(view=view)
+
+	async def _try_fusion_accident(self, player_id: int, server_id: int, og_demon: DemonData) -> DemonData:
+		accident_result = demon_queries.get_random_unowned_demon(player_id, server_id)
+
+		# Check if demon_result is the same, very rare but don't treat it like an accident in that case.
+		if og_demon.id == accident_result.id:
+			print("DEBUG: Rare instance where accident result was also the demon result! Congrats!")
+			return og_demon
+		else:
+			return accident_result
 
 
 async def setup(bot: commands.Bot) -> None:

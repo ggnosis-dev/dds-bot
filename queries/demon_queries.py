@@ -69,7 +69,29 @@ def get_random_demon() -> DemonData:
 
 	if not row:
 		raise RuntimeError("ERROR: No demons could be found in the database.")
+	return convert_row_to_demon_data(row)
 
+
+def get_random_unowned_demon(player_id: int, server_id: int) -> DemonData:
+	"""Retrieve a random, unowned demon's data from the database."""
+	row = query_one(
+		"""
+			SELECT * FROM demons d
+			WHERE NOT EXISTS (
+				SELECT 1 FROM player_demons pd
+				WHERE pd.demon_id = d.id
+					AND in_party = 1
+					AND pd.player_id = ?
+					AND pd.server_id = ?
+			)
+			ORDER BY RANDOM()
+			LIMIT 1
+		""",
+		(player_id, server_id),
+	)
+
+	if not row:
+		raise RuntimeError("ERROR: No demons could be found in the database.")
 	return convert_row_to_demon_data(row)
 
 
