@@ -11,7 +11,7 @@ from helpers.costs import party_slot_cost
 from helpers.views import ConfirmationView, MessageView, PartyView
 from queries import demon_queries, player_demons_queries
 from queries.currency_queries import update_mag
-from queries.player_queries import increase_party_slots
+from queries.player_queries import get_player, increase_party_slots
 from shared_enums import DemonRegistration
 
 
@@ -90,6 +90,13 @@ class Party(commands.Cog):
 			f"You will never see your **{demon_name}** again."
 		)
 		await ctx.send(view=msg)
+
+	@checks.has_profile()
+	@commands.command(name="increase_party", aliases=["ip"], help="Increase number of slots available in your party.")
+	async def increase_party_command(self, ctx: commands.Context, number: int) -> None:
+		server = typing.cast(discord.Guild, ctx.guild)
+		player_data = typing.cast(PlayerData, await get_player(ctx.author.id, server.id))
+		await self._increase_party_slots_check(ctx, player_data, number)
 
 	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
 		party_cap = p.party_cap
