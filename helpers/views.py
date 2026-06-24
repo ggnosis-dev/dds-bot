@@ -359,10 +359,6 @@ class PartyView(BaseCompendiumView):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Party"))
 
-		# Mention if player doesn't have a leader.
-		if not self.selected_demon_id:
-			container.add_item(discord.ui.TextDisplay("-# No demon is leading your party. Use `>select` to choose a leader"))
-
 		# Party stat information.
 		container.add_item(
 			discord.ui.TextDisplay(
@@ -370,6 +366,15 @@ class PartyView(BaseCompendiumView):
 				f"• Average Rank: **{self.party_stats.average}**"
 			)
 		)
+
+		# Mention if player doesn't have a leader.
+		if not self.selected_demon_id:
+			container.add_item(discord.ui.TextDisplay("-# No demon is leading your party. Use `>select` to choose a leader"))
+
+		if self.party_stats.size >= self.party_stats.cap:
+			container.add_item(
+				discord.ui.TextDisplay("-# Party is full. Use `>increase_party` to increase party's capacity.")
+			)
 
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 

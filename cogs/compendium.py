@@ -61,6 +61,14 @@ class Compendium(commands.Cog):
 			await ctx.send(view=msg)
 			return
 
+		# Check if party has space.
+		if not player_demons_queries.get_party_has_space(player.id, guild.id):
+			msg = MessageView(
+				f"Cannot summon **{demon_name}**. Party is full. You can increase capacity using `>increase_party`."
+			)
+			await ctx.send(view=msg)
+			return
+
 		cost = costs.summon_cost(demon.rank)
 
 		# Check if demon is in compendium before summoning to give a more informative message.
