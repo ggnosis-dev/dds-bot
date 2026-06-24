@@ -110,7 +110,11 @@ class Party(commands.Cog):
 
 		# Confirmation window.
 		view = ConfirmationView(
-			f"Would you like to increase your available party slots by **{number}**?\n\nCost: **{cost} MAG**",
+			(
+				f"Would you like to increase your available party slots by **{number}**?"
+				f"\n\nCost: **{cost} MAG**"
+				"\n-# Cost increases by **500 MAG** per slot."
+			),
 			confirmLabel="Yes",
 			denyLabel="No",
 		)
