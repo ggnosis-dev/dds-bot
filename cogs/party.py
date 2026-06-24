@@ -93,7 +93,7 @@ class Party(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name="increase_party", aliases=["ip"], help="Increase number of slots available in your party.")
-	async def increase_party_command(self, ctx: commands.Context, number: int) -> None:
+	async def increase_party_command(self, ctx: commands.Context, number: int = 1) -> None:
 		server = typing.cast(discord.Guild, ctx.guild)
 		player_data = typing.cast(PlayerData, await get_player(ctx.author.id, server.id))
 		await self._increase_party_slots_check(ctx, player_data, number)
@@ -122,7 +122,7 @@ class Party(commands.Cog):
 		await increase_party_slots(p.player_id, p.server_id, number)
 		update_mag(p.player_id, p.server_id, -cost)
 
-		msg = MessageView(f"Your available party slots increased from **{party_cap} to {party_cap + number}!")
+		msg = MessageView(f"Your available party slots increased from **{party_cap}** to **{party_cap + number}**!")
 		await ctx.send(view=msg)
 
 
