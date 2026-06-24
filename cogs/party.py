@@ -99,7 +99,7 @@ class Party(commands.Cog):
 		await self._increase_party_slots_check(ctx, player_data, number)
 
 	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
-		party_cap = p.party_cap
+		party_cap = p.party_stats.cap
 		cost = party_slot_cost(party_cap, number)
 
 		# Check if player has enough, otherwise exit early.

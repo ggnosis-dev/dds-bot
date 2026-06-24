@@ -30,7 +30,7 @@ class Utility(commands.Cog):
 
 		if player_data and server_data:
 			mag = player_data.mag
-			rank_average = player_data.party_average_rank
+			rank_average = player_data.party_stats.average
 			rank_cap = server_data.rank_cap
 
 			encounter_string = (

@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from entities.player_data import PlayerData
+from entities.player_data import PartyStats, PlayerData
 from helpers.db import query_one, query_write
 
 
@@ -101,16 +101,14 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 	if response is None:
 		return None
 
-	player_id, server_id, selected_demon_id, mag, p_size, p_cap, p_av_rank, d_timer, e_timer = response
+	player_id, server_id, selected_demon_id, mag, p_size, p_cap, p_av, d_timer, e_timer = response
 
 	return PlayerData(
 		player_id=player_id,
 		server_id=server_id,
 		selected_demon_id=selected_demon_id,
 		mag=mag,
-		party_size=p_size,
-		party_cap=p_cap,
-		party_average_rank=p_av_rank,
+		party_stats=PartyStats(size=p_size, cap=p_cap, average=p_av),
 		daily_timer=d_timer,
 		encounter_timer=e_timer,
 	)

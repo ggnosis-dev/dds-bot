@@ -128,7 +128,7 @@ class Encounters(commands.Cog):
 			return
 
 		# If encounter is available, calculate rank of demon then select a random one from it.
-		average_rank = player_data.party_average_rank
+		average_rank = player_data.party_stats.average
 		server_cap = await server_level_queries.get_rank_cap(server.id)
 		demon = demon_queries.get_demon_by_distribution(average_rank, server_cap)
 
@@ -387,7 +387,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			case DemonRegistration.CANT_JOIN:
 				gem_name = self.demon.gem.title()
 				status = (
-					f"> Party is {d_race} {d_name} could not join {user.name}. Party was full. {gems_added} {gem_name}! "
+					f"> {d_race} {d_name} could not join {user.name}. Party was full. {gems_added} {gem_name}! "
 					f"+{mag_received} MAG"
 				)
 
