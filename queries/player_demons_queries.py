@@ -242,7 +242,7 @@ def get_party_has_space(player_id: int, server_id: int) -> bool:
 	Check if the player's party is full.
 
 	Returns:
-		bool: True if successful, False otherwise.
+		bool: True if has space, False otherwise.
 	"""
 	response = query_one(
 		"""
@@ -252,9 +252,9 @@ def get_party_has_space(player_id: int, server_id: int) -> bool:
 				AND server_id = ?
 		""",
 		(player_id, server_id),
-	)[0]
+	)
 
-	return response
+	return response is not None
 
 
 async def calculate_party_average(player_id: int, server_id: int) -> int:
