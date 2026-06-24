@@ -63,13 +63,12 @@ class Fusion(commands.Cog):
 				await ctx.send(f"{i} not in party")
 				return
 
-		average_rank = demon_1.rank + demon_2.rank // 2
-
 		# Do a different process if fusing with an Element demon.
 		if demon_1.race == "Element" or demon_2.race == "Element":
 			element, demon = (demon_1, demon_2) if demon_1.race == "Element" else (demon_2, demon_1)
 			demon_result = fusion_queries.get_fuse_with_element(demon.race, element.name, original_rank=demon.rank)
 		else:
+			average_rank = demon_1.rank + demon_2.rank // 2
 			demon_result = fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
 
 		# Unique message if no demon can be fused.

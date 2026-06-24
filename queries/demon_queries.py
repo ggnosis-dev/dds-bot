@@ -148,13 +148,18 @@ def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | 
 	query = f"""
 		SELECT id FROM demons
 		WHERE race = ? AND rank {">" if direction == 1 else "<"} ?
+		ORDER BY rank {"ASC" if direction == 1 else "DESC"}
+		LIMIT 1
 	"""
-	d_id = query_one(
+
+	print(f"DEBUG: Race: {race} | Rank: {rank} | Direction {direction} | Query: {query}")
+
+	response = query_one(
 		query,
 		(race, rank),
-	)[0]
+	)
 
-	if d_id is None:
+	if response is None:
 		return None
 
-	return get_demon_by_id(d_id)
+	return get_demon_by_id(response[0])
