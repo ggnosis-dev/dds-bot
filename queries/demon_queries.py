@@ -72,22 +72,28 @@ def get_random_demon() -> DemonData:
 	return convert_row_to_demon_data(row)
 
 
-def get_random_unowned_demon(player_id: int, server_id: int) -> DemonData:
-	"""Retrieve a random, unowned demon's data from the database."""
+def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> DemonData:
+	"""
+	Retrieve a random demon's data that is not currently in the player's party, from the database.
+	Range is between 1 and rank + 10.
+	"""
+	rank += 10
+
 	row = query_one(
 		"""
 			SELECT * FROM demons d
-			WHERE NOT EXISTS (
-				SELECT 1 FROM player_demons pd
-				WHERE pd.demon_id = d.id
-					AND in_party = 1
-					AND pd.player_id = ?
-					AND pd.server_id = ?
-			)
+			WHERE d.rank BETWEEN 1 AND ?
+				AND NOT EXISTS (
+					SELECT 1 FROM player_demons pd
+					WHERE pd.demon_id = d.id
+						AND in_party = 1
+						AND pd.player_id = ?
+						AND pd.server_id = ?
+				)
 			ORDER BY RANDOM()
 			LIMIT 1
 		""",
-		(player_id, server_id),
+		(rank, player_id, server_id),
 	)
 
 	if not row:
@@ -154,7 +160,7 @@ def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
 			SELECT id FROM demons
 			WHERE race = ?
 			ORDER BY
-				-- Order by absolute rank minus passed in rank.
+				-- Order by absolute rank minus the passed in rank.
 				ABS(rank - ?),
 				-- If there's a tie, prioritise the smaller one.
 				rank

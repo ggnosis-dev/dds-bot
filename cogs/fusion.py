@@ -158,14 +158,10 @@ class Fusion(commands.Cog):
 		await ctx.send(view=view)
 
 	async def _try_fusion_accident(self, player_id: int, server_id: int, og_demon: DemonData) -> DemonData:
-		accident_result = demon_queries.get_random_unowned_demon(player_id, server_id)
+		accident = demon_queries.get_random_unowned_demon(player_id, server_id, og_demon.rank)
 
 		# Check if demon_result is the same, very rare but don't treat it like an accident in that case.
-		if og_demon.id == accident_result.id:
-			print("DEBUG: Rare instance where accident result was also the demon result! Congrats!")
-			return og_demon
-		else:
-			return accident_result
+		return og_demon if og_demon.id == accident.id else accident
 
 
 async def setup(bot: commands.Bot) -> None:
