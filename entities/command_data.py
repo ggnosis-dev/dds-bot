@@ -8,7 +8,6 @@ class CommandData:
 	usage: str
 	aliases: list[str] | None = None
 	hidden: bool = False
-	require_var_positional: bool = False
 
 
 def command_kwargs(command_type: dict[str, CommandData], key: str):
@@ -41,7 +40,6 @@ COMPENDIUM_COMMANDS = {
 			" Provide the demon's name after the command."
 		),
 		usage=">summon | >sum {demon}",
-		require_var_positional=True,
 	),
 }
 
