@@ -96,7 +96,7 @@ FUSION_COMMANDS = {
 			"Fuse two demons together into another demon."
 			" Fusing with a demon from the Element race will create a demon that is a"
 			" tier up or down in the other demon's race."
-			"\nSupposedly accidents can occur..."
+			"\n\nSupposedly accidents can occur..."
 		),
 		usage=">fuse | f {demon_1}; {demon_2}",
 	)
@@ -155,8 +155,50 @@ PARTY_COMMANDS = {
 		help=(
 			"Release a demon from your Party to free up space."
 			" This does not remove it from your Compendium and you can resummon them anytime using the `>summon` command."
-			"\nOccassionally, the demon may give you something as a parting gift."
+			"\n\nOccassionally, the demon may give you something as a parting gift."
 		),
 		usage=">release | rel {demon}",
+	),
+}
+
+SERVER_COMPENDIUM_COMMANDS = {
+	"loan": CommandData(
+		name="loan",
+		aliases=["ln"],
+		help=(
+			"Loan a demon to the server's Demonic Compendium."
+			" The demon's rank will help contribute to the overall Server Level's experience."
+			"\n\nA demon can be retrieved again at anytime using the `>return` command."
+			"\n\nIf an existing demon is already in the Server's Compendium,"
+			" a prompt to replace it will appear given the new demon is stronger than it."
+		),
+		usage=">loan | ln {demon}",
+	),
+	"return": CommandData(
+		name="return",
+		aliases=["ret"],
+		help=(
+			"Retrieve a demon that has been loaned to the server's Demonic Compendium."
+			" The demon's rank will be subtracted from the overall Server Level's experience."
+		),
+		usage=">return | ret {demon}",
+	),
+	"server_compendium": CommandData(
+		name="server_compendium",
+		aliases=["servcomp", "sc"],
+		help=(
+			"Displays the Server's Demonic Compendium, letting you see every demon the server's members have loaned."
+			" You can view specific player's loaned demons by mentioning them."
+		),
+		usage=">server_compendium | servcomp | sc {opt: @player}",
+	),
+	"server_stats": CommandData(
+		name="server_stats",
+		aliases=["ss"],
+		help=(
+			"View statistics about the server."
+			" This includes its Server Level, encounter's maximum rank, experience and what is required for the next level."
+		),
+		usage=">server_stats | ss",
 	),
 }

@@ -1,3 +1,4 @@
+import asyncio
 import typing
 
 from collections import Counter
@@ -6,8 +7,9 @@ import discord
 
 from discord.ext import commands
 
+from entities.command_data import SERVER_COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
-from helpers import checks
+from helpers import checks, gets
 from helpers.views import ConfirmationView, MessageView, ServerCompendiumView
 from queries import demon_queries, player_demons_queries, server_demons_queries, server_level_queries
 from shared_enums import DemonRegistration, Unicode
@@ -20,22 +22,18 @@ class ServerCompendium(commands.Cog):
 		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
 
-	@commands.command(
-		name="server_comp",
-		aliases=["servcomp", "sc"],
-		help="Displays the server's compendium. Can provide @player to see their loaned demons.",
-	)
+	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "server_compendium"))
 	async def server_comp_command(self, ctx: commands.Context, *args: str) -> None:
-		server = typing.cast(discord.Guild, ctx.guild)
+		server = gets.get_server(ctx)
+
 		columns = list(Columns.SERVER_DEFAULT)
-		mentioned = None
+		columns, mentioned = get_args(args, server, columns) if args else (columns, None)
+		mentioned = mentioned.id if mentioned else None
 
-		if args:
-			columns, mentioned = get_args(args, server, columns)
-			mentioned = mentioned.id if mentioned else None
-
-		comp_list = await server_demons_queries.check_server_compendium(server.id, mentioned)
-		stats = await server_level_queries.get_server_status(server.id)
+		comp_list, stats = await asyncio.gather(
+			server_demons_queries.check_server_compendium(server.id, mentioned),
+			server_level_queries.get_server_status(server.id),
+		)
 
 		# Because the server COMP only stores user IDs, we need to retrieve their names.
 		for entry in comp_list:
@@ -47,10 +45,9 @@ class ServerCompendium(commands.Cog):
 		await ctx.send(view=view)
 
 	@checks.has_profile()
-	@commands.command(name="loan", help="Loan a demon to the server's compendium.")
+	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "loan"))
 	async def loan_command(self, ctx: commands.Context, *, demon_name: str) -> None:
-		player = ctx.author
-		server = typing.cast(discord.Guild, ctx.guild)
+		player, server = gets.get_player_server(ctx)
 		demon_name = demon_name.title()
 		demon = demon_queries.get_demon_by_name(demon_name)
 
@@ -117,8 +114,10 @@ class ServerCompendium(commands.Cog):
 			)
 
 			# Add experience to the server's level. Take away stored demon first, then add new.
-			r1 = await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
-			r2 = await server_level_queries.try_server_level_up(server.id, demon.rank)
+			r1, r2 = await asyncio.gather(
+				server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank),
+				server_level_queries.try_server_level_up(server.id, demon.rank),
+			)
 
 			if r1 or r2:
 				# Start level is either the first old level or the second old level.
@@ -180,10 +179,9 @@ class ServerCompendium(commands.Cog):
 			await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
 
 	@checks.has_profile()
-	@commands.command(name="return", help="Loan a demon to the server's compendium.")
+	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "return"))
 	async def return_command(self, ctx: commands.Context, *, demon_name: str) -> None:
-		player = ctx.author
-		server = typing.cast(discord.Guild, ctx.guild)
+		player, server = gets.get_player_server(ctx)
 		demon_name = demon_name.title()
 		demon = demon_queries.get_demon_by_name(demon_name)
 
@@ -220,11 +218,9 @@ class ServerCompendium(commands.Cog):
 					reward_descs = self._adjust_level_up_desc({reward.desc for reward in level_data.rewards})
 					await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
 
-	@commands.command(
-		name="server_stats", aliases=["ss"], help="View the server's current level, experience and maximum ranks."
-	)
+	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "server_stats"))
 	async def server_stats_command(self, ctx: commands.Context) -> None:
-		server = typing.cast(discord.Guild, ctx.guild)
+		server = gets.get_server(ctx)
 		stats = await server_level_queries.get_server_status(server.id)
 
 		progress_xp = int((stats.current_level_xp / stats.xp_required) * 10)
@@ -236,8 +232,8 @@ class ServerCompendium(commands.Cog):
 		msg = MessageView(
 			f"### {server.name}'s Server Statistics"
 			f"\n\nServer Level: **{stats.level}**"
-			f"\n\nTotal Experience: **{stats.total_xp}**"
 			f"\n\nMaximum Encounter Rank: **{stats.rank_cap}**"
+			f"\n\nTotal Experience: **{stats.total_xp}**"
 			f"\n\nExperience to Next Level: **{stats.current_level_xp}** / **{stats.xp_required}**"
 			f"\n{progress_bar}",
 		)
