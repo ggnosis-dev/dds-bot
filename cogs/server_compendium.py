@@ -48,7 +48,7 @@ class ServerCompendium(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name="loan", help="Loan a demon to the server's compendium.")
-	async def loan_command(self, ctx, *, demon_name) -> None:
+	async def loan_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		player = ctx.author
 		server = typing.cast(discord.Guild, ctx.guild)
 		demon_name = demon_name.title()
@@ -181,7 +181,7 @@ class ServerCompendium(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(name="return", help="Loan a demon to the server's compendium.")
-	async def return_command(self, ctx, *, demon_name) -> None:
+	async def return_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		player = ctx.author
 		server = typing.cast(discord.Guild, ctx.guild)
 		demon_name = demon_name.title()
@@ -223,11 +223,10 @@ class ServerCompendium(commands.Cog):
 	@commands.command(
 		name="server_stats", aliases=["ss"], help="View the server's current level, experience and maximum ranks."
 	)
-	async def server_stats_command(self, ctx) -> None:
+	async def server_stats_command(self, ctx: commands.Context) -> None:
 		server = typing.cast(discord.Guild, ctx.guild)
 		stats = await server_level_queries.get_server_status(server.id)
 
-		# OO#######	xp / xp required
 		progress_xp = int((stats.current_level_xp / stats.xp_required) * 10)
 
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * progress_xp + f"{Unicode.UNFILLED_CIRCLE.value} " * (
@@ -244,7 +243,9 @@ class ServerCompendium(commands.Cog):
 		)
 		await ctx.send(view=msg)
 
-	async def _do_level_up_notif(self, ctx, server: discord.Guild, old_level, new_level, rewards: set[str]) -> None:
+	async def _do_level_up_notif(
+		self, ctx: commands.Context, server: discord.Guild, old_level: int, new_level: int, rewards: set[str]
+	) -> None:
 		reward_list = ""
 		serv_stats = await server_level_queries.get_server_status(server.id)
 		for r in rewards:
