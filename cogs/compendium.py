@@ -1,12 +1,8 @@
-import typing
-
-import discord
-
 from discord.ext import commands
 
 from entities.command_data import COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
-from helpers import checks, costs
+from helpers import checks, costs, gets
 from helpers.views import CompendiumView, ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
@@ -28,14 +24,14 @@ class Compendium(commands.Cog):
 			ctx (discord.Context): Context of the command call.
 			mentioned (discord.Member | None): Optional user to check compendium for.
 		"""
-		server = typing.cast(discord.Guild, ctx.guild)
+		player, server = gets.get_player_server(ctx)
 		columns = list(Columns.PLAYER_DEFAULT)
 		mentioned = None
 
 		if args:
 			columns, mentioned = get_args(args, server, columns)
 
-		player = mentioned if mentioned is not None else ctx.author
+		player = mentioned if mentioned is not None else player
 
 		comp_list = await player_demons_queries.check_compendium(player.id, server.id)
 		view = CompendiumView(player.name, comp_list, columns)
@@ -52,8 +48,7 @@ class Compendium(commands.Cog):
 			demon_name (str): Name of the demon to summon. The * before it in the arguments
 				allows for multi-word demon names.
 		"""
-		guild = typing.cast(discord.Guild, ctx.guild)
-		player = ctx.author
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon = demon_queries.get_demon_by_name(demon_name)
 
@@ -63,7 +58,7 @@ class Compendium(commands.Cog):
 			return
 
 		# Check if party has space.
-		if not player_demons_queries.get_party_has_space(player.id, guild.id):
+		if not player_demons_queries.get_party_has_space(player_id, server_id):
 			msg = MessageView(
 				f"Cannot summon **{demon_name}**. Party is full. You can increase capacity using `>increase_party`."
 			)
@@ -73,7 +68,7 @@ class Compendium(commands.Cog):
 		cost = costs.summon_cost(demon.rank)
 
 		# Check if demon is in compendium before summoning to give a more informative message.
-		in_comp = await player_demons_queries.check_demon_registration(player.id, guild.id, demon.id)
+		in_comp = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
@@ -93,15 +88,15 @@ class Compendium(commands.Cog):
 			return
 
 		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
-		mag = currency_queries.get_mag(player.id, guild.id)
+		mag = currency_queries.get_mag(player_id, server_id)
 
 		if mag < cost:
 			msg = MessageView("You don't have enough Magnetite to summon this demon!")
 			await ctx.send(view=msg)
 			return
 
-		currency_queries.update_mag(player.id, guild.id, -cost)
-		await player_demons_queries.set_demon_in_party(player.id, guild.id, demon.id)
+		currency_queries.update_mag(player_id, server_id, -cost)
+		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id)
 		msg = MessageView(f"You have summoned **{demon_name}** to your party!")
 		await ctx.send(view=msg)
 
