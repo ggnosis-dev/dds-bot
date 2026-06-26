@@ -87,3 +87,17 @@ ENCOUNTERS_COMMANDS = {
 		hidden=True,
 	),
 }
+
+FUSION_COMMANDS = {
+	"fuse": CommandData(
+		name="fuse",
+		aliases=["f"],
+		help=(
+			"Fuse two demons together into another demon."
+			" Fusing with a demon from the Element race will create a demon that is a"
+			" tier up or down in the other demon's race."
+			"\nSupposedly accidents can occur..."
+		),
+		usage=">fuse {demon_1}; {demon_2}",
+	)
+}

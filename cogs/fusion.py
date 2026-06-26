@@ -4,8 +4,9 @@ import discord
 
 from discord.ext import commands
 
+from entities.command_data import FUSION_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
-from helpers import checks, costs
+from helpers import checks, costs, gets
 from helpers.views import ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
 from shared_enums import DemonRegistration
@@ -19,10 +20,9 @@ class Fusion(commands.Cog):
 		self.players_in_fusion: set[int] = set()
 
 	@checks.has_profile()
-	@commands.command(name="fuse", aliases=["f", "fusion"], description="Fuse two demons together to create another.")
-	async def fuse_command(self, ctx, *, input_str: str | None = None) -> None:
-		player = ctx.author
-		server = ctx.guild
+	@commands.command(**command_kwargs(FUSION_COMMANDS, "fuse"))
+	async def fuse_command(self, ctx: commands.Context, *, input_str: str | None = None) -> None:
+		player, server = gets.get_player_server(ctx)
 
 		if player.id in self.players_in_fusion:
 			await ctx.send("You're already in the process of fusing...")
