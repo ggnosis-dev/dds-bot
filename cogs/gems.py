@@ -54,7 +54,7 @@ class Gems(commands.Cog):
 			except Exception as e:
 				print(f"ERROR: Failed to send gem found message: {e}")
 
-	@commands.command(**command_kwargs(GEMS_COMMANDS, "fuse"))
+	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gem_collection_command(self, ctx: commands.Context) -> None:
 		"""View player's current gem collection."""
 		player_id, server_id = gets.get_player_server_ids(ctx)
