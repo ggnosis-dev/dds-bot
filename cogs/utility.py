@@ -7,6 +7,7 @@ from entities.command_data import UTILITY_COMMANDS, command_kwargs
 from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW_HOURS
 from helpers import checks, gets
 from helpers.costs import daily_mag
+from helpers.encounter_utils import get_current_encounter_window
 from helpers.views import MessageView
 from queries import currency_queries, player_queries, server_level_queries
 
@@ -108,22 +109,6 @@ class Utility(commands.Cog):
 
 		view = MessageView(f"Added {amount} MAG.\n\nTotal MAG: **{mag}**")
 		await ctx.send(view=view)
-
-
-# TODO: Probably should move this.
-def get_current_encounter_window(now: int) -> int:
-	"""Get the current encounter window in seconds. Man, this took me way too long."""
-	# Convert window hours to seconds.
-	window_seconds = ENCOUNTER_WINDOW_HOURS * 3600
-
-	# How many times the window has elapsed since the beginning.
-	windows_elapsed = now // window_seconds
-
-	# Take the number of windows elapsed and multiply it by how long a window takes in seconds.
-	# We then know which window we're currently in.
-	this_window = windows_elapsed * window_seconds
-
-	return this_window
 
 
 async def setup(bot: commands.Bot) -> None:

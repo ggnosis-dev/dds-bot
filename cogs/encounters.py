@@ -9,12 +9,11 @@ from discord.ext import commands
 
 from entities.command_data import ENCOUNTERS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
-from helpers import checks, gets
+from entities.player_data import ENCOUNTER_WINDOW_HOURS
+from helpers import checks, encounter_utils, gets
 from helpers.views import MessageView
 from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries, server_level_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
-
-from .utility import WINDOW_HOURS, get_current_encounter_window
 
 dedicated_channel = 1486290442877407333
 
@@ -59,11 +58,14 @@ class Encounters(commands.Cog):
 	@checks.is_developer()
 	@checks.has_profile()
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "test_encounter"))
-	async def test_encounter_command(self, ctx, *, name: str | None = None) -> None:
+	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None = None) -> None:
 		"""Command to start a test encounter with a random demon."""
 
 		if name is not None:
 			name = name.title()
+
+		if not isinstance(ctx.channel, discord.TextChannel):
+			raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
 
 		await self._start_encounter(ctx.channel, name)
 
@@ -107,11 +109,11 @@ class Encounters(commands.Cog):
 
 		# Get the time and the period where the current encounter window started.
 		now = int(time.time())
-		current_window = get_current_encounter_window(now)
+		current_window = encounter_utils.get_current_encounter_window(now)
 
 		# If encounter has already been made in this period, send a message with how long remaining.
 		if current_window < player_data.encounter_timer:
-			window_seconds = WINDOW_HOURS * 3600
+			window_seconds = ENCOUNTER_WINDOW_HOURS * 3600
 			remaining = (current_window + window_seconds) - now
 			hours, remainder = divmod(remaining, 3600)
 			minutes, seconds = divmod(remainder, 60)
