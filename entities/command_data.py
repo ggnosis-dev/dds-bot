@@ -31,7 +31,7 @@ COMPENDIUM_COMMANDS = {
 		aliases=["comp", "c"],
 		help=(
 			"View your Demonic Compendium, letting you see every demon you have ever recruited."
-			" You can view other player's Compendiums by tagging them,"
+			" You can view other player's Compendiums by mentioning them,"
 			' and can view hidden columns by typing part of "gemstone" or "personality".'
 		),
 		usage=">compendium {opt: @player | gemstone | personality}",
@@ -112,6 +112,12 @@ GEMS_COMMANDS = {
 }
 
 ITEMS_COMMANDS = {
+	"inventory": CommandData(
+		name="inventory",
+		aliases=["inv"],
+		help="View your inventory of acquired items.",
+		usage=">inventory | inv",
+	),
 	"use": CommandData(
 		name="use",
 		help=(
@@ -120,10 +126,37 @@ ITEMS_COMMANDS = {
 		),
 		usage=">use {item}; {opt: demon}",
 	),
-	"inventory": CommandData(
-		name="inventory",
-		aliases=["inv"],
-		help="View your inventory of acquired items.",
-		usage=">inventory | inv",
+}
+
+PARTY_COMMANDS = {
+	"party": CommandData(
+		name="party",
+		aliases=["p"],
+		help=(
+			"Displays the player's current Party."
+			" You can view other player's Compendiums by mentioning them,"
+			' and can view hidden columns by typing part of "gemstone" or "personality".'
+		),
+		usage=">party | p {opt: @player | gemstone | personality}",
+	),
+	"increase_party": CommandData(
+		name="increase",
+		aliases=["inc"],
+		help=(
+			"Increase number of slots available in your party."
+			" Multiple can be upgraded at once by specifying a number."
+			" Each new slot's cost increments by 500 MAG."
+		),
+		usage=">increase | inc {opt: number}",
+	),
+	"release": CommandData(
+		name="release",
+		aliases=["rel"],
+		help=(
+			"Release a demon from your Party to free up space."
+			" This does not remove it from your Compendium and you can resummon them anytime using the `>summon` command."
+			"\nOccassionally, the demon may give you something as a parting gift."
+		),
+		usage=">release | rel {demon}",
 	),
 }

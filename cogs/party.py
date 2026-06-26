@@ -1,12 +1,9 @@
-import typing
-
-import discord
-
 from discord.ext import commands
 
+from entities.command_data import PARTY_COMMANDS, command_kwargs
 from entities.player_data import PlayerData
 from entities.view_data import Columns, get_args
-from helpers import checks
+from helpers import checks, gets
 from helpers.costs import party_slot_cost
 from helpers.views import ConfirmationView, MessageView, PartyView
 from queries import demon_queries, player_demons_queries
@@ -23,7 +20,7 @@ class Party(commands.Cog):
 		self.bot = bot
 
 	@checks.has_profile()
-	@commands.command(name="party", aliases=["p"], help="Displays the player's current party.")
+	@commands.command(**command_kwargs(PARTY_COMMANDS, "party"))
 	async def party_command(self, ctx: commands.Context, *args: str) -> None:
 		"""
 		Command to display player's current party.
@@ -32,14 +29,15 @@ class Party(commands.Cog):
 			ctx (discord.Context): Context of the command call.
 			mentioned (discord.Member | None): Optional user to check party for.
 		"""
-		server = typing.cast(discord.Guild, ctx.guild)
+
+		player, server = gets.get_player_server(ctx)
 		mentioned = None
 		columns = list(Columns.PLAYER_DEFAULT)
 
 		if args:
 			columns, mentioned = get_args(args, server, columns)
 
-		player = mentioned if mentioned is not None else ctx.author
+		player = mentioned if mentioned is not None else player
 
 		party_list = await player_demons_queries.check_party(player.id, server.id)
 		sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
@@ -49,7 +47,7 @@ class Party(commands.Cog):
 		await ctx.send(view=view)
 
 	@checks.has_profile()
-	@commands.command(name="release", aliases=["rel"], help="Release a demon from your party.")
+	@commands.command(**command_kwargs(PARTY_COMMANDS, "release"))
 	async def release_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		"""
 		Command to release a demon from the player's party.
@@ -59,8 +57,8 @@ class Party(commands.Cog):
 			demon_name (str): Name of the demon to release from the party. The * before it in the arguments
 				allows for multi-word demon names.
 		"""
-		guild = typing.cast(discord.Guild, ctx.guild)
-		player = ctx.author
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon_id = demon_queries.get_demon_id_by_name(demon_name)
 
@@ -70,7 +68,7 @@ class Party(commands.Cog):
 			return
 
 		# Check if demon is in party.
-		in_party = await player_demons_queries.check_demon_registration(player.id, guild.id, demon_id)
+		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"A **{demon_name}** was not found in your party...")
@@ -84,7 +82,7 @@ class Party(commands.Cog):
 		if result is False or result is None:
 			return
 
-		await player_demons_queries.set_demon_in_party(player.id, guild.id, demon_id, set_in_party=False)
+		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_id, set_in_party=False)
 		msg = MessageView(
 			f"### Good-Bye...\n**{demon_name}** will have a happy life in a faraway forest."
 			f"You will never see your **{demon_name}** again."
@@ -92,10 +90,14 @@ class Party(commands.Cog):
 		await ctx.send(view=msg)
 
 	@checks.has_profile()
-	@commands.command(name="increase_party", aliases=["ip"], help="Increase number of slots available in your party.")
+	@commands.command(**command_kwargs(PARTY_COMMANDS, "increase_party"))
 	async def increase_party_command(self, ctx: commands.Context, number: int = 1) -> None:
-		server = typing.cast(discord.Guild, ctx.guild)
-		player_data = typing.cast(PlayerData, await get_player(ctx.author.id, server.id))
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_data = await get_player(player_id, server_id)
+
+		if player_data is None:
+			raise RuntimeError("ERROR: increase_party_command | Player found but no data retrieved.")
+
 		await self._increase_party_slots_check(ctx, player_data, number)
 
 	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
