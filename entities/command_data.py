@@ -12,13 +12,17 @@ class CommandData:
 
 def command_kwargs(command_type: dict[str, CommandData], key: str):
 	data = command_type[key]
-	return {
+	return_data = {
 		"name": data.name,
-		"aliases": data.aliases,
 		"help": data.help,
 		"usage": data.usage,
 		"hidden": data.hidden,
 	}
+
+	if data.aliases is not None:
+		return_data["aliases"] = data.aliases
+
+	return return_data
 
 
 COMPENDIUM_COMMANDS = {
@@ -64,7 +68,7 @@ ENCOUNTERS_COMMANDS = {
 		aliases=["e"],
 		help=(
 			"Starts an encounter with a demon."
-			" Its rank is determined at random using distribution up to the Server's Maximum Rank Capacity "
+			" Its rank is determined at random using distribution up to the Server's Maximum Rank Capacity"
 			" with weight at your Party's Average Rank."
 		),
 		usage=">encounter | >e",

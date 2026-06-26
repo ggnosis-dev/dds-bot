@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import random
 import time
 
@@ -9,8 +7,9 @@ import discord
 
 from discord.ext import commands
 
+from entities.command_data import ENCOUNTERS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
-from helpers import checks
+from helpers import checks, gets
 from helpers.views import MessageView
 from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries, server_level_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
@@ -59,55 +58,49 @@ class Encounters(commands.Cog):
 
 	@checks.is_developer()
 	@checks.has_profile()
-	@commands.command(
-		name="test_encounter",
-		aliases=["te"],
-		help="Start a test encounter with a random demon.",
-	)
+	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "test_encounter"))
 	async def test_encounter_command(self, ctx, *, name: str | None = None) -> None:
 		"""Command to start a test encounter with a random demon."""
+
 		if name is not None:
 			name = name.title()
 
 		await self._start_encounter(ctx.channel, name)
 
-	@commands.command(name="start", help="Sets up the player to start playing.")
-	async def start_tutorial_command(self, ctx) -> None:
-		"""
-		Stores new player data into the DB and begins a forced encounter with a Pixie that acts
-		as a tutorial.
-		"""
+	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "start"))
+	async def start_tutorial_command(self, ctx: commands.Context) -> None:
+		"""Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial."""
+
 		if await player_queries.setup_player(ctx):
 			send_to_channel = self.bot.get_channel(dedicated_channel) or ctx.channel
 
 			if not isinstance(send_to_channel, discord.TextChannel):
-				raise RuntimeError("ERROR: Could not find the channel to send the encounter to.")
+				raise RuntimeError("ERROR: start_command | Could not find the channel to send the encounter to.")
 
 			await ctx.send("Starting your first encounter...")
-			demon = demon_queries.get_demon_by_id(1)
+
+			tut_demon = "pixie"
+			demon = demon_queries.get_demon_by_name(tut_demon)
 
 			if demon is None:
-				raise RuntimeError("ERROR: Demon at ID 1 not found in the database.")
+				raise RuntimeError(f"ERROR: start_command | Demon {tut_demon} was not found in the database.")
 
-			view = EncounterViewInitial(demon, self, user_exclusive_to=ctx.author, tutorial=True)
+			(player,) = gets.get_player_server(ctx)
+			view = EncounterViewInitial(demon, self, user_exclusive_to=player, tutorial=True)
 			await send_to_channel.send(view=view)
 
 	@checks.has_profile()
-	@commands.command(
-		name="encounter",
-		aliases=["e"],
-		description="Starts a special daily encounter with a demon.",
-	)
-	async def encounter_demon_command(self, ctx) -> None:
+	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "encounter"))
+	async def encounter_demon_command(self, ctx: commands.Context) -> None:
 		"""Command to trigger a daily demon encounter."""
+
 		send_to_channel = self.bot.get_channel(dedicated_channel) or ctx.channel
 
 		if not isinstance(send_to_channel, discord.TextChannel):
 			raise RuntimeError("ERROR: Could not find the channel to send the encounter to.")
 
-		player = ctx.author
-		server = ctx.guild
-		player_data = await player_queries.get_player(player.id, server.id)
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_data = await player_queries.get_player(player_id, server_id)
 
 		if player_data is None:
 			return
@@ -129,12 +122,13 @@ class Encounters(commands.Cog):
 
 		# If encounter is available, calculate rank of demon then select a random one from it.
 		average_rank = player_data.party_stats.average
-		server_cap = await server_level_queries.get_rank_cap(server.id)
+		server_cap = await server_level_queries.get_rank_cap(server_id)
 		demon = demon_queries.get_demon_by_distribution(average_rank, server_cap)
 
-		view = EncounterViewInitial(demon, self, user_exclusive_to=ctx.author, count=1)
+		(player,) = gets.get_player_server(ctx)
+		view = EncounterViewInitial(demon, self, user_exclusive_to=player, count=1)
 		await send_to_channel.send(view=view)
-		await player_queries.set_encounter_timer(player.id, server.id, now)
+		await player_queries.set_encounter_timer(player_id, server_id, now)
 
 	async def _start_encounter(self, send_to_channel: discord.TextChannel, name: str | None = None) -> None:
 		"""
@@ -231,6 +225,7 @@ class Encounters(commands.Cog):
 		return total
 
 
+# TODO: Move this out of this file.
 class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	"""
 	Base layout view for encounters. Shared logic for handling dialogue options and interactions.
@@ -273,7 +268,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		pass
 
 	@property
-	def _root_view(self) -> EncounterViewTemplate:
+	def _root_view(self) -> "EncounterViewTemplate":
 		"""Helper property to get the parent view that has the icon count and status display."""
 		parent = self.parent_view or self
 		return parent
@@ -475,7 +470,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		demon: DemonData,
 		encounters_cog: Encounters,
 		count: int = 1,
-		user_exclusive_to: discord.User | None = None,
+		user_exclusive_to: discord.Member | None = None,
 		tutorial=False,
 	) -> None:
 		"""
