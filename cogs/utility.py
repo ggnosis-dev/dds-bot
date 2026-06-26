@@ -1,28 +1,31 @@
+import asyncio
 import time
 
 from discord.ext import commands
 
-from helpers import checks
+from entities.command_data import UTILITY_COMMANDS, command_kwargs
+from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW_HOURS
+from helpers import checks, gets
 from helpers.costs import daily_mag
 from helpers.views import MessageView
 from queries import currency_queries, player_queries, server_level_queries
-
-# TODO: Move these somewhere else. This file should be dedicated to utility commands.
-DAILY_COOLDOWN = 43200 * 2
-WINDOW_HOURS = 3
 
 
 class Utility(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
-	@commands.command(name="stuff", aliases=["st"], description="Check the stuff.")
-	async def stuff_check_command(self, ctx):
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "stuff"))
+	async def stuff_command(self, ctx: commands.Context):
 		"""Command to view MAG, daily timer, all that jazz."""
-		player_id = ctx.author.id
-		server_id = ctx.guild.id
-		player_data = await player_queries.get_player(player_id, server_id)
-		server_data = await server_level_queries.get_server_status(server_id)
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
+
+		player_data, server_data = await asyncio.gather(
+			player_queries.get_player(player_id, server_id),
+			server_level_queries.get_server_status(server_id),
+		)
+
 		daily_string = "Daily is available!"
 		encounter_time_up = "Encounter is available!"
 		encounter_string = None
@@ -55,7 +58,7 @@ class Utility(commands.Cog):
 
 			# If encounter has already been made in this period, send a message with how long remaining.
 			if current_window < player_data.encounter_timer:
-				window_seconds = WINDOW_HOURS * 3600
+				window_seconds = ENCOUNTER_WINDOW_HOURS * 3600
 				remaining = (current_window + window_seconds) - time_now
 				hours, remainder = divmod(remaining, 3600)
 				minutes, seconds = divmod(remainder, 60)
@@ -66,11 +69,11 @@ class Utility(commands.Cog):
 		await ctx.send(view=view)
 
 	@checks.has_profile()
-	@commands.command(name="daily", aliases=["d"], description="Get some daily MAG.")
-	async def daily_mag_command(self, ctx):
-		"""Command to view MAG, daily timer, all that jazz."""
-		player_id = ctx.author.id
-		server_id = ctx.guild.id
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "daily"))
+	async def daily_command(self, ctx: commands.Context):
+		"""Command to get some free MAG every, however many hours."""
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		player_data = await player_queries.get_player(player_id, server_id)
 		daily_string = ""
 
@@ -95,11 +98,11 @@ class Utility(commands.Cog):
 		await ctx.send(view=view)
 
 	@checks.is_developer()
-	@commands.command(name="give_mag", aliases=["gm"], description="Give the MAG.")
-	async def give_mag_command(self, ctx, amount: int):
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "give_mag"))
+	async def give_mag_command(self, ctx: commands.Context, amount: int):
 		"""Add MAG to self for testing."""
-		player_id = ctx.author.id
-		server_id = ctx.guild.id
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		currency_queries.update_mag(player_id, server_id, amount)
 		mag = currency_queries.get_mag(player_id, server_id)
 
@@ -111,7 +114,7 @@ class Utility(commands.Cog):
 def get_current_encounter_window(now: int) -> int:
 	"""Get the current encounter window in seconds. Man, this took me way too long."""
 	# Convert window hours to seconds.
-	window_seconds = WINDOW_HOURS * 3600
+	window_seconds = ENCOUNTER_WINDOW_HOURS * 3600
 
 	# How many times the window has elapsed since the beginning.
 	windows_elapsed = now // window_seconds

@@ -84,7 +84,6 @@ ENCOUNTERS_COMMANDS = {
 		aliases=["te"],
 		help="Developer Only. Start a test encounter with a random demon.",
 		usage=">test_encounter | te {opt: demon}",
-		hidden=True,
 	),
 }
 
@@ -200,5 +199,38 @@ SERVER_COMPENDIUM_COMMANDS = {
 			" This includes its Server Level, encounter's maximum rank, experience and what is required for the next level."
 		),
 		usage=">server_stats | ss",
+	),
+}
+
+SHOP_RAGS_COMMANDS = {
+	"rags": CommandData(
+		name="rags",
+		aliases=["r"],
+		help=(
+			"Trade gemstones with Rag's at Rag's Jewelry for valuable items"
+			" such as incense which can be used to increase the rank of an owned demon."
+		),
+		usage=">rags | r",
+	),
+}
+
+UTILITY_COMMANDS = {
+	"daily": CommandData(
+		name="daily",
+		aliases=["d"],
+		help="Get some free MAG every day.",
+		usage=">daily | d",
+	),
+	"give_mag": CommandData(
+		name="give_mag",
+		aliases=["gm"],
+		help="Developer Only. Give MAG to self.",
+		usage=">give_mag | gm {number}",
+	),
+	"stuff": CommandData(
+		name="stuff",
+		aliases=["st"],
+		help="Check statistics and timers for the player.",
+		usage=">stuff | st",
 	),
 }

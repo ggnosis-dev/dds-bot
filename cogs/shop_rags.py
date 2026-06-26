@@ -6,7 +6,8 @@ from discord.ext import commands
 
 import database_paths
 
-from helpers import checks
+from entities.command_data import SHOP_RAGS_COMMANDS, command_kwargs
+from helpers import checks, gets
 from queries import gem_queries, item_queries
 from shared_enums import Emotes
 
@@ -21,24 +22,18 @@ class RagsShop(commands.Cog):
 		self.bot = bot
 
 	@checks.has_profile()
-	@commands.command(
-		name="rags",
-		aliases=["r", "shop"],
-		description="Trade gemstones at Rag's Jewelry to get incense and other valuable items.",
-	)
-	async def rags_shop_command(self, ctx):
+	@commands.command(**command_kwargs(SHOP_RAGS_COMMANDS, "rags"))
+	async def rags_shop_command(self, ctx: commands.Context):
 		"""Command to view the Rags Shop and trade gems for items."""
-		player_id = ctx.author.id
-		server_id = ctx.guild.id
 
-		try:
-			gem_collection = gem_queries.get_player_gems(player_id, server_id)
-			view = RagsShopView(ctx.author.name, gem_collection)
-			await ctx.send(view=view)
-		except Exception as e:
-			print(f"ERROR: Failed to send Rags Shop view: {e}")
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		gem_collection = gem_queries.get_player_gems(player_id, server_id)
+
+		view = RagsShopView(ctx.author.name, gem_collection)
+		await ctx.send(view=view)
 
 
+# TODO: Move this out of this file.
 class RagsShopView(discord.ui.LayoutView):
 	"""
 	1. Button should be next to each item.
