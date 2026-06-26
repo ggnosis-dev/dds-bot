@@ -175,8 +175,9 @@ class ServerCompendium(commands.Cog):
 
 		# Add experience to the server's level.
 		level_data = await server_level_queries.try_server_level_up(server.id, demon.rank)
-		reward_descs = {reward.desc for reward in level_data.rewards}
-		await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
+		if level_data.old_level != level_data.new_level:
+			reward_descs = {reward.desc for reward in level_data.rewards}
+			await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
 
 	@checks.has_profile()
 	@commands.command(name="return", help="Loan a demon to the server's compendium.")
@@ -215,8 +216,9 @@ class ServerCompendium(commands.Cog):
 				await ctx.send(view=msg)
 
 				level_data = await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
-				reward_descs = self._adjust_level_up_desc({reward.desc for reward in level_data.rewards})
-				await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
+				if level_data.old_level != level_data.new_level:
+					reward_descs = self._adjust_level_up_desc({reward.desc for reward in level_data.rewards})
+					await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
 
 	@commands.command(
 		name="server_stats", aliases=["ss"], help="View the server's current level, experience and maximum ranks."
@@ -251,12 +253,12 @@ class ServerCompendium(commands.Cog):
 		if old_level < new_level:
 			message_string = f"{server.name.upper()} LEVELED UP FROM LEVEL **{old_level}** TO **{new_level}**!"
 		else:
-			message_string = f"{server.name} leveled DOWN from Level **{old_level}** to **{new_level}**."
+			message_string = f"{server.name.upper()} LEVELED DOWN FROM LEVEL **{old_level}** TO **{new_level}**..."
 
 		stats = (
 			f"\nExperience required to next level: **{serv_stats.xp_required}**"
 			f"\nTotal Server Experience: **{serv_stats.total_xp}**"
-			f"\nEncounters Cap: **{serv_stats.rank_cap}**"
+			f"\nEncounters can now appear up to Rank: **{serv_stats.rank_cap}**"
 		)
 
 		msg = MessageView(f"### {message_string}{stats}\n\n-# **New Rewards:**{reward_list}")
