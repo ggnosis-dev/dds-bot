@@ -4,8 +4,9 @@ import discord
 
 from discord.ext import commands
 
+from entities.command_data import GEMS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
-from helpers import checks
+from helpers import checks, gets
 from helpers.views import MessageView
 from queries import demon_queries, gem_queries, player_demons_queries
 from shared_enums import Emotes
@@ -32,15 +33,14 @@ class Gems(commands.Cog):
 		if ctx.valid:
 			return
 
-		player_id = message.author.id
-		guild_id = message.guild.id
-		selected_demon_id = player_demons_queries.get_selected_demon_id(player_id, guild_id)
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		selected_demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 		if selected_demon_id is None:
 			return
 
 		# Increase exp towards finding a gem.
-		gem_found = await gem_queries.increase_gems(player_id, guild_id, selected_demon_id)
+		gem_found = await gem_queries.increase_gems(player_id, server_id, selected_demon_id)
 
 		if gem_found:
 			try:
@@ -54,17 +54,17 @@ class Gems(commands.Cog):
 			except Exception as e:
 				print(f"ERROR: Failed to send gem found message: {e}")
 
-	@commands.command(name="gems", aliases=["g"], description="Displays the player's current gem collection.")
-	async def gem_collection_command(self, ctx) -> None:
+	@commands.command(**command_kwargs(GEMS_COMMANDS, "fuse"))
+	async def gem_collection_command(self, ctx: commands.Context) -> None:
 		"""View player's current gem collection."""
-		player_id = ctx.author.id
-		server_id = ctx.guild.id
-
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		collected_gems = gem_queries.get_player_gems(player_id, server_id)
+
 		view = GemCollectionView(ctx.author.name, collected_gems)
 		await ctx.send(view=view)
 
 
+# TODO: Move this out of this file.
 class GemCollectionView(discord.ui.LayoutView):
 	def __init__(self, user_name: str, collected_gems: list[dict], colour: int = 0xE93700) -> None:
 		"""

@@ -98,6 +98,32 @@ FUSION_COMMANDS = {
 			" tier up or down in the other demon's race."
 			"\nSupposedly accidents can occur..."
 		),
-		usage=">fuse {demon_1}; {demon_2}",
+		usage=">fuse | f {demon_1}; {demon_2}",
 	)
+}
+
+GEMS_COMMANDS = {
+	"gems": CommandData(
+		name="gems",
+		aliases=["g"],
+		help="Displays your current Gem Collection.",
+		usage=">gems | g",
+	)
+}
+
+ITEMS_COMMANDS = {
+	"use": CommandData(
+		name="use",
+		help=(
+			"Use an item on a demon."
+			" If no demon is specified, the item will be used on the current demon leading your party."
+		),
+		usage=">use {item}; {opt: demon}",
+	),
+	"inventory": CommandData(
+		name="inventory",
+		aliases=["inv"],
+		help="View your inventory of acquired items.",
+		usage=">inventory | inv",
+	),
 }

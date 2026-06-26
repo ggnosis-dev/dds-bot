@@ -2,7 +2,8 @@ import discord
 
 from discord.ext import commands
 
-from helpers import checks
+from entities.command_data import ITEMS_COMMANDS, command_kwargs
+from helpers import checks, gets
 from queries import demon_queries, item_queries, player_demons_queries
 from shared_enums import DemonRegistration, Emotes
 
@@ -12,8 +13,8 @@ class Items(commands.Cog):
 		self.bot = bot
 
 	@checks.has_profile()
-	@commands.command(name="use", aliases=["u"], description="Use an item on a demon.")
-	async def use_item_command(self, ctx, *, input_str: str) -> None:
+	@commands.command(**command_kwargs(ITEMS_COMMANDS, "use"))
+	async def use_item_command(self, ctx: commands.Context, *, input_str: str) -> None:
 		"""
 		Use an item on a demon.
 
@@ -21,11 +22,11 @@ class Items(commands.Cog):
 			input_str (str): String containing item name and optional demon name, separated by a semicolon delimiter.
 				"item_name; demon_name" or just "item_name" to use on selected demon.
 		"""
+
 		parts = input_str.split(";")
 		item_name = parts[0].strip().title()
 		demon_name = parts[1].strip().title() if len(parts) > 1 else None
-		player = ctx.author
-		server = ctx.guild
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		item_id = item_queries.get_item_id_by_name(item_name)
 		demon_id = None
 
@@ -35,7 +36,7 @@ class Items(commands.Cog):
 			return
 
 		# Check if player has the item.
-		if not item_queries.get_player_has_item(player.id, server.id, item_id):
+		if not item_queries.get_player_has_item(player_id, server_id, item_id):
 			await ctx.send(f"You don't have any **{item_name}** in your inventory.")
 			return
 
@@ -47,7 +48,7 @@ class Items(commands.Cog):
 				await ctx.send(f"A **{demon_name}** was not found in your party...")
 				return
 		else:
-			demon_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
+			demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 			# No demon was specified in command, and player doesn't have a demon selected.
 			if demon_id is None:
@@ -56,36 +57,36 @@ class Items(commands.Cog):
 
 		# Check if in player's party.
 		if (
-			await player_demons_queries.check_demon_registration(player.id, server.id, demon_id)
+			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 			!= DemonRegistration.IN_PARTY
 		):
 			await ctx.send(f"A **{demon_name}** was not found in your party...")
 			return
 
 		# Use the incense item and apply its effect.
-		if item_queries.use_incense(player.id, server.id, demon_id, item_id):
+		if item_queries.use_incense(player_id, server_id, demon_id, item_id):
 			demon_name = demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(
-				(f"{player.mention} used **{item_name}** on **{demon_name}**! Their rank has **increased** by **3**."),
+				(f"<@{player_id}> used **{item_name}** on **{demon_name}**! Their rank has **increased** by **3**."),
 			)
 
 	@checks.has_profile()
-	@commands.command(name="inventory", aliases=["inv", "items"], description="View your item inventory.")
-	async def item_inventory_command(self, ctx) -> None:
-		"""View your item inventory."""
-		player = ctx.author
-		server = ctx.guild
+	@commands.command(**command_kwargs(ITEMS_COMMANDS, "inventory"))
+	async def item_inventory_command(self, ctx: commands.Context) -> None:
+		"""View player's item inventory."""
 
+		player, server = gets.get_player_server(ctx)
 		items = item_queries.get_player_inventory(player.id, server.id)
 
 		if not items:
 			await ctx.send("Your inventory is empty.")
 			return
 
-		view = ItemInventoryView(player.display_name, items)
+		view = ItemInventoryView(player.name, items)
 		await ctx.send(view=view)
 
 
+# TODO: Remove this from this file.
 class ItemInventoryView(discord.ui.LayoutView):
 	def __init__(self, player_name: str, items: dict[str, int], colour: int = 0xE93700) -> None:
 		super().__init__()
