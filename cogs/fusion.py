@@ -122,7 +122,7 @@ class Fusion(commands.Cog):
 			return
 
 		# Fusion Accident code.
-		is_fusion_accident = random.random() < 1
+		is_fusion_accident = random.random() < 0.01
 		if is_fusion_accident:
 			demon_result = await self._try_fusion_accident(player.id, server.id, demon_result)
 
