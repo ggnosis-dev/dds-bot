@@ -1,5 +1,7 @@
 import typing
 
+from collections import Counter
+
 import discord
 
 from discord.ext import commands
@@ -114,9 +116,44 @@ class ServerCompendium(commands.Cog):
 				demon.id,
 			)
 
-			# Add experience to the server's level.
-			await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
-			await server_level_queries.try_server_level_up(server.id, demon.rank)
+			# Add experience to the server's level. Take away stored demon first, then add new.
+			r1 = await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
+			r2 = await server_level_queries.try_server_level_up(server.id, demon.rank)
+
+			if r1 or r2:
+				# Start level is either the first old level or the second old level.
+				old_level = r1.old_level if r1 else r2.old_level
+
+				# New level is either the furthest new level or the first new level.
+				new_level = r2.new_level if r2 else r1.new_level
+
+				change = new_level - old_level
+
+				reward_descs = set()
+
+				# Gained a level.
+				if change > 0:
+					# If we gained, the rewards will only ever be in results 2.
+					reward_descs = {reward.desc for reward in r2.rewards}
+				elif change < 0:
+					# Rewards in r1 will be subtracted.
+					lost_rewards = r1.rewards
+
+					# Chance there were rewards regained though, e.g. went down a level yet still gained 2.
+					regained_rewards = r2.rewards
+
+					lost_count = Counter(lost_rewards)
+					regained_count = Counter(regained_rewards)
+
+					gained = list((regained_count - lost_count).elements())
+					lost = list((lost_count - regained_count).elements())
+
+					# Pull out the descriptions of lost and alter them.
+					gained_descs = {reward.desc for reward in gained}
+					lost_descs = self._adjust_level_up_desc({reward.desc for reward in lost})
+					reward_descs = lost_descs | gained_descs
+
+				await self._do_level_up_notif(ctx, server, old_level, new_level, reward_descs)
 
 			msg = MessageView(
 				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
@@ -128,9 +165,6 @@ class ServerCompendium(commands.Cog):
 			await ctx.send(view=msg)
 			return
 
-		# Add experience to the server's level.
-		await server_level_queries.try_server_level_up(server.id, demon.rank)
-
 		msg = MessageView(
 			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
 			f"Compendium** for the time being.",
@@ -138,6 +172,11 @@ class ServerCompendium(commands.Cog):
 			colour=demon.colour,
 		)
 		await ctx.send(view=msg)
+
+		# Add experience to the server's level.
+		level_data = await server_level_queries.try_server_level_up(server.id, demon.rank)
+		reward_descs = {reward.desc for reward in level_data.rewards}
+		await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
 
 	@checks.has_profile()
 	@commands.command(name="return", help="Loan a demon to the server's compendium.")
@@ -169,12 +208,15 @@ class ServerCompendium(commands.Cog):
 
 			if await server_demons_queries.return_server_comp_demon(server.id, demon.id):
 				# Remove the experience from the server's level.
-				await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
 
 				msg = MessageView(
 					f"**{demon.race} {demon.name}** has been returned to you.", demon.profile_url, demon.colour
 				)
 				await ctx.send(view=msg)
+
+				level_data = await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
+				reward_descs = self._adjust_level_up_desc({reward.desc for reward in level_data.rewards})
+				await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
 
 	@commands.command(
 		name="server_stats", aliases=["ss"], help="View the server's current level, experience and maximum ranks."
@@ -199,7 +241,40 @@ class ServerCompendium(commands.Cog):
 			f"\n{progress_bar}",
 		)
 		await ctx.send(view=msg)
-		return
+
+	async def _do_level_up_notif(self, ctx, server: discord.Guild, old_level, new_level, rewards: set[str]) -> None:
+		reward_list = ""
+		serv_stats = await server_level_queries.get_server_status(server.id)
+		for r in rewards:
+			reward_list += f"\n-# - {r}"
+
+		if old_level < new_level:
+			message_string = f"{server.name.upper()} LEVELED UP FROM LEVEL **{old_level}** TO **{new_level}**!"
+		else:
+			message_string = f"{server.name} leveled DOWN from Level **{old_level}** to **{new_level}**."
+
+		stats = (
+			f"\nExperience required to next level: **{serv_stats.xp_required}**"
+			f"\nTotal Server Experience: **{serv_stats.total_xp}**"
+			f"\nEncounters Cap: **{serv_stats.rank_cap}**"
+		)
+
+		msg = MessageView(f"### {message_string}{stats}\n\n-# **New Rewards:**{reward_list}")
+		await ctx.send(view=msg)
+
+	def _adjust_level_up_desc(self, level_desc: set[str]) -> set[str]:
+		"""Returning set means we will not double up on rewards. Won't just be a bunch of "Rank Cap Increased"'s"""
+		adjusted = set()
+
+		# Adjust descriptions in-place: replace 'Increased' with 'Decreased' in values
+		for d in level_desc:
+			if "Increased" in d:
+				d = d.replace("Increased", "Decreased")
+			elif "Unlocked" in d:
+				d = d.replace("Unlocked", "Locked")
+			adjusted.add(d)
+
+		return set(adjusted)
 
 
 async def setup(bot: commands.Bot) -> None:
