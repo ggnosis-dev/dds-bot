@@ -4,6 +4,7 @@ import discord
 
 from discord.ext import commands
 
+from entities.command_data import COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
 from helpers import checks, costs
 from helpers.views import CompendiumView, ConfirmationView, MessageView
@@ -18,7 +19,7 @@ class Compendium(commands.Cog):
 		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
 
-	@commands.command(name="compendium", aliases=["comp", "c"], help="Displays the player's compendium.")
+	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "compendium"))
 	async def compendium_command(self, ctx: commands.Context, *args: str) -> None:
 		"""
 		Command to display player's seen demons which is stored in their compendium.
@@ -41,7 +42,7 @@ class Compendium(commands.Cog):
 		await ctx.send(view=view)
 
 	@checks.has_profile()
-	@commands.command(name="summon", aliases=["sum"], help="Summon a demon from the player's compendium.")
+	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "summon"))
 	async def summon_command(self, ctx, *, demon_name) -> None:
 		"""
 		Command to summon a demon from the player's compendium into their party.
