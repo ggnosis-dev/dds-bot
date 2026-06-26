@@ -8,6 +8,15 @@ class CommandData:
 	help: str
 
 
+def command_kwargs(command_type: dict[str, CommandData], key: str):
+	data = command_type[key]
+	return {
+		"name": data.name,
+		"aliases": data.aliases,
+		"help": data.help,
+	}
+
+
 COMPENDIUM_COMMANDS = {
 	"compendium": CommandData(
 		name="compendium",
@@ -30,11 +39,18 @@ COMPENDIUM_COMMANDS = {
 	),
 }
 
-
-def command_kwargs(command_type: dict[str, CommandData], key: str):
-	data = command_type[key]
-	return {
-		"name": data.name,
-		"aliases": data.aliases,
-		"help": data.help,
-	}
+DEMONS_COMMANDS = {
+	"select": CommandData(
+		name="select",
+		aliases=["sel"],
+		help=(
+			"Select a demon to lead your Party. The selected demon will hunt for gemstones while you use the server."
+			"\ne.g. `>select {demon}"
+		),
+	),
+	"leader": CommandData(
+		name="leader",
+		aliases=["le"],
+		help="View the status of the demon leading your Party.\ne.g. `>leader",
+	),
+}

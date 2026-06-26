@@ -1,9 +1,7 @@
-import typing
-
 from discord.ext import commands
 
-from entities.demon_data import DemonData
-from helpers import checks
+from entities.command_data import DEMONS_COMMANDS, command_kwargs
+from helpers import checks, gets
 from helpers.views import MessageView
 from queries import demon_queries, gem_queries, player_demons_queries
 from shared_enums import DemonRegistration, Unicode
@@ -16,11 +14,10 @@ class Demon(commands.Cog):
 		self.bot = bot
 
 	@checks.has_profile()
-	@commands.command(name="select", aliases=["s", "sel"], description="Select a demon to lead your party.")
-	async def select_demon_command(self, ctx, *, demon_name: str) -> None:
+	@commands.command(**command_kwargs(DEMONS_COMMANDS, "select"))
+	async def select_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		"""Select a demon to lead your party."""
-		player = ctx.author
-		server = ctx.guild
+		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon_id = demon_queries.get_demon_id_by_name(demon_name)
 
@@ -30,29 +27,31 @@ class Demon(commands.Cog):
 			return
 
 		# Check if in player's party.
-		in_party = await player_demons_queries.check_demon_registration(player.id, server.id, demon_id)
+		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			await ctx.send(f"A **{demon_name}** is not in your party...")
 			return
 
-		player_demons_queries.set_selected_demon(ctx.author.id, ctx.guild.id, demon_id)
+		player_demons_queries.set_selected_demon(player_id, server_id, demon_id)
 		await ctx.send(f"**{demon_name}** has been selected to lead your party!")
 
 	@checks.has_profile()
-	@commands.command(name="leader", aliases=["selected"], description="Check which demon currently leads your party.")
-	async def check_selected_demon_command(self, ctx) -> None:
-		player = ctx.author
-		server = ctx.guild
+	@commands.command(**command_kwargs(DEMONS_COMMANDS, "leader"))
+	async def leader_command(self, ctx: commands.Context) -> None:
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
 
-		d_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
-
-		if d_id is None:
-			await ctx.send("There is currently no demon leading your party. Select one using `>select {Demon Name}`.")
+		if demon_id is None:
+			await ctx.send("There is currently no demon leading your party. Select one using `>select {demon}`.")
 			return
 
-		d = typing.cast(DemonData, demon_queries.get_demon_by_id(d_id))
-		gem_progress = round(gem_queries.get_gem_progress(player.id, server.id, d.gem) / 10)
+		d = demon_queries.get_demon_by_id(demon_id)
+
+		if d is None:
+			raise RuntimeError("ERROR: leader_command | ID was found but DemonData was not.")
+
+		gem_progress = round(gem_queries.get_gem_progress(player_id, server_id, d.gem) / 10)
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * gem_progress + f"{Unicode.UNFILLED_CIRCLE.value} " * (
 			10 - gem_progress
 		)
