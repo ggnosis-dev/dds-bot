@@ -1,15 +1,7 @@
 from entities.demon_data import DemonData
+from entities.fusion_data import ELEMENT_PAIRS, ELEMENT_RACE
 from helpers.db import query_one
 from queries import demon_queries
-
-ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
-
-ELEMENT_PAIRS = {
-	"Erthys": ["Beast", "Femme", "Jaki"],
-	"Aeros": ["Fairy", "Flight"],
-	"Aquans": ["Fairy", "Wilder"],
-	"Flaemis": ["Beast", "Femme", "Flight", "Jaki", "Wilder"],
-}
 
 
 def get_fused_race(race_1: str, race_2: str) -> str | None:

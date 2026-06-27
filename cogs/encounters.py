@@ -11,9 +11,9 @@ from entities.command_data import ENCOUNTERS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from helpers import checks, encounter_utils, gets
-from helpers.views import MessageView
 from queries import currency_queries, demon_queries, gem_queries, player_demons_queries, player_queries, server_level_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
+from views.common_view import MessageView
 
 dedicated_channel = 1486290442877407333
 

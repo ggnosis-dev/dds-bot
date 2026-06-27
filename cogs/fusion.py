@@ -7,9 +7,9 @@ from discord.ext import commands
 from entities.command_data import FUSION_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
 from helpers import checks, costs, gets
-from helpers.views import ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
 from shared_enums import DemonRegistration
+from views.common_view import ConfirmationView, MessageView
 
 
 class Fusion(commands.Cog):
@@ -36,6 +36,11 @@ class Fusion(commands.Cog):
 			await self._fuse_demons(ctx, player, server, parts)
 		finally:
 			self.players_in_fusion.discard(player.id)
+
+	@checks.has_profile()
+	@commands.command(**command_kwargs(FUSION_COMMANDS, "special_fusion"))
+	async def special_fusion_command(self, ctx: commands.Context) -> None:
+		pass
 
 	async def _fuse_demons(
 		self,

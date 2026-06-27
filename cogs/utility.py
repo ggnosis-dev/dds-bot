@@ -8,8 +8,8 @@ from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW_HOURS
 from helpers import checks, gets
 from helpers.costs import daily_mag
 from helpers.encounter_utils import get_current_encounter_window
-from helpers.views import MessageView
 from queries import currency_queries, player_queries, server_level_queries
+from views.common_view import MessageView
 
 
 class Utility(commands.Cog):

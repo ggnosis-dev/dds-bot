@@ -10,9 +10,9 @@ from discord.ext import commands
 from entities.command_data import SERVER_COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
 from helpers import checks, gets
-from helpers.views import ConfirmationView, MessageView
 from queries import demon_queries, player_demons_queries, server_demons_queries, server_level_queries
 from shared_enums import DemonRegistration, Unicode
+from views.common_view import ConfirmationView, MessageView
 from views.compendium_view import ServerCompendiumView
 
 

@@ -2,9 +2,9 @@ from discord.ext import commands
 
 from entities.command_data import DEMONS_COMMANDS, command_kwargs
 from helpers import checks, gets
-from helpers.views import MessageView
 from queries import demon_queries, gem_queries, player_demons_queries
 from shared_enums import DemonRegistration, Unicode
+from views.common_view import MessageView
 
 
 class Demon(commands.Cog):

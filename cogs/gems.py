@@ -7,9 +7,9 @@ from discord.ext import commands
 from entities.command_data import GEMS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
 from helpers import checks, gets
-from helpers.views import MessageView
 from queries import demon_queries, gem_queries, player_demons_queries
 from shared_enums import Emotes
+from views.common_view import MessageView
 
 
 class Gems(commands.Cog):

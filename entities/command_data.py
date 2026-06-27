@@ -98,7 +98,16 @@ FUSION_COMMANDS = {
 			"\n\nSupposedly accidents can occur..."
 		),
 		usage=">fuse | f {demon_1}; {demon_2}",
-	)
+	),
+	"special_fusion": CommandData(
+		name="special_fusion",
+		aliases=["sp_fuse", "sf"],
+		help=(
+			"Fuse more than two demons as ingredients in a special fusion for unique demons."
+			" Certain special fusions can be found and unlocked through leveling up the server."
+		),
+		usage=">special_fusion | sp_fuse | sf",
+	),
 }
 
 GEMS_COMMANDS = {
