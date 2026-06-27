@@ -1,4 +1,6 @@
+from entities.item_data import GemEntry
 from helpers.db import query_all, query_one, query_write
+from shared_enums import Emotes
 
 GEM_EXP_MULTIPLIER = 1
 GEM_METER_FULL = 100
@@ -76,7 +78,7 @@ async def add_gem(player_id: int, server_id: int, demon_id: int, number: int) ->
 	)
 
 
-def get_player_gems(player_id: int, server_id: int) -> list[dict]:
+def get_player_gems(player_id: int, server_id: int) -> list[GemEntry]:
 	"""
 	Get a player's gem collection.
 
@@ -84,7 +86,7 @@ def get_player_gems(player_id: int, server_id: int) -> list[dict]:
 		list[dict]: List of gems in the player's collection. Each gem is represented as a dictionary with 'gem_name'
 			and 'quantity' keys.
 	"""
-	result = query_all(
+	rows = query_all(
 		"""
 			SELECT gem_name, quantity FROM player_gems
 			WHERE player_id = ? AND server_id = ?
@@ -93,7 +95,19 @@ def get_player_gems(player_id: int, server_id: int) -> list[dict]:
 		(player_id, server_id),
 	)
 
-	return result if result else []
+	entries = []
+	for row in rows:
+		name, qty = row
+
+		entries.append(
+			GemEntry(
+				gem=name,
+				quantity=qty,
+				emote=Emotes.BLANK,
+			)
+		)
+
+	return entries
 
 
 def get_gem_progress(player_id: int, server_id: int, gem_name: str) -> int:

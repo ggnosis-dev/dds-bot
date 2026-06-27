@@ -27,8 +27,12 @@ class Columns:
 	GEM = ColumnConfig(key="gem", label="Gemstone", width=12, header_tabs=3)
 	PERSONALITY = ColumnConfig(key="personality", label="Personality", width=12, header_tabs=3)
 
+	# Gem Collection Exclusive
+	QUANTITY = ColumnConfig(key="quantity", label="Quantity", width=3, header_tabs=2)
+
 	PLAYER_DEFAULT = [EMOTE, RACE, NAME, RANK]
 	SERVER_DEFAULT = PLAYER_DEFAULT + [OWNER]
+	GEM_DEFAULT = [GEM, QUANTITY]
 
 
 def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):

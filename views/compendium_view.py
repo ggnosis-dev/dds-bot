@@ -118,43 +118,6 @@ class BaseTableView(ABC, Generic[T], discord.ui.LayoutView):
 
 		return container
 
-	def _build_page_entry(
-		self,
-		container: discord.ui.Container,
-		entry: DemonEntry,
-		emote_override=None,
-	) -> discord.ui.Container:
-		tab = "\u2003"
-		new_row = ""
-
-		for col in self.columns:
-			value = getattr(entry, col.key)
-
-			# This will be an emote column if width is 0.
-			if col.width == 0:
-				if emote_override:
-					new_row += emote_override.value
-				elif entry.in_party:
-					new_row += Emotes.ICON.value
-				else:
-					new_row += Emotes.BLANK.value
-				continue
-
-			# When in_party is none, the player hasn't seen the demon before so show hint for it.
-			if entry.is_unseen:
-				# If column align is right, it's a value. Show less question marks.
-				placeholder = "???" if col.align == ">" else "?????"
-				new_row += f"{tab}`{placeholder:{col.align}{col.width}}`"
-
-			else:
-				# Only use title case if it's not a player's name.
-				text = str(value).title() if not entry.owner else value
-				new_row += f"{tab}`{text:{col.align}{col.width}}`"
-
-		container.add_item(discord.ui.TextDisplay(new_row))
-
-		return container
-
 	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
@@ -208,6 +171,43 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 
 		# Use delimiter to slice out entries.
 		return page_entries[start_index:end_index]
+
+	def _build_page_entry(
+		self,
+		container: discord.ui.Container,
+		entry: DemonEntry,
+		emote_override=None,
+	) -> discord.ui.Container:
+		tab = "\u2003"
+		new_row = ""
+
+		for col in self.columns:
+			value = getattr(entry, col.key)
+
+			# This will be an emote column if width is 0.
+			if col.width == 0:
+				if emote_override:
+					new_row += emote_override.value
+				elif entry.in_party:
+					new_row += Emotes.ICON.value
+				else:
+					new_row += Emotes.BLANK.value
+				continue
+
+			# When in_party is none, the player hasn't seen the demon before so show hint for it.
+			if entry.is_unseen:
+				# If column align is right, it's a value. Show less question marks.
+				placeholder = "???" if col.align == ">" else "?????"
+				new_row += f"{tab}`{placeholder:{col.align}{col.width}}`"
+
+			else:
+				# Only use title case if it's not a player's name.
+				text = str(value).title() if not entry.owner else value
+				new_row += f"{tab}`{text:{col.align}{col.width}}`"
+
+		container.add_item(discord.ui.TextDisplay(new_row))
+
+		return container
 
 
 class CompendiumView(BaseCompendiumView):
@@ -346,3 +346,47 @@ class ServerCompendiumView(BaseCompendiumView):
 		container = self._build_footer(container)
 
 		self.add_item(container)
+
+
+class GemCollectionView(BaseTableView[GemEntry]):
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Gem Collection"))
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		return container
+
+	def _get_page_entries(self) -> list[GemEntry]:
+		self.total_pages = int(max(1, (len(self.entries) + COMP_PAGE_SIZE - 1) / COMP_PAGE_SIZE))
+		self.page = max(1, min(self.page, self.total_pages))
+
+		start = (self.page - 1) * COMP_PAGE_SIZE
+		return self.entries[start : start + COMP_PAGE_SIZE]
+
+	def _build_layout(self) -> None:
+		container = discord.ui.Container(accent_color=self.colour)
+		page_entries = self._get_page_entries()
+
+		container = self._build_header(container)
+		container = self._build_table_header(container)
+		for entry in page_entries:
+			container = self._build_page_entry(container, entry)
+		container = self._build_footer(container)
+
+		self.add_item(container)
+
+	def _build_page_entry(self, container: discord.ui.Container, entry: GemEntry) -> discord.ui.Container:
+		tab = "\u2003"
+		new_row = ""
+
+		for col in self.columns:
+			print(col)
+			value = getattr(entry, col.key)
+
+			if col.width == 0:
+				new_row += Emotes.BLANK.value
+				continue
+
+			text = str(value).title()
+			new_row += f"{tab}`{text:{col.align}{col.width}}`"
+
+		container.add_item(discord.ui.TextDisplay(new_row))
+		return container
