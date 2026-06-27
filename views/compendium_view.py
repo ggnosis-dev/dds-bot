@@ -5,26 +5,28 @@ Things to do:
 		- Definitely good for sorting.
 """
 
-import typing
-
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar, cast
 
 import discord
 
 from entities.comp_data import DemonEntry
+from entities.item_data import GemEntry
 from entities.player_data import PartyStats
 from entities.server_data import ServerStats
 from entities.view_data import COMP_PAGE_SIZE, ColumnConfig
 from shared_enums import Emotes
 
+T = TypeVar("T")
 
-class BaseCompendiumView(ABC, discord.ui.LayoutView):
+
+class BaseTableView(ABC, Generic[T], discord.ui.LayoutView):
 	"""Custom view for displaying the player's viewed demons and hints at unseen ones."""
 
 	def __init__(
 		self,
 		user_name: str,
-		entries: list[DemonEntry],
+		entries: list[T],
 		columns: list[ColumnConfig],
 		page: int = 1,
 		colour: int = 0xE93700,
@@ -46,6 +48,7 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 		self.columns = columns
 		self.page = page
 		self.colour = colour
+		self.total_pages = 1
 		self.filtered_race = "all"
 
 		self._build_layout()
@@ -64,7 +67,7 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			"""Callback for when a race is selected from the filter menu."""
-			view = typing.cast(BaseCompendiumView, self.view)
+			view = cast(BaseCompendiumView, self.view)
 			view.filtered_race = self.values[0]
 			view.page = 1
 			view.total_pages = 1
@@ -85,7 +88,7 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			"""Callback for when a page navigation button is clicked. Allows wrapping around the pages."""
-			view = typing.cast(BaseCompendiumView, self.view)
+			view = cast(BaseCompendiumView, self.view)
 
 			if self.label == "<":
 				view.page = view.total_pages if view.page <= 1 else view.page - 1
@@ -162,6 +165,8 @@ class BaseCompendiumView(ABC, discord.ui.LayoutView):
 
 		return container
 
+
+class BaseCompendiumView(BaseTableView[DemonEntry]):
 	def _build_race_filter(self) -> discord.ui.ActionRow:
 		"""
 		Helper to build the race filter select menu. Gathers distinct races from the comp entries
