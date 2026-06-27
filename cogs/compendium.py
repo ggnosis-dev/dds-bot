@@ -3,9 +3,10 @@ from discord.ext import commands
 from entities.command_data import COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
 from helpers import checks, costs, gets
-from helpers.views import CompendiumView, ConfirmationView, MessageView
+from helpers.views import ConfirmationView, MessageView
 from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
+from views.compendium_view import CompendiumView
 
 
 class Compendium(commands.Cog):
