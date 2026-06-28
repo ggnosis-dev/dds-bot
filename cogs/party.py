@@ -10,7 +10,7 @@ from queries.currency_queries import update_mag
 from queries.player_queries import get_player, increase_party_slots
 from shared_enums import DemonRegistration
 from views.common_view import ConfirmationView, MessageView
-from views.compendium_view import PartyView
+from views.table_view import PartyView
 
 
 class Party(commands.Cog):

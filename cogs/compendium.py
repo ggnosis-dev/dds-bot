@@ -6,7 +6,7 @@ from helpers import checks, costs, gets
 from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
 from views.common_view import ConfirmationView, MessageView
-from views.compendium_view import CompendiumView
+from views.table_view import CompendiumView
 
 
 class Compendium(commands.Cog):

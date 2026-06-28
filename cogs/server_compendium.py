@@ -13,7 +13,7 @@ from helpers import checks, gets
 from queries import demon_queries, player_demons_queries, server_demons_queries, server_level_queries
 from shared_enums import DemonRegistration, Unicode
 from views.common_view import ConfirmationView, MessageView
-from views.compendium_view import ServerCompendiumView
+from views.table_view import ServerCompendiumView
 
 
 class ServerCompendium(commands.Cog):

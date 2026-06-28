@@ -10,7 +10,7 @@ from entities.view_data import Columns
 from helpers import checks, gets
 from queries import demon_queries, gem_queries, player_demons_queries
 from views.common_view import MessageView
-from views.compendium_view import GemCollectionView
+from views.table_view import GemCollectionView
 
 
 class Gems(commands.Cog):

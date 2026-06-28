@@ -5,7 +5,7 @@ from entities.view_data import Columns
 from helpers import checks, gets
 from queries import demon_queries, item_queries, player_demons_queries
 from shared_enums import DemonRegistration
-from views.compendium_view import InventoryView
+from views.table_view import InventoryView
 
 
 class Items(commands.Cog):
