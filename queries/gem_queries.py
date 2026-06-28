@@ -1,4 +1,4 @@
-from entities.item_data import GemEntry
+from entities.item_data import ItemEntry
 from helpers.db import query_all, query_one, query_write
 from shared_enums import Emotes
 
@@ -78,7 +78,7 @@ async def add_gem(player_id: int, server_id: int, demon_id: int, number: int) ->
 	)
 
 
-def get_player_gems(player_id: int, server_id: int) -> list[GemEntry]:
+def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
 	"""
 	Get a player's gem collection.
 
@@ -100,8 +100,8 @@ def get_player_gems(player_id: int, server_id: int) -> list[GemEntry]:
 		name, qty = row
 
 		entries.append(
-			GemEntry(
-				gem=name,
+			ItemEntry(
+				name=name,
 				quantity=qty,
 				emote=Emotes.BLANK,
 			)

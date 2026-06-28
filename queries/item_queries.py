@@ -1,7 +1,9 @@
 import json
 
+from entities.item_data import ItemEntry
 from helpers.db import query_all, query_one, query_write
 from queries import demon_queries
+from shared_enums import Emotes
 
 _ITEMS = {}
 
@@ -13,14 +15,14 @@ with open("data/items.json") as data:
 		_ITEMS[item_id] = item_data
 
 
-def get_player_inventory(player_id: int, server_id: int) -> dict[str, int]:
+def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry]:
 	"""
 	Get dictionary of name and quantity of items in player's inventory.
 
 	Returns:
 		dict[str, int]: Item Name, Quantity pair.
 	"""
-	response = query_all(
+	rows = query_all(
 		"""
 			SELECT item_id, quantity FROM player_items
 			WHERE player_id = ? AND server_id = ?
@@ -28,14 +30,23 @@ def get_player_inventory(player_id: int, server_id: int) -> dict[str, int]:
 		(player_id, server_id),
 	)
 
-	inv = {}
-	for item_id, quantity in response:
+	entries = []
+	for item_id, qty in rows:
 		item_data = _ITEMS.get(item_id)
 
-		if item_data:
-			inv[item_data["display_name"]] = quantity
+		if item_data is None:
+			continue
 
-	return inv
+		entries.append(
+			ItemEntry(
+				name=item_data["display_name"],
+				quantity=qty,
+				emote=Emotes.BLANK,
+			)
+		)
+	print(entries)
+
+	return entries
 
 
 def get_player_has_item(player_id: int, server_id: int, item_id: str) -> bool:

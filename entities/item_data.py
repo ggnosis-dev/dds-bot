@@ -4,7 +4,7 @@ from shared_enums import Emotes
 
 
 @dataclass
-class GemEntry:
-	gem: str
+class ItemEntry:
+	name: str
 	quantity: int
 	emote: Emotes

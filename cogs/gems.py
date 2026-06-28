@@ -60,7 +60,7 @@ class Gems(commands.Cog):
 		"""View player's current gem collection."""
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		collected_gems = gem_queries.get_player_gems(player_id, server_id)
-		columns = list(Columns.GEM_DEFAULT)
+		columns = list(Columns.ITEM_DEFAULT)
 
 		view = GemCollectionView(ctx.author.name, collected_gems, columns)
 		await ctx.send(view=view)

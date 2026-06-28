@@ -1,11 +1,11 @@
-import discord
-
 from discord.ext import commands
 
 from entities.command_data import ITEMS_COMMANDS, command_kwargs
+from entities.view_data import Columns
 from helpers import checks, gets
 from queries import demon_queries, item_queries, player_demons_queries
-from shared_enums import DemonRegistration, Emotes
+from shared_enums import DemonRegistration
+from views.compendium_view import InventoryView
 
 
 class Items(commands.Cog):
@@ -77,51 +77,14 @@ class Items(commands.Cog):
 
 		player, server = gets.get_player_server(ctx)
 		items = item_queries.get_player_inventory(player.id, server.id)
+		columns = list(Columns.ITEM_DEFAULT)
 
 		if not items:
 			await ctx.send("Your inventory is empty.")
 			return
 
-		view = ItemInventoryView(player.name, items)
+		view = InventoryView(player.name, items, columns)
 		await ctx.send(view=view)
-
-
-# TODO: Remove this from this file.
-class ItemInventoryView(discord.ui.LayoutView):
-	def __init__(self, player_name: str, items: dict[str, int], colour: int = 0xE93700) -> None:
-		super().__init__()
-
-		self.player_name = player_name
-		self.items = items
-		self.colour = colour
-
-		self._build_item_inventory_layout()
-
-	def _build_item_inventory_layout(self) -> None:
-		ui = discord.ui
-		container = ui.Container(accent_color=self.colour)
-		tab = "\u2003"
-
-		container.add_item(ui.TextDisplay(f"### {self.player_name}'s Item Inventory"))
-		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
-		container.add_item(ui.TextDisplay(f"-# {Emotes.BLANK.value}{tab * 5}Name{tab * 5}Quantity"))
-
-		max_width_name = 15
-		max_width_qty = 3
-
-		for name, qty in self.items.items():
-			# emote = Emotes[name].value
-			emote = Emotes.BLANK.value
-
-			container.add_item(
-				ui.TextDisplay(
-					f"{emote}{tab}`{name.title():^{max_width_name}}`{tab * 2}`{qty:>{max_width_qty}}`",
-				)
-			)
-
-		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
-
-		self.add_item(container)
 
 
 async def setup(bot: commands.Bot) -> None:
