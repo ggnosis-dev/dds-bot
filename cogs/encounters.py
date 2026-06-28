@@ -127,7 +127,7 @@ class Encounters(commands.Cog):
 		server_cap = await server_level_queries.get_rank_cap(server_id)
 		demon = demon_queries.get_demon_by_distribution(average_rank, server_cap)
 
-		(player,) = gets.get_player_server(ctx)
+		player = gets.get_player(ctx)
 		view = EncounterViewInitial(demon, self, user_exclusive_to=player, count=1)
 		await send_to_channel.send(view=view)
 		await player_queries.set_encounter_timer(player_id, server_id, now)
