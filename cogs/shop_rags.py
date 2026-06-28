@@ -7,8 +7,8 @@ from discord.ext import commands
 import database_paths
 
 from entities.command_data import SHOP_RAGS_COMMANDS, command_kwargs
-from helpers import checks, gets
-from queries import gem_queries, item_queries
+from helpers import checks
+from queries import item_queries
 from shared_enums import Emotes
 
 PAGE_SIZE = 5
@@ -25,24 +25,15 @@ class RagsShop(commands.Cog):
 	@commands.command(**command_kwargs(SHOP_RAGS_COMMANDS, "rags"))
 	async def rags_shop_command(self, ctx: commands.Context):
 		"""Command to view the Rags Shop and trade gems for items."""
-
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		gem_collection = gem_queries.get_player_gems(player_id, server_id)
-
-		view = RagsShopView(ctx.author.name, gem_collection)
+		view = RagsShopView(ctx.author.name)
 		await ctx.send(view=view)
 
 
 # TODO: Move this out of this file.
 class RagsShopView(discord.ui.LayoutView):
-	"""
-	1. Button should be next to each item.
-	"""
-
-	def __init__(self, user_name: str, gem_collection: list[dict]):
+	def __init__(self, user_name: str):
 		super().__init__()
 		self.user_name = user_name
-		self.gem_collection = gem_collection
 		self.page = 1
 		self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
 		self._build_shop_layout()
