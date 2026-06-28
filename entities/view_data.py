@@ -19,7 +19,7 @@ class ColumnConfig:
 
 @dataclass
 class Columns:
-	EMOTE = ColumnConfig(key="in_party", label=Emotes.BLANK.value)
+	REGISTRY = ColumnConfig(key="in_party", label=Emotes.BLANK.value)
 	RACE = ColumnConfig(key="race", label="Race", width=12, header_tabs=3)
 	NAME = ColumnConfig(key="name", label="Name", width=18, header_tabs=6)
 	RANK = ColumnConfig(key="rank", label="Rank", width=3, header_tabs=4, align=">")
@@ -28,11 +28,13 @@ class Columns:
 	PERSONALITY = ColumnConfig(key="personality", label="Personality", width=12, header_tabs=3)
 
 	# Gem Collection Exclusive
-	QUANTITY = ColumnConfig(key="quantity", label="Quantity", width=3, header_tabs=2)
+	EMOTE = ColumnConfig(key="emote", label=Emotes.BLANK.value)
+	QUANTITY = ColumnConfig(key="quantity", label="Quantity", width=3, header_tabs=1, align=">")
 
-	PLAYER_DEFAULT = [EMOTE, RACE, NAME, RANK]
+	PLAYER_DEFAULT = [REGISTRY, RACE, NAME, RANK]
 	SERVER_DEFAULT = PLAYER_DEFAULT + [OWNER]
-	GEM_DEFAULT = [GEM, QUANTITY]
+
+	GEM_DEFAULT = [EMOTE, GEM, QUANTITY]
 
 
 def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
