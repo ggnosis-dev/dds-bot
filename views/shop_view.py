@@ -57,9 +57,9 @@ class BaseShopView(ABC, Generic[T], discord.ui.LayoutView):
 	class InfoButton(discord.ui.Button):
 		"""Custom button for showing more information in a shop view."""
 
-		def __init__(self) -> None:
+		def __init__(self, show_info: bool) -> None:
 			super().__init__(
-				label="ⓘ",
+				label="ⓘ ◥" if show_info else "ⓘ ◢",
 				style=discord.ButtonStyle.secondary,
 			)
 
@@ -115,13 +115,13 @@ class RagsShopView(BaseShopView[ItemData]):
 		container.add_item(
 			discord.ui.MediaGallery(
 				discord.MediaGalleryItem(
-					"https://cdn.discordapp.com/attachments/1514230823195512882/1514471880109719592/caitsith_1.gif?ex=6a433859&is=6a41e6d9&hm=7251083ff8a93141d2a75973292d63acada36d05cdd39df6c067b36aa63ff551&",
+					"https://cdn.discordapp.com/attachments/1521163871732371688/1521167394075050017/Rag_wo_title_and_thing_on_top.png?ex=6a43d908&is=6a428788&hm=fa7e8e0c5d375b95b036151fbf0f4c23fad1925b069a0ed875cd8b7fff4532c0&",
 					description="Rag's Jewellery Shop",
 				),
 			)
 		)
 
-		info_button = self.InfoButton()
+		info_button = self.InfoButton(self.show_info)
 		section = discord.ui.Section(accessory=info_button)
 		section.add_item(
 			discord.ui.TextDisplay(

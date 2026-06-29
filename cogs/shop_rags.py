@@ -7,7 +7,7 @@ from queries import item_queries
 from views.shop_view import RagsShopView
 
 PAGE_SIZE = 5
-SHOP_COLOUR = 0x1E452F
+SHOP_COLOUR = 0x1B6340
 
 
 class RagsShop(commands.Cog):
