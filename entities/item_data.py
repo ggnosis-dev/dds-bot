@@ -1,4 +1,4 @@
-from dataclasses import astuple, dataclass
+from dataclasses import dataclass
 
 from shared_enums import Emotes
 
@@ -19,7 +19,3 @@ class ItemData:
 	description: str
 	emote: str
 	exclusive_to: str
-
-	def __iter__(self):
-		"""Establish an iterator so we can... well iterate through stuff."""
-		return iter(astuple(self))
