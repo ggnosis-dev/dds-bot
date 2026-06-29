@@ -27,6 +27,7 @@ class BaseShopView(ABC, Generic[T], discord.ui.LayoutView):
 		self.on_purchase = on_purchase
 		self.colour = colour
 		self.page = 1
+		self.show_info = False
 
 		self._build_shop_layout()
 
@@ -48,6 +49,25 @@ class BaseShopView(ABC, Generic[T], discord.ui.LayoutView):
 				view.page = view.total_pages if view.page <= 1 else view.page - 1
 			elif self.label == ">":
 				view.page = 1 if view.page >= view.total_pages else view.page + 1
+
+			view.clear_items()
+			view._build_shop_layout()
+			await interaction.response.edit_message(view=view)
+
+	class InfoButton(discord.ui.Button):
+		"""Custom button for showing more information in a shop view."""
+
+		def __init__(self) -> None:
+			super().__init__(
+				label="ⓘ",
+				style=discord.ButtonStyle.secondary,
+			)
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			"""Callback for when a page navigation button is clicked. Allows wrapping around the pages."""
+
+			view = cast(RagsShopView, self.view)
+			view.show_info = not view.show_info
 
 			view.clear_items()
 			view._build_shop_layout()
@@ -91,21 +111,40 @@ class BaseShopView(ABC, Generic[T], discord.ui.LayoutView):
 
 class RagsShopView(BaseShopView[ItemData]):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay("### Rag's Shop"))
+		# TODO: Add a banner for the shop.
 		container.add_item(
+			discord.ui.MediaGallery(
+				discord.MediaGalleryItem(
+					"https://cdn.discordapp.com/attachments/1514230823195512882/1514471880109719592/caitsith_1.gif?ex=6a433859&is=6a41e6d9&hm=7251083ff8a93141d2a75973292d63acada36d05cdd39df6c067b36aa63ff551&",
+					description="Rag's Jewellery Shop",
+				),
+			)
+		)
+
+		info_button = self.InfoButton()
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(
 			discord.ui.TextDisplay(
 				"-# **RAG:**\n-# Mmmm... You smell strongly of gems. Welcome. I'll trade anything with you."
 			)
 		)
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
-		container.add_item(
-			discord.ui.TextDisplay(
-				"-# - Trade gemstones for incense that can be used to increase the rank of one of your demons."
-				"\n-# - Each demon requires an incense of their respective race."
-				"\n-# - As the demon grows in strength, larger incense will be required."
+		container.add_item(section)
+
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
+			container.add_item(
+				discord.ui.TextDisplay(
+					"-# - Trade gemstones for incense that can be used to increase the rank of one of your demons."
+					"\n-# - Each demon requires an incense for their respective race."
+					"\n-# - As the demon grows in strength, larger incense will be required. (NOT YET IMPLEMENTED)"
+				),
 			)
-		)
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
 		return container
 
 	def _build_shop_layout(self) -> None:
