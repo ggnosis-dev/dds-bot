@@ -12,11 +12,12 @@ class ItemEntry:
 
 @dataclass
 class ItemData:
-	name_id: str
-	display_name: str
+	item_id: str
+	name: str
+	i_type: str
+	cost: dict
 	description: str
-	cost: tuple[str, int]
-	emote: Emotes
+	emote: str
 	exclusive_to: str
 
 	def __iter__(self):

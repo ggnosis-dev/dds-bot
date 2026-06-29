@@ -76,7 +76,7 @@ class Items(commands.Cog):
 		"""View player's item inventory."""
 
 		player, server = gets.get_player_server(ctx)
-		items = item_queries.get_player_inventory(player.id, server.id)
+		items = await item_queries.get_player_inventory(player.id, server.id)
 		columns = list(Columns.ITEM_DEFAULT)
 
 		if not items:

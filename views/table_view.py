@@ -81,13 +81,12 @@ class BaseTableView(ABC, Generic[T], discord.ui.LayoutView):
 		def __init__(self, direction: str) -> None:
 			if direction == "prev":
 				super().__init__(label="<", style=discord.ButtonStyle.primary)
-			elif direction == "next":
-				super().__init__(label=">", style=discord.ButtonStyle.primary)
 			else:
-				raise ValueError("ERROR: Direction must be 'prev' or 'next'.")
+				super().__init__(label=">", style=discord.ButtonStyle.primary)
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			"""Callback for when a page navigation button is clicked. Allows wrapping around the pages."""
+
 			view = cast(BaseCompendiumView, self.view)
 
 			if self.label == "<":

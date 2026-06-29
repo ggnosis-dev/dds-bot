@@ -36,6 +36,32 @@ async def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry
 	return entries
 
 
+async def get_rags_item_list() -> list[ItemData]:
+	rows = query_all(
+		"""
+			SELECT * FROM items
+			WHERE type = "sml_incense"
+		""",
+	)
+
+	entries = []
+	for row in rows:
+		i_id, name, typ, cost, excl, desc, emote = row
+		entries.append(
+			ItemData(
+				item_id=i_id,
+				name=name,
+				i_type=typ,
+				cost=json.loads(cost),
+				description=desc,
+				emote=emote,
+				exclusive_to=excl,
+			)
+		)
+
+	return entries
+
+
 def get_player_has_item(player_id: int, server_id: int, item_id: str) -> bool:
 	"""Check if a player has an item."""
 
