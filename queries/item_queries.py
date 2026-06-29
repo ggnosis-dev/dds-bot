@@ -1,95 +1,87 @@
 import json
 
-from entities.item_data import ItemEntry
+from entities.item_data import ItemData, ItemEntry
 from helpers.db import query_all, query_one, query_write
 from queries import demon_queries
-from shared_enums import Emotes
-
-_ITEMS = {}
-
-with open("data/items.json") as data:
-	raw_items = json.load(data)
-
-	# Build item lookups.
-	for item_id, item_data in raw_items.items():
-		_ITEMS[item_id] = item_data
 
 
-def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry]:
+async def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry]:
 	"""
 	Get dictionary of name and quantity of items in player's inventory.
 
 	Returns:
-		dict[str, int]: Item Name, Quantity pair.
+		dict[ItemEntry]: Item Name, Quantity pair.
 	"""
+
 	rows = query_all(
 		"""
-			SELECT item_id, quantity FROM player_items
-			WHERE player_id = ? AND server_id = ?
+			SELECT name, emote, quantity
+			FROM player_items pi
+			JOIN items i ON pi.item_id = i.item_id
+			WHERE pi.player_id = ? AND pi.server_id = ?
 		""",
 		(player_id, server_id),
 	)
 
 	entries = []
-	for item_id, qty in rows:
-		item_data = _ITEMS.get(item_id)
-
-		if item_data is None:
-			continue
-
+	for name, emote, qty in rows:
 		entries.append(
 			ItemEntry(
-				name=item_data["display_name"],
+				name=name,
 				quantity=qty,
-				emote=Emotes.BLANK,
+				emote=emote,
 			)
 		)
-	print(entries)
 
 	return entries
 
 
 def get_player_has_item(player_id: int, server_id: int, item_id: str) -> bool:
 	"""Check if a player has an item."""
-	if item_id not in _ITEMS:
-		raise ValueError(f"ERROR: Item with ID {item_id} not found in items data.")
 
 	response = query_one(
 		"""
-		SELECT quantity FROM player_items
-		WHERE player_id = ? AND server_id = ? AND item_id = ?
+			SELECT quantity FROM player_items
+			WHERE player_id = ? AND server_id = ? AND item_id = ?
 		""",
 		(player_id, server_id, item_id),
-	)[0]
+	)
 
-	return response
+	return response[0] if response else False
 
 
 def get_item_id_by_name(item_name: str) -> str | None:
 	"""Get an item's ID by its name."""
-	for item_id, item_data in _ITEMS.items():
-		if item_data["display_name"].lower() == item_name.lower():
-			return item_id
-	return None
+
+	response = query_one(
+		"""
+			SELECT item_id FROM items
+			WHERE LOWER(name) = LOWER(?)
+		""",
+		(item_name,),
+	)
+	return response[0] if response else None
 
 
 def use_incense(player_id: int, server_id: int, demon_id: int, item_id: str) -> bool:
 	"""Use an incense item on a specified demon."""
-	exclusive_to = _ITEMS[item_id].get("exclusive_to")
+	exclusive_to = query_one(
+		"SELECT exclusive_to FROM items WHERE item_id = ?",
+		(item_id,),
+	)[0]
 	demon_race = demon_queries.get_demon_race_by_id(demon_id)
 
 	# Some incense may be special and work for all demons.
-	if exclusive_to is not None:
+	if exclusive_to is not None and demon_race != exclusive_to:
 		# If the incense is exclusive to a specific race we should return False.
-		if demon_race != exclusive_to:
-			return False
+		return False
 
 	# Increase the demon's stored rank by 3.
 	q1 = query_write(
 		"""
-		UPDATE player_demons
-		SET stored_rank = stored_rank + 3
-		WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			UPDATE player_demons
+			SET stored_rank = stored_rank + 3
+			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
 		(player_id, server_id, demon_id),
 	)
@@ -97,9 +89,9 @@ def use_incense(player_id: int, server_id: int, demon_id: int, item_id: str) -> 
 	# Remove one of the used item from the player's inventory.
 	q2 = query_write(
 		"""
-		UPDATE player_items
-		SET quantity = quantity - 1
-		WHERE player_id = ? AND server_id = ? AND item_id = ?
+			UPDATE player_items
+			SET quantity = quantity - 1
+			WHERE player_id = ? AND server_id = ? AND item_id = ?
 		""",
 		(player_id, server_id, item_id),
 	)
@@ -112,14 +104,18 @@ def attempt_purchase_item(player_id: int, server_id: int, item_id: str, cost: di
 	Attempt to purchase item for the player. Checks if the player has enough gems and deducts the cost if they do.
 
 	Args:
-		player_id (int): Player ID.
-		server_id (int): Server ID.
 		item_id (str): ID of the item being purchased.
 		cost (int): Cost of the item in gems.
 	Returns:
 		bool: True if the purchase was successful, False if player didn't have enough.
 	"""
 
+	response = query_one(
+		"SELECT cost FROM items WHERE item_id = ?",
+		(item_id,),
+	)[0]
+
+	cost = json.loads(response)
 	gem_names = list(cost.keys())
 
 	# Get number of placeholders for the IN clause.
@@ -137,7 +133,7 @@ def attempt_purchase_item(player_id: int, server_id: int, item_id: str, cost: di
 	# Convert rows into a set for easier access. Gem: Quantity.
 	player_gems = {row[0]: row[1] for row in rows}
 
-	# Compare player's gems with cost.
+	# Compare player's gems amount with cost.
 	for gem, required_amount in cost.items():
 		if player_gems.get(gem, 0) < required_amount:
 			return False
