@@ -58,7 +58,10 @@ def get_demon_name_by_id(demon_id: int) -> str:
 
 
 def get_random_demon() -> DemonData:
-	"""Retrieve a random demon's data from the database. Does not need a profile."""
+	"""
+	Retrieve a random demon's data from the database. Does not need a profile.
+	Used mainly for testing.
+	"""
 	row = query_one(
 		"""
 			SELECT * FROM demons
@@ -83,6 +86,7 @@ def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> Demon
 		"""
 			SELECT * FROM demons d
 			WHERE d.rank BETWEEN 1 AND ?
+				AND d.prevent_spawn = 0
 				AND NOT EXISTS (
 					SELECT 1 FROM player_demons pd
 					WHERE pd.demon_id = d.id
@@ -113,6 +117,7 @@ def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 	row = query_one(
 		"""
 			SELECT * FROM demons
+			WHERE d.prevent_spawn = 0
 			-- Order by proximity to rank. Then if a tie exists, order by random.
 			ORDER BY ABS(rank - ?), RANDOM()
 			-- Retrieve the top result.

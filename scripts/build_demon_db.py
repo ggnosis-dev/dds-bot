@@ -19,6 +19,9 @@ for race_json in DEMONS_DIR.glob("*.json"):
 		data = json.load(f)
 
 	for entry in data:
+		prevent_spawn = bool(entry.get("prevent_spawn", False))
+		image_url = bool(entry.get("image_url", False))
+
 		demon = (
 			entry["name"],
 			race,
@@ -26,8 +29,9 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			int(entry["color"], 16),
 			Personality[entry["personality"]].name,
 			GemList[entry["gem"]].name,
-			entry["image_url"],
 			entry["profile_url"],
+			image_url,
+			prevent_spawn,
 		)
 
 		demon_data.append(demon)
@@ -48,16 +52,17 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			colour INTEGER,
 			personality TEXT,
 			gem TEXT,
+			profile_url TEXT,
 			image_url TEXT,
-			profile_url TEXT
+			prevent_spawn INTEGER DEFAULT 0
 		)
 	""")
 
 	# Insert demon data.
 	cursor.executemany(
 		"""
-		INSERT INTO demons (name, race, rank, colour, personality, gem, image_url, profile_url)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO demons (name, race, rank, colour, personality, gem, profile_url, image_url, prevent_spawn)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	""",
 		demon_data,
 	)
