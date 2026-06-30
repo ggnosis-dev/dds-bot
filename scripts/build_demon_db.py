@@ -20,7 +20,7 @@ for race_json in DEMONS_DIR.glob("*.json"):
 
 	for entry in data:
 		prevent_spawn = bool(entry.get("prevent_spawn", False))
-		image_url = bool(entry.get("image_url", False))
+		image_url = entry.get("image_url", None)
 
 		demon = (
 			entry["name"],
@@ -40,7 +40,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# Delete existing demon table in case changes to general structure.
-	cursor.execute("DROP TABLE IF EXISTS demons")
+	# cursor.execute("DROP TABLE IF EXISTS demons")
+	# cursor.execute("DELETE FROM demons WHERE name LIKE 'Jack%'")
 
 	# Create demon table.
 	cursor.execute("""
@@ -54,15 +55,24 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			gem TEXT,
 			profile_url TEXT,
 			image_url TEXT,
-			prevent_spawn INTEGER DEFAULT 0
+			prevent_spawn INTEGER DEFAULT 0,
+			UNIQUE (race, name)
 		)
 	""")
 
 	# Insert demon data.
 	cursor.executemany(
 		"""
-		INSERT INTO demons (name, race, rank, colour, personality, gem, profile_url, image_url, prevent_spawn)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	""",
+			INSERT OR IGNORE INTO demons (name, race, rank, colour, personality, gem, profile_url, image_url, prevent_spawn)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(race, name) DO UPDATE SET
+				rank = excluded.rank,
+				colour = excluded.colour,
+				personality = excluded.personality,
+				gem = excluded.gem,
+				profile_url = excluded.profile_url,
+				image_url = excluded.image_url,
+				prevent_spawn = excluded.prevent_spawn
+		""",
 		demon_data,
 	)
