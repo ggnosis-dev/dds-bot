@@ -255,7 +255,7 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 		button.callback = self._make_purchase_callback(entry)
 
 		new_section = discord.ui.Section(accessory=button)
-		new_section.add_item(discord.ui.TextDisplay(f"**{d_data.race} {d_data.name}** | Rank {d_data.rank}"))
+		new_section.add_item(discord.ui.TextDisplay(f"**{d_data.race} {d_data.name}** (Rank {d_data.rank})"))
 		new_section.add_item(discord.ui.TextDisplay(f"-# **Required:** {' + '.join(gem_amounts)}"))
 
 		container.add_item(new_section)
