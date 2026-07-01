@@ -10,7 +10,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	# TESTS:
 	cursor.execute("DROP TABLE IF EXISTS players")
-	cursor.execute("DROP TABLE IF EXISTS player_demons")
+	# cursor.execute("DROP TABLE IF EXISTS player_demons")
 	# cursor.execute('DROP TABLE IF EXISTS player_gems')
 	# cursor.execute('DROP TABLE IF EXISTS player_items')
 
@@ -25,8 +25,9 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			party_average_rank	INTEGER DEFAULT 0,
 			daily_timer			INTEGER DEFAULT 0,
 			encounter_timer		INTEGER DEFAULT 0,
-			PRIMARY KEY (player_id, server_id)
-			FOREIGN KEY (selected_demon_id) REFERENCES demons(id)
+			PRIMARY KEY (player_id, server_id),
+			FOREIGN KEY (selected_demon_id) REFERENCES demons(id),
+			UNIQUE (player_id, server_id)
 		)
 	""")
 
@@ -52,7 +53,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			gem_name		TEXT,
 			meter			INTEGER DEFAULT 0,
 			quantity		INTEGER DEFAULT 0,
-			UNIQUE(player_id, server_id, gem_name)
+			UNIQUE (player_id, server_id, gem_name)
 		)
 	""")
 
@@ -62,6 +63,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			server_id 		INTEGER,
 			item_id			TEXT,
 			quantity		INTEGER DEFAULT 0,
-			UNIQUE(player_id, server_id, item_id)
+			UNIQUE (player_id, server_id, item_id)
 		)
 	""")

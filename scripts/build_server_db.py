@@ -45,7 +45,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		CREATE TABLE IF NOT EXISTS server_unlocks (
 			-- Small relational table to keep track of what has been unlocked.
 			server_id		INTEGER,
-			unlock_key		INTEGER,
+			unlock_key		TEXT,
 			PRIMARY KEY (server_id, unlock_key)
 		)
 	""")

@@ -10,6 +10,7 @@ PLAYERS_DB_PATH = DATABASE_DIR / "players.db"
 DATA_DIR = PROJECT_ROOT / "data"
 DEMONS_DIR = DATA_DIR / "demons"
 ITEMS_JSON = DATA_DIR / "items.json"
+SPECIAL_FUSION_JSON = DATA_DIR / "special_fusions.json"
 FUSION_CSV = DATA_DIR / "fusion.csv"
 
 
