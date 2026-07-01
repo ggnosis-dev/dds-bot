@@ -36,7 +36,7 @@ def get_fuse_with_element(race: str, element: str, original_rank: int) -> DemonD
 	return demon_queries.get_next_demon_in_race(race, original_rank, direction)
 
 
-def get_special_fusion_list(server_id: int) -> list[SpecialFusionData] | None:
+async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 	# 1. Check if key has been obtained. Keys in server_unlocks.
 	# 2. Don't provide information on locked ones (TODO: maybe? Test this out)
 	# 3. Each key is a foreign key to a demon_id. So retrieve each demon ID.
