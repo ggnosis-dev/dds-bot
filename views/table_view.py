@@ -297,7 +297,7 @@ class PartyView(BaseCompendiumView):
 
 		# Draw selected demon at the top of the list on the first page.
 		if selected_demon:
-			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.ONE)
+			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.KNOT)
 
 		return container
 

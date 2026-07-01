@@ -22,7 +22,7 @@ for entry in json_data:
 		entry["name"],
 		entry["type"],
 		entry["description"],
-		Emotes.BLANK.name,
+		Emotes.GEM.name,
 		entry["exclusive_to"],
 		json.dumps(entry["cost"]),
 	)

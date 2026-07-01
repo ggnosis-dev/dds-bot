@@ -7,6 +7,9 @@ class Emotes(Enum):
 	THREE = "\u0033\ufe0f\u20e3"
 	ICON = "<:__:1486233309078884493>"
 	BLANK = "<:__:1486236397508628510>"
+	GEM = "<:gem_:1521330841840648223>"
+	GEM_THIN = "<:gemthin:1521331286105657434>"
+	KNOT = "<:knot_:1521331774628692010>"
 
 
 class Unicode(Enum):
