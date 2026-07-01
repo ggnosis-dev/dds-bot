@@ -29,6 +29,25 @@ class DemonData:
 	gem: str
 	image_url: str
 	profile_url: str
+	prevent_spawn: bool
+
+
+## FUSION RELATED.
+@dataclass
+class SpecialFusionData:
+	key: str
+	ingredients: tuple
+	demon_data: DemonData
+
+
+ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
+
+ELEMENT_PAIRS = {
+	"Erthys": ["Beast", "Femme", "Jaki"],
+	"Aeros": ["Fairy", "Flight"],
+	"Aquans": ["Fairy", "Wilder"],
+	"Flaemis": ["Beast", "Femme", "Flight", "Jaki", "Wilder"],
+}
 
 
 def convert_row_to_demon_data(row: tuple) -> DemonData:
@@ -40,7 +59,7 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 	Returns:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
-	id, name, race, rank, colour, personality_type, gem, image_url, profile_url = row
+	id, name, race, rank, colour, personality_type, gem, image_url, profile_url, prevent_spawn = row
 
 	return DemonData(
 		id=id,
@@ -52,4 +71,5 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		gem=gem,
 		image_url=image_url,
 		profile_url=profile_url,
+		prevent_spawn=prevent_spawn,
 	)

@@ -1,6 +1,5 @@
-from entities.demon_data import DemonData
-from entities.fusion_data import ELEMENT_PAIRS, ELEMENT_RACE
-from helpers.db import query_one
+from entities.demon_data import ELEMENT_PAIRS, ELEMENT_RACE, DemonData, SpecialFusionData, convert_row_to_demon_data
+from helpers.db import query_all, query_one
 from queries import demon_queries
 
 
@@ -32,6 +31,70 @@ def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> DemonData | 
 	return demon_queries.get_closest_demon_in_race(fused_race, average_rank)
 
 
-def get_fuse_with_element(race, element, original_rank) -> DemonData | None:
+def get_fuse_with_element(race: str, element: str, original_rank: int) -> DemonData | None:
 	direction = 1 if race in ELEMENT_PAIRS[element] else -1
 	return demon_queries.get_next_demon_in_race(race, original_rank, direction)
+
+
+def get_special_fusion_list(server_id: int) -> list[SpecialFusionData] | None:
+	# 1. Check if key has been obtained. Keys in server_unlocks.
+	# 2. Don't provide information on locked ones (TODO: maybe? Test this out)
+	# 3. Each key is a foreign key to a demon_id. So retrieve each demon ID.
+	print("DEBUG: In get_special_fusion_list")
+	recipe_rows = query_all(
+		"""
+			SELECT
+				fr.id,
+				fr.required_key,
+				d.*
+			FROM sp_fusion_recipes fr
+			JOIN server_unlocks su
+				ON su.unlock_key = fr.required_key
+				AND su.server_id = ?
+			JOIN demons d ON d.id = fr.result_demon_id
+		""",
+		(server_id,),
+	)
+
+	if not recipe_rows:
+		return []
+
+	print(f"DEBUG: Recipe rows: {recipe_rows}")
+
+	# Get all the recipe IDs in response. Can't use row_factory.
+	recipe_ids = [r[0] for r in recipe_rows]
+	gem_placeholders = ",".join("?" * len(recipe_ids))
+
+	ing_rows = query_all(
+		f"""
+			SELECT
+				fi.recipe_id,
+				d.race,
+				d.name
+			FROM sp_fusion_ingredients fi
+			JOIN demons d ON d.id = fi.demon_id
+			WHERE fi.recipe_id IN ({gem_placeholders})
+		""",
+		tuple(recipe_ids),
+	)
+
+	entries = []
+	try:
+		for row in recipe_rows:
+			key = row[1]
+			d_raw_data = row[2:]
+			d_data = convert_row_to_demon_data(d_raw_data)
+
+			entries.append(
+				SpecialFusionData(
+					key=key,
+					ingredients=tuple(ing_rows),
+					demon_data=d_data,
+				)
+			)
+
+		print(f"DEBUG: Special Fusion entries: {entries}")
+		return entries
+	except Exception as e:
+		print(e)
+		raise Exception(f"ERROR: get_special_fusion_list | {e}")
