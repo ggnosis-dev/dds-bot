@@ -4,10 +4,8 @@ from entities.command_data import SHOP_RAGS_COMMANDS, command_kwargs
 from entities.item_data import ItemData
 from helpers import checks
 from queries import item_queries
+from shared_enums import ShopColour
 from views.shop_view import RagsShopView
-
-PAGE_SIZE = 5
-SHOP_COLOUR = 0x1B6340
 
 
 class RagsShop(commands.Cog):
@@ -22,7 +20,7 @@ class RagsShop(commands.Cog):
 		"""Command to view the Rags Shop and trade gems for items."""
 
 		items = await item_queries.get_rags_item_list()
-		view = RagsShopView(items, self._purchase_callback, SHOP_COLOUR)
+		view = RagsShopView(items, self._purchase_callback, ShopColour.RAGS.value)
 		await ctx.send(view=view)
 
 	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
