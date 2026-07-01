@@ -5,11 +5,12 @@ import discord
 from discord.ext import commands
 
 from entities.command_data import FUSION_COMMANDS, command_kwargs
-from entities.demon_data import DemonData
+from entities.demon_data import DemonData, SpecialFusionData
 from helpers import checks, costs, gets
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
-from shared_enums import DemonRegistration
+from shared_enums import DemonRegistration, ShopColour
 from views.common_view import ConfirmationView, MessageView
+from views.shop_view import SpecialFusionView
 
 
 class Fusion(commands.Cog):
@@ -40,7 +41,20 @@ class Fusion(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(FUSION_COMMANDS, "special_fusion"))
 	async def special_fusion_command(self, ctx: commands.Context) -> None:
-		pass
+		"""Command to view the Rags Shop and trade gems for items."""
+
+		print("DEBUG: In special_fusion")
+		server_id = gets.get_server(ctx).id
+
+		entries = await fusion_queries.get_special_fusion_list(server_id)
+		view = SpecialFusionView(entries, self._purchase_callback, ShopColour.SP_FUSION.value)
+		await ctx.send(view=view)
+
+	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
+	async def _purchase_callback(self, interaction, fusion_result: SpecialFusionData) -> None:
+		"""Callback for when an item purchase button is clicked."""
+
+		await interaction.response.send_message(f"You have purchased a **{fusion_result.demon_data.name}**.", ephemeral=True)
 
 	async def _fuse_demons(
 		self,
@@ -147,7 +161,7 @@ class Fusion(commands.Cog):
 			fuse_complete_text = "Hmm... It seems an unexpected demon was born... "
 
 		fuse_complete_text += (
-			f"\n\n-# **{demon_result.name}**:"
+			f"\n\n-# **{demon_result.name.capitalize()}**:"
 			f"\n-# I'm **{demon_result.race} {demon_result.name}**. Well, it's nice to meet you."
 		)
 		if new_demon:

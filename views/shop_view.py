@@ -4,11 +4,13 @@ from typing import Any, Generic, TypeVar, cast
 
 import discord
 
+from entities.demon_data import SpecialFusionData
 from entities.item_data import ItemData
-from shared_enums import Emotes
+from shared_enums import Banners, Emotes
 
+# Generic type.
 T = TypeVar("T")
-type PurchaseCallback[T] = Callable[[discord.Interaction, str, T], Coroutine[Any, Any, None]]
+type PurchaseCallback[T] = Callable[[discord.Interaction, T], Coroutine[Any, Any, None]]
 
 PAGE_SIZE = 5
 SHOP_COLOUR = 0x1E452F
@@ -102,21 +104,20 @@ class BaseShopView(ABC, Generic[T], discord.ui.LayoutView):
 
 		return container
 
-	def _make_purchase_callback(self, item_id: str, item: T):
+	def _make_purchase_callback(self, item: T):
 		async def callback(interaction: discord.Interaction) -> None:
-			await self.on_purchase(interaction, item_id, item)
+			await self.on_purchase(interaction, item)
 
 		return callback
 
 
 class RagsShopView(BaseShopView[ItemData]):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		# TODO: Add a banner for the shop.
 		container.add_item(
 			discord.ui.MediaGallery(
 				discord.MediaGalleryItem(
-					"https://cdn.discordapp.com/attachments/1521163871732371688/1521167394075050017/Rag_wo_title_and_thing_on_top.png?ex=6a43d908&is=6a428788&hm=fa7e8e0c5d375b95b036151fbf0f4c23fad1925b069a0ed875cd8b7fff4532c0&",
-					description="Rag's Jewellery Shop",
+					Banners.RAGS.value,
+					description="Rag's Jewelry",
 				),
 			)
 		)
@@ -150,7 +151,7 @@ class RagsShopView(BaseShopView[ItemData]):
 	def _build_shop_layout(self) -> None:
 		"""Function to build Rag's Shop view layout."""
 
-		container = discord.ui.Container(accent_color=SHOP_COLOUR)
+		container = discord.ui.Container(accent_color=self.colour)
 		page_entries = self._get_page_entries()
 
 		container = self._build_header(container)
@@ -176,11 +177,86 @@ class RagsShopView(BaseShopView[ItemData]):
 			emoji=Emotes[item.emote].value,
 			style=discord.ButtonStyle.grey,
 		)
-		button.callback = self._make_purchase_callback(item.item_id, item)
+		button.callback = self._make_purchase_callback(item)
 
 		new_section = discord.ui.Section(accessory=button)
 		new_section.add_item(discord.ui.TextDisplay(f"**{item.name}** - {', '.join(gem_amounts)}"))
 		new_section.add_item(discord.ui.TextDisplay(f"-# {item.description} "))
+
+		container.add_item(new_section)
+		return container
+
+
+class SpecialFusionView(BaseShopView[SpecialFusionData]):
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		container.add_item(
+			discord.ui.MediaGallery(
+				discord.MediaGalleryItem(
+					Banners.SP_FUSION.value,
+					description="Special Fusion",
+				),
+			)
+		)
+
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(
+			discord.ui.TextDisplay("-# **MIDO:**\n-# Welcome to the Cathedral of Shadows, where demons gather...")
+		)
+		container.add_item(section)
+
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
+			container.add_item(
+				discord.ui.TextDisplay(
+					"-# - Perform a Special Fusion by sacrificing the necessary demons from your party."
+					"\n-# - Special Fusion Keys can be found by leveling up the server and events."
+				),
+			)
+
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		return container
+
+	def _build_shop_layout(self) -> None:
+		"""Function to build Rag's Shop view layout."""
+
+		container = discord.ui.Container(accent_color=self.colour)
+		page_entries = self._get_page_entries()
+
+		container = self._build_header(container)
+		for item in page_entries:
+			container = self._build_page_entry(container, item)
+		container = self._build_footer(container)
+
+		self.add_item(container)
+
+	def _build_page_entry(
+		self,
+		container: discord.ui.Container,
+		entry: SpecialFusionData,
+	) -> discord.ui.Container:
+		ing = entry.ingredients
+		d_data = entry.demon_data
+		gem_amounts = []
+
+		for i in ing:
+			_id, race, name = i
+			gem_amounts.append(f"{race} {name}")
+
+		# Set up buttons.
+		button = discord.ui.Button(
+			emoji=Emotes.ICON.value,
+			style=discord.ButtonStyle.grey,
+		)
+		button.callback = self._make_purchase_callback(entry)
+
+		new_section = discord.ui.Section(accessory=button)
+		new_section.add_item(discord.ui.TextDisplay(f"**{d_data.race} {d_data.name}** | Rank {d_data.rank}"))
+		new_section.add_item(discord.ui.TextDisplay(f"-# **Required:** {' + '.join(gem_amounts)}"))
 
 		container.add_item(new_section)
 		return container

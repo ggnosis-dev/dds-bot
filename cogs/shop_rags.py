@@ -24,7 +24,7 @@ class RagsShop(commands.Cog):
 		await ctx.send(view=view)
 
 	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
-	async def _purchase_callback(self, interaction, item_id: str, item_data: ItemData) -> None:
+	async def _purchase_callback(self, interaction, item_data: ItemData) -> None:
 		"""Callback for when an item purchase button is clicked."""
 
 		player_id = interaction.user.id
@@ -35,7 +35,7 @@ class RagsShop(commands.Cog):
 		check = item_queries.attempt_purchase_item(
 			player_id=player_id,
 			server_id=server_id,
-			item_id=item_id,
+			item_id=item_data.item_id,
 			cost=item_data.cost,
 		)
 
