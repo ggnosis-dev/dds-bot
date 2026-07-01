@@ -22,6 +22,7 @@ def query_one(query: str, params: tuple = ()) -> tuple:
 
 			return response
 	except Exception as e:
+		print(f"ERROR: query_write failed: {e}\nQuery: {query}\nParams: {params}")
 		raise RuntimeError(f"ERROR: query_one failed: {e}\nQuery: {query}\nParams: {params}")
 
 
@@ -34,6 +35,7 @@ def query_all(query: str, params: tuple = ()) -> list[dict]:
 
 			return cursor.fetchall()
 	except Exception as e:
+		print(f"ERROR: query_write failed: {e}\nQuery: {query}\nParams: {params}")
 		raise RuntimeError(f"ERROR: query_all failed: {e}\nQuery: {query}\nParams: {params}")
 
 
@@ -46,4 +48,5 @@ def query_write(query: str, params: tuple = ()) -> int:
 
 			return cursor.rowcount
 	except Exception as e:
+		print(f"ERROR: query_write failed: {e}\nQuery: {query}\nParams: {params}")
 		raise RuntimeError(f"ERROR: query_write failed: {e}\nQuery: {query}\nParams: {params}")
