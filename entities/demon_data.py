@@ -34,9 +34,16 @@ class DemonData:
 
 ## FUSION RELATED.
 @dataclass
+class IngredientData:
+	ing_id: int
+	race: str
+	name: str
+
+
+@dataclass
 class SpecialFusionData:
 	key: str
-	ingredients: tuple
+	ingredients: tuple[IngredientData, ...]
 	demon_data: DemonData
 
 

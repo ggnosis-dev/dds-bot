@@ -228,8 +228,8 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 		page_entries = self._get_page_entries()
 
 		container = self._build_header(container)
-		for item in page_entries:
-			container = self._build_page_entry(container, item)
+		for entry in page_entries:
+			container = self._build_page_entry(container, entry)
 		container = self._build_footer(container)
 
 		self.add_item(container)
@@ -241,11 +241,10 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 	) -> discord.ui.Container:
 		ing = entry.ingredients
 		d_data = entry.demon_data
-		gem_amounts = []
+		ingredient_list = []
 
 		for i in ing:
-			_id, race, name = i
-			gem_amounts.append(f"{race} {name}")
+			ingredient_list.append(f"{i.race} {i.name}")
 
 		# Set up buttons.
 		button = discord.ui.Button(
@@ -256,7 +255,7 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 
 		new_section = discord.ui.Section(accessory=button)
 		new_section.add_item(discord.ui.TextDisplay(f"**{d_data.race} {d_data.name}** (Rank {d_data.rank})"))
-		new_section.add_item(discord.ui.TextDisplay(f"-# **Required:** {' + '.join(gem_amounts)}"))
+		new_section.add_item(discord.ui.TextDisplay(f"-# **Required:** {' + '.join(ingredient_list)}"))
 
 		container.add_item(new_section)
 		return container

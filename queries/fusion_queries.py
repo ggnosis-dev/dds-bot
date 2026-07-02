@@ -1,4 +1,13 @@
-from entities.demon_data import ELEMENT_PAIRS, ELEMENT_RACE, DemonData, SpecialFusionData, convert_row_to_demon_data
+from collections import defaultdict
+
+from entities.demon_data import (
+	ELEMENT_PAIRS,
+	ELEMENT_RACE,
+	DemonData,
+	IngredientData,
+	SpecialFusionData,
+	convert_row_to_demon_data,
+)
 from helpers.db import query_all, query_one
 from queries import demon_queries
 
@@ -40,7 +49,6 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 	# 1. Check if key has been obtained. Keys in server_unlocks.
 	# 2. Don't provide information on locked ones (TODO: maybe? Test this out)
 	# 3. Each key is a foreign key to a demon_id. So retrieve each demon ID.
-	print("DEBUG: In get_special_fusion_list")
 	recipe_rows = await get_unlocked_sp_fusions(server_id)
 
 	# Get all the recipe IDs in response. Can't use row_factory.
@@ -51,6 +59,7 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 		f"""
 			SELECT
 				fi.recipe_id,
+				d.id,
 				d.race,
 				d.name
 			FROM sp_fusion_ingredients fi
@@ -60,22 +69,29 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 		tuple(recipe_ids),
 	)
 
+	# Create a dictionary where recipe_id: ingredients.
+	ingredients_by_recipe = defaultdict(list)
+	for row in ing_rows:
+		ingredients_by_recipe[row[0]].append(IngredientData(ing_id=row[1], race=row[2], name=row[3]))
+
 	entries = []
 	try:
 		for row in recipe_rows:
+			recipe_id = row[0]
 			key = row[1]
 			d_raw_data = row[2:]
 			d_data = convert_row_to_demon_data(d_raw_data)
+			ings = tuple(ingredients_by_recipe.get(recipe_id, ()))
 
 			entries.append(
 				SpecialFusionData(
 					key=key,
-					ingredients=tuple(ing_rows),
+					ingredients=ings,
 					demon_data=d_data,
 				)
 			)
 
-		print(f"DEBUG: Special Fusion entries: {entries}")
+		# print(f"DEBUG: Special Fusion entries: {entries}")
 		return entries
 	except Exception as e:
 		print(e)
@@ -101,7 +117,7 @@ async def get_unlocked_sp_fusions(server_id: int) -> list:
 		(server_id,),
 	)
 
-	print(f"DEBUG: Recipe rows: {recipe_rows}")
+	# print(f"DEBUG: Recipe rows: {recipe_rows}")
 
 	if not recipe_rows:
 		raise RuntimeError("Error: Special Fusion list was not retrieved.")

@@ -54,6 +54,38 @@ class Fusion(commands.Cog):
 	async def _purchase_callback(self, interaction, fusion_result: SpecialFusionData) -> None:
 		"""Callback for when an item purchase button is clicked."""
 
+		player_id = interaction.user.id
+		server_id = interaction.guild.id
+		demon = fusion_result.demon_data
+		ingredients = fusion_result.ingredients
+
+		# Check if demon already exists in party.
+		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
+
+		if in_party == DemonRegistration.IN_PARTY:
+			msg = MessageView(f"You already have **{demon.name}** in your party...")
+			await interaction.response.send(view=msg)
+			return
+
+		# Check if player has space.
+		if not player_demons_queries.get_party_has_space(player_id, server_id):
+			msg = MessageView(
+				f"Cannot summon **{demon.name}**. Party is full. You can increase capacity using `>increase_party`."
+			)
+			await interaction.response.send(view=msg)
+			return
+
+		# CHeck if demon ingredients are in party.'
+		for i in ingredients:
+			in_party = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
+
+			if in_party != DemonRegistration.IN_PARTY:
+				msg = MessageView(f"You do not have a **{i.name}** in your party...")
+				await interaction.response.send(view=msg)
+				return
+
+		# Send confirmation
+
 		await interaction.response.send_message(f"You have purchased a **{fusion_result.demon_data.name}**.", ephemeral=True)
 
 	async def _fuse_demons(
