@@ -15,7 +15,7 @@ def get_demon_by_id(demon_id: int) -> DemonData | None:
 	"""
 	row = query_one(
 		"""
-			SELECT id, name, race, rank, colour, personality, gem, profile_url, image_url
+			SELECT *
 			FROM demons
 			WHERE id = ?
 		""",

@@ -66,17 +66,21 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 	Returns:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
-	id, name, race, rank, colour, personality_type, gem, profile_url, image_url, prevent_spawn = row
+	try:
+		id, name, race, rank, colour, personality_type, gem, profile_url, image_url, prevent_spawn = row
 
-	return DemonData(
-		id=id,
-		name=name,
-		race=race,
-		rank=rank,
-		colour=colour,
-		personality_type=Personality[personality_type],
-		gem=gem,
-		profile_url=profile_url,
-		image_url=image_url,
-		prevent_spawn=prevent_spawn,
-	)
+		return DemonData(
+			id=id,
+			name=name,
+			race=race,
+			rank=rank,
+			colour=colour,
+			personality_type=Personality[personality_type],
+			gem=gem,
+			profile_url=profile_url,
+			image_url=image_url,
+			prevent_spawn=prevent_spawn,
+		)
+	except Exception as e:
+		print(e)
+		raise KeyError(f"ERROR: Problem when creating DemonData | {e}")
