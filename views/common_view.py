@@ -3,6 +3,8 @@ import typing
 
 import discord
 
+from discord.ext import commands
+
 
 class MessageView(discord.ui.LayoutView):
 	def __init__(
@@ -13,8 +15,8 @@ class MessageView(discord.ui.LayoutView):
 	):
 		super().__init__()
 		self.message = message
-		self.colour = colour
 		self.image = image
+		self.colour = colour
 		self._build_layout()
 
 	def _build_layout(self) -> None:
@@ -37,6 +39,9 @@ class ConfirmationView(discord.ui.LayoutView):
 		message: str,
 		confirmLabel: str = "Confirm",
 		denyLabel: str = "Deny",
+		confirmColour: discord.ButtonStyle = discord.ButtonStyle.success,
+		denyColour: discord.ButtonStyle = discord.ButtonStyle.danger,
+		image: str | None = None,
 		colour: int = 0xE93700,
 		timeout: float = 10.0,
 	):
@@ -45,10 +50,13 @@ class ConfirmationView(discord.ui.LayoutView):
 		self.message = message
 		self.confirmLabel = confirmLabel
 		self.denyLabel = denyLabel
+		self.confirmColour = confirmColour
+		self.denyColour = denyColour
+		self.image = image
 		self.colour = colour
 		self.timedOut: bool = False
 		self.confirmed: bool | None = None
-		self.msg: discord.Message | None = None
+		self.msg = None
 
 		self._event = asyncio.Event()
 
@@ -57,13 +65,21 @@ class ConfirmationView(discord.ui.LayoutView):
 	def _build_layout(self) -> None:
 		ui = discord.ui
 		container = ui.Container(accent_color=self.colour)
+
+		if self.image is not None:
+			section = ui.Section(accessory=ui.Thumbnail(media=self.image))
+			section.add_item(ui.TextDisplay(self.message))
+			container.add_item(section)
+		else:
+			container.add_item(ui.TextDisplay(self.message))
+
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
 		action_row = ui.ActionRow(
-			self.ConfirmButton(self.confirmLabel, True, discord.ButtonStyle.success),
-			self.ConfirmButton(self.denyLabel, False, discord.ButtonStyle.danger),
+			self.ConfirmButton(self.confirmLabel, True, self.confirmColour),
+			self.ConfirmButton(self.denyLabel, False, self.denyColour),
 		)
 
-		container.add_item(ui.TextDisplay(self.message))
-		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 		container.add_item(action_row)
 
 		if self.timedOut:
@@ -87,8 +103,15 @@ class ConfirmationView(discord.ui.LayoutView):
 		if self.msg:
 			await self.msg.edit(view=self)
 
-	async def send_message(self, ctx) -> bool | None:
-		msg = await ctx.send(view=self)
+	async def send_message(self, ctx: commands.Context | discord.Interaction) -> bool | None:
+		if type(ctx) is commands.Context:
+			msg = await ctx.send(view=self)
+		elif type(ctx) is discord.Interaction:
+			await ctx.response.send_message(view=self)
+			msg = await ctx.original_response()
+		else:
+			raise TypeError(f"ERROR: ctx was an unsupported type: {type(ctx)}")
+
 		self.msg = msg
 
 		return await self.wait_for_response()
