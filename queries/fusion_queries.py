@@ -41,25 +41,7 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 	# 2. Don't provide information on locked ones (TODO: maybe? Test this out)
 	# 3. Each key is a foreign key to a demon_id. So retrieve each demon ID.
 	print("DEBUG: In get_special_fusion_list")
-	recipe_rows = query_all(
-		"""
-			SELECT
-				fr.id,
-				fr.required_key,
-				d.*
-			FROM sp_fusion_recipes fr
-			JOIN server_unlocks su
-				ON su.unlock_key = fr.required_key
-				AND su.server_id = ?
-			JOIN demons d ON d.id = fr.result_demon_id
-		""",
-		(server_id,),
-	)
-
-	if not recipe_rows:
-		return []
-
-	print(f"DEBUG: Recipe rows: {recipe_rows}")
+	recipe_rows = await get_unlocked_sp_fusions(server_id)
 
 	# Get all the recipe IDs in response. Can't use row_factory.
 	recipe_ids = [r[0] for r in recipe_rows]
@@ -98,3 +80,30 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 	except Exception as e:
 		print(e)
 		raise Exception(f"ERROR: get_special_fusion_list | {e}")
+
+
+async def get_unlocked_sp_fusions(server_id: int) -> list:
+	recipe_rows = query_all(
+		"""
+			SELECT
+				fr.id,
+				fr.required_key,
+				d.*
+			FROM sp_fusion_recipes fr
+			LEFT JOIN server_unlocks su
+				ON su.unlock_key = fr.required_key
+				AND su.server_id = ?
+			JOIN demons d ON d.id = fr.result_demon_id
+			WHERE fr.required_key IS NULL
+				OR su.unlock_key IS NOT NULL
+			ORDER BY d.race, d.name ASC
+		""",
+		(server_id,),
+	)
+
+	print(f"DEBUG: Recipe rows: {recipe_rows}")
+
+	if not recipe_rows:
+		raise RuntimeError("Error: Special Fusion list was not retrieved.")
+
+	return recipe_rows

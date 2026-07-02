@@ -18,13 +18,14 @@ def load_fusion_recipes():
 		# Do fusion_recipes first.
 		name = entry["result_demon"]
 		result_id = get_demon_id_by_name(name)
+		key = entry.get("required_key", None)
 
 		print(f"INFO: Adding Special Fusion entry for: {name}")
 
 		new_recipe = (
 			recipe_id,
 			result_id,
-			entry["required_key"],
+			key,
 		)
 
 		recipes.append(new_recipe)
@@ -55,7 +56,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			id 					INTEGER PRIMARY KEY,
 			result_demon_id		INTEGER NOT NULL REFERENCES demons(id),
 			-- required_key should match LevelReward.value.
-			required_key 		TEXT NOT NULL
+			required_key 		TEXT
 		)
 	""")
 
