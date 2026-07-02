@@ -64,7 +64,7 @@ class Fusion(commands.Cog):
 
 		if in_party == DemonRegistration.IN_PARTY:
 			msg = MessageView(f"You already have **{demon.name}** in your party...")
-			await interaction.response.send(view=msg)
+			await interaction.response.send_message(view=msg)
 			return
 
 		# Check if player has space.
@@ -72,21 +72,45 @@ class Fusion(commands.Cog):
 			msg = MessageView(
 				f"Cannot summon **{demon.name}**. Party is full. You can increase capacity using `>increase_party`."
 			)
-			await interaction.response.send(view=msg)
+			await interaction.response.send_message(view=msg)
 			return
 
-		# CHeck if demon ingredients are in party.'
+		ing_text = ""
+
+		# CHeck if demon ingredients are in party.
 		for i in ingredients:
 			in_party = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
 
 			if in_party != DemonRegistration.IN_PARTY:
 				msg = MessageView(f"You do not have a **{i.name}** in your party...")
-				await interaction.response.send(view=msg)
+				await interaction.response.send_message(view=msg)
 				return
 
-		# Send confirmation
+			ing_text += f"\n-# - {i.race} {i.name}"
 
-		await interaction.response.send_message(f"You have purchased a **{fusion_result.demon_data.name}**.", ephemeral=True)
+		# Send confirmation
+		view = ConfirmationView(
+			f"In order to summon **{demon.race} {demon.name}**, the following must be sacrificed:"
+			f"{ing_text}"
+			f"\n\nComplete the ritual?",
+			confirmLabel="Summon",
+			confirmColour=discord.ButtonStyle.primary,
+			image=demon.profile_url,
+		)
+		result = await ConfirmationView.send_message(view, interaction)
+
+		if result is False or result is None:
+			return
+
+		# Remove demons being fused from party.
+		for i in ingredients:
+			await player_demons_queries.set_demon_in_party(player_id, server_id, i.ing_id, set_in_party=False)
+
+		await player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
+		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True)
+
+		msg = MessageView(f"You have successfully summoned **{demon.race} {demon.name}**!", image=demon.profile_url)
+		await interaction.response.send_message(view=msg)
 
 	async def _fuse_demons(
 		self,
