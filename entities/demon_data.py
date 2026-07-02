@@ -27,8 +27,8 @@ class DemonData:
 	colour: int
 	personality_type: Personality
 	gem: str
-	image_url: str
 	profile_url: str
+	image_url: str
 	prevent_spawn: bool
 
 
@@ -66,7 +66,7 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 	Returns:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
-	id, name, race, rank, colour, personality_type, gem, image_url, profile_url, prevent_spawn = row
+	id, name, race, rank, colour, personality_type, gem, profile_url, image_url, prevent_spawn = row
 
 	return DemonData(
 		id=id,
@@ -76,7 +76,7 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		colour=colour,
 		personality_type=Personality[personality_type],
 		gem=gem,
-		image_url=image_url,
 		profile_url=profile_url,
+		image_url=image_url,
 		prevent_spawn=prevent_spawn,
 	)
