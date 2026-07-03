@@ -109,8 +109,9 @@ class Fusion(commands.Cog):
 		await player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True)
 
+		# Needs to be a followup.
 		msg = MessageView(f"You have successfully summoned **{demon.race} {demon.name}**!", image=demon.profile_url)
-		await interaction.response.send_message(view=msg)
+		await interaction.followup.send(view=msg)
 
 	async def _fuse_demons(
 		self,
