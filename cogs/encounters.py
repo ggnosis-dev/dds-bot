@@ -87,7 +87,7 @@ class Encounters(commands.Cog):
 			if demon is None:
 				raise RuntimeError(f"ERROR: start_command | Demon {tut_demon} was not found in the database.")
 
-			(player,) = gets.get_player_server(ctx)
+			player = gets.get_player(ctx)
 			view = EncounterViewInitial(demon, self, user_exclusive_to=player, tutorial=True)
 			await send_to_channel.send(view=view)
 

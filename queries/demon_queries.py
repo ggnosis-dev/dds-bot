@@ -117,7 +117,7 @@ def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 	row = query_one(
 		"""
 			SELECT * FROM demons
-			WHERE d.prevent_spawn = 0
+			WHERE prevent_spawn = 0
 			-- Order by proximity to rank. Then if a tie exists, order by random.
 			ORDER BY ABS(rank - ?), RANDOM()
 			-- Retrieve the top result.
