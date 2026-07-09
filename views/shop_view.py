@@ -211,7 +211,7 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 			container.add_item(
 				discord.ui.TextDisplay(
 					"-# - Perform a Special Fusion by sacrificing the necessary demons from your party."
-					"\n-# - Special Fusion Keys can be found by leveling up the server and events."
+					"\n-# - Special Fusion Keys can be found by leveling up the server and through events."
 				),
 			)
 
