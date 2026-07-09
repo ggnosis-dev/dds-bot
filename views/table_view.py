@@ -175,7 +175,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 		self,
 		container: discord.ui.Container,
 		entry: DemonEntry,
-		emote_override=None,
+		emote_override: Emotes | None = None,
 	) -> discord.ui.Container:
 		tab = "\u2003"
 		new_row = ""
