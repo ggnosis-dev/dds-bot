@@ -1,11 +1,10 @@
-import discord
-
 from abc import ABC, abstractmethod
+
+import discord
 
 from entities.demon_data import DemonData
 from helpers.encounter_utils import join_player_party
-from shared_enums import Emotes, DemonRegistration, Personality, ResponseType
-
+from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 DIALOGUE_OPTIONS = [
 	{
@@ -35,7 +34,6 @@ DIALOGUE_OPTIONS = [
 ]
 
 
-# TODO: Move this out of this file.
 class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	"""
 	Base layout view for encounters. Shared logic for handling dialogue options and interactions.
@@ -44,7 +42,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	def __init__(
 		self,
 		demon: DemonData,
-		encounters_cog: Encounters,
 		consecutive_bad_interactions: int = 0,
 		message: discord.Message | None = None,
 		tutorial: bool = False,
@@ -54,7 +51,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		Args:
 			demon (DemonData): The encounter's demon information.
-			encounters_cog (Encounters): The Encounters cog instance to call functions on.
 			consecutive_bad_interactions (int, optional): The number of consecutive bad interactions
 				that have occurred in the encounter so far. Defaults to 0.
 			message (discord.Message | None, optional): Message the encounter is associated with,
@@ -65,7 +61,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		super().__init__()
 
 		self.demon = demon
-		self.encounters_cog = encounters_cog
 		self.consecutive_bad_interactions = consecutive_bad_interactions
 		self.message = message
 		self.tutorial = tutorial
@@ -221,7 +216,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		followup_view = EncounterViewFollowup(
 			demon=self.demon,
-			encounters_cog=self.encounters_cog,
 			parent_view=parent_view,
 			consecutive_bad=self.consecutive_bad_interactions + 1,
 			tutorial=self.tutorial,
@@ -274,7 +268,6 @@ class EncounterViewInitial(EncounterViewTemplate):
 	def __init__(
 		self,
 		demon: DemonData,
-		encounters_cog: Encounters,
 		count: int = 1,
 		user_exclusive_to: discord.Member | None = None,
 		tutorial=False,
@@ -284,12 +277,11 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 		Args:
 		    demon (DemonData): The encounter's demon information.
-		    encounters_cog (Encounters): The Encounters cog instance to call functions on.
 		    count (int, optional): The number of interactions before encounter ends. Defaults to 1.
 		    user_exclusive_to (discord.User | None, optional): If set, only this user can interact with the encounter.
 		    tutorial (bool, optional): If set to True, the encounter can't be failed. Defaults to False.
 		"""
-		super().__init__(demon, encounters_cog, tutorial=tutorial)
+		super().__init__(demon, tutorial=tutorial)
 
 		self.count = count
 		self.user_exclusive_to = user_exclusive_to
@@ -394,7 +386,6 @@ class EncounterViewFollowup(EncounterViewTemplate):
 	def __init__(
 		self,
 		demon: DemonData,
-		encounters_cog: Encounters,
 		parent_view: EncounterViewTemplate,
 		consecutive_bad: int = 0,
 		tutorial=False,
@@ -404,7 +395,6 @@ class EncounterViewFollowup(EncounterViewTemplate):
 
 		Args:
 		    demon (DemonData): The encounter's demon information.
-		    encounters_cog (Encounters): The Encounters cog instance to call functions on.
 		    parent_view (EncounterViewTemplate): Parent view that spawned this followup, used for updating status and
 				icon count on the original message.
 		    consecutive_bad (int, optional): Number of consecutive bad interactions that have occurred in the encounter
@@ -412,7 +402,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		    tutorial (bool, optional): Whether this encounter is a tutorial encounter, which prevents encounter from
 				fleeing. Defaults to False.
 		"""
-		super().__init__(demon, encounters_cog, consecutive_bad, tutorial=tutorial)
+		super().__init__(demon, consecutive_bad, tutorial=tutorial)
 
 		self.parent_view = parent_view
 		self.interacted = False

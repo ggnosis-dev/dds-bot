@@ -1,7 +1,6 @@
 import random
 import time
 
-
 import discord
 
 from discord.ext import commands
@@ -12,6 +11,7 @@ from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from helpers import checks, encounter_utils, gets
 from queries import demon_queries, player_queries, server_level_queries
 from views.common_view import MessageView
+from views.encounter_view import EncounterViewInitial
 
 dedicated_channel = 1486290442877407333
 
@@ -62,7 +62,7 @@ class Encounters(commands.Cog):
 				raise RuntimeError(f"ERROR: start_command | Demon {tut_demon} was not found in the database.")
 
 			player = gets.get_player(ctx)
-			view = EncounterViewInitial(demon, self, user_exclusive_to=player, tutorial=True)
+			view = EncounterViewInitial(demon, user_exclusive_to=player, tutorial=True)
 			await send_to_channel.send(view=view)
 
 	@checks.has_profile()
@@ -120,7 +120,7 @@ class Encounters(commands.Cog):
 			demon_data (DemonData): The demon to send.
 			exclusive_to (discord.Member | None): Optional lock encounter to the player.
 		"""
-		view = EncounterViewInitial(demon_data, encounters_cog=self, count=count, user_exclusive_to=exclusive_to)
+		view = EncounterViewInitial(demon_data, count=count, user_exclusive_to=exclusive_to)
 		await send_to_channel.send(view=view)
 
 
