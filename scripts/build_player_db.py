@@ -1,8 +1,6 @@
 import sqlite3
 
-from database_paths import PLAYERS_DB_PATH, ensure_db_dir_exists
-
-ensure_db_dir_exists()
+from database_paths import PLAYERS_DB_PATH
 
 # https://www.sqlitetutorial.net/sqlite-json/
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:

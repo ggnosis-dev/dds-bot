@@ -1,10 +1,8 @@
 import json
 import sqlite3
 
-from database_paths import ITEMS_JSON, PLAYERS_DB_PATH, ensure_db_dir_exists
+from database_paths import ITEMS_JSON, PLAYERS_DB_PATH
 from shared_enums import Emotes
-
-ensure_db_dir_exists()
 
 item_data = []
 json_data = {}

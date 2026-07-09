@@ -11,17 +11,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 DEMONS_DIR = DATA_DIR / "demons"
 ITEMS_JSON = DATA_DIR / "items.json"
 SPECIAL_FUSION_JSON = DATA_DIR / "special_fusions.json"
+TALK_JSON = DATA_DIR / "talk.json"
 FUSION_CSV = DATA_DIR / "fusion.csv"
-
-
-def ensure_db_dir_exists() -> Path:
-	"""
-	Ensure the database directory exists, creating it if necessary.
-	Returns:
-		Path: The path to the database directory.
-	"""
-	DATABASE_DIR.mkdir(exist_ok=True)
-	return DATABASE_DIR
 
 
 def load_json(path: Path):

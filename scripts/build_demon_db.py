@@ -1,10 +1,8 @@
 import json
 import sqlite3
 
-from database_paths import DEMONS_DIR, PLAYERS_DB_PATH, ensure_db_dir_exists
+from database_paths import DEMONS_DIR, PLAYERS_DB_PATH
 from shared_enums import GemList, Personality
-
-ensure_db_dir_exists()
 
 demon_data = []
 

@@ -1,10 +1,8 @@
 import json
 import sqlite3
 
-from database_paths import PLAYERS_DB_PATH, SPECIAL_FUSION_JSON, ensure_db_dir_exists
+from database_paths import PLAYERS_DB_PATH, SPECIAL_FUSION_JSON
 from queries.demon_queries import get_demon_id_by_name
-
-ensure_db_dir_exists()
 
 
 def load_fusion_recipes():

@@ -1,9 +1,7 @@
 import csv
 import sqlite3
 
-from database_paths import FUSION_CSV, PLAYERS_DB_PATH, ensure_db_dir_exists
-
-ensure_db_dir_exists()
+from database_paths import FUSION_CSV, PLAYERS_DB_PATH
 
 with open(FUSION_CSV, newline="") as f:
 	reader = csv.reader(f)
