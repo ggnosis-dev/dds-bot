@@ -61,13 +61,16 @@ class Encounters(commands.Cog):
 	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None = None) -> None:
 		"""Command to start a test encounter with a random demon."""
 
-		if name is not None:
-			name = name.title()
-
 		if not isinstance(ctx.channel, discord.TextChannel):
 			raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
 
-		await self._start_encounter(ctx.channel, name)
+		d = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(name)
+
+		if d is None:
+			print(f"WARN: Demon {name} was None.")
+			return
+
+		await self._start_encounter(ctx.channel, d, 3)
 
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "start"))
 	async def start_tutorial_command(self, ctx: commands.Context) -> None:
@@ -126,28 +129,27 @@ class Encounters(commands.Cog):
 		average_rank = player_data.party_stats.average
 		server_cap = await server_level_queries.get_rank_cap(server_id)
 		demon = demon_queries.get_demon_by_distribution(average_rank, server_cap)
+		count = random.randint(1, 3)
 
-		player = gets.get_player(ctx)
-		view = EncounterViewInitial(demon, self, user_exclusive_to=player, count=1)
-		await send_to_channel.send(view=view)
+		await self._start_encounter(send_to_channel, demon, count)
 		await player_queries.set_encounter_timer(player_id, server_id, now)
 
-	async def _start_encounter(self, send_to_channel: discord.TextChannel, name: str | None = None) -> None:
+	async def _start_encounter(
+		self,
+		send_to_channel: discord.TextChannel,
+		demon_data: DemonData,
+		count: int,
+		exclusive_to: discord.Member | None = None,
+	) -> None:
 		"""
-		Starts an encounter by selecting a demon and creating a layout view. It will send the
-		encounter to the specified channel, which can be configured to a dedicated channel if
-		necessary.
+		Send an encounter to a channel.
 
 		Args:
 		    send_to_channel (discord.TextChannel): Channel to send the encounter to.
+			demon_data (DemonData): The demon to send.
+			exclusive_to (discord.Member | None): Optional lock encounter to the player.
 		"""
-		demon = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(name)
-
-		if demon is None:
-			raise RuntimeError(f"ERROR: Demon ID for {name} was not found.")
-
-		count = random.randint(1, 3)
-		view = EncounterViewInitial(demon, self, count)
+		view = EncounterViewInitial(demon_data, encounters_cog=self, count=count, user_exclusive_to=exclusive_to)
 		await send_to_channel.send(view=view)
 
 	async def join_player_party(
@@ -212,6 +214,7 @@ class Encounters(commands.Cog):
 	def _gems_for_rank(self, rank: int) -> int:
 		"""
 		When encounter is a demon player aleady has in party, gift them gems based on their rank.
+		This should give them between 1 and 3.
 		"""
 		# Always guaranteed 1.
 		total = 1
