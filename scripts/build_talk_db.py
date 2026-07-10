@@ -8,6 +8,7 @@ from shared_enums import Personality, ResponseType
 def load_questions_answers():
 	all_questions = []
 	all_answers = []
+	all_reactions = []
 
 	with open(TALK_JSON) as f:
 		data = json.load(f)
@@ -32,31 +33,32 @@ def load_questions_answers():
 		for a in answers:
 			# Each answer has a label acting as the words the player says.
 			label = a["label"]
+			all_answers.append((talk_id, label))
 
 			for r in a["reactions"]:
 				pers = Personality[r["personality"]].value
 				typ = ResponseType[r["type"]].value
 				res = r["response"]
 
-				new_answer = (
+				new_reaction = (
 					talk_id,
 					pers,
 					typ,
-					label,
 					res,
 				)
 
-				all_answers.append(new_answer)
+				all_reactions.append(new_reaction)
 
-	return all_questions, all_answers
+	return all_questions, all_answers, all_reactions
 
 
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	conn.execute("PRAGMA foreign_keys = ON")
 	cursor = conn.cursor()
 
-	cursor.execute("DROP TABLE IF EXISTS talk_questions")
+	cursor.execute("DROP TABLE IF EXISTS talk_reactions")
 	cursor.execute("DROP TABLE IF EXISTS talk_answers")
+	cursor.execute("DROP TABLE IF EXISTS talk_questions")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS talk_questions (
@@ -69,16 +71,23 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS talk_answers (
+			id				INTEGER PRIMARY KEY AUTOINCREMENT,
 			talk_id 		INTEGER NOT NULL REFERENCES talk_questions(id),
-			personality		INTEGER NOT NULL,
-			response_type	INTEGER NOT NULL,
-			label			TEXT NOT NULL,
-			response		TEXT NOT NULL,
-			PRIMARY KEY (talk_id, personality)
+			label			TEXT NOT NULL
 		)
 	""")
 
-	q, a = load_questions_answers()
+	cursor.execute("""
+		CREATE TABLE IF NOT EXISTS talk_reactions (
+			answer_id 		INTEGER NOT NULL REFERENCES talk_answers(id),
+			personality		INTEGER NOT NULL,
+			response_type	INTEGER NOT NULL,
+			response		TEXT NOT NULL,
+			PRIMARY KEY (answer_id, personality)
+		)
+	""")
+
+	q, a, r = load_questions_answers()
 
 	# Insert fusion recipes data.
 	cursor.executemany(
@@ -91,8 +100,16 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.executemany(
 		"""
-			INSERT OR IGNORE INTO talk_answers (talk_id, personality, response_type, label, response)
-			VALUES (?, ?, ?, ?, ?)
+			INSERT OR IGNORE INTO talk_answers (talk_id, label)
+			VALUES (?, ?)
 		""",
 		a,
+	)
+
+	cursor.executemany(
+		"""
+			INSERT OR IGNORE INTO talk_reactions (answer_id, personality, response_type, response)
+			VALUES (?, ?, ?, ?)
+		""",
+		r,
 	)
