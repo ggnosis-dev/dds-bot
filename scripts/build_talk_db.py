@@ -2,6 +2,7 @@ import json
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH, TALK_JSON
+from queries.talk_queries import get_talk_dialogue
 from shared_enums import Personality, ResponseType
 
 
@@ -30,7 +31,7 @@ def load_questions_answers():
 		all_questions.append(new_question)
 
 		# Do answers next.
-		for a in answers:
+		for a_id, a in enumerate(answers, 1):
 			# Each answer has a label acting as the words the player says.
 			label = a["label"]
 			all_answers.append((talk_id, label))
@@ -41,7 +42,7 @@ def load_questions_answers():
 				res = r["response"]
 
 				new_reaction = (
-					talk_id,
+					a_id,
 					pers,
 					typ,
 					res,
@@ -71,7 +72,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS talk_answers (
-			id				INTEGER PRIMARY KEY AUTOINCREMENT,
+			id				INTEGER PRIMARY KEY,
 			talk_id 		INTEGER NOT NULL REFERENCES talk_questions(id),
 			label			TEXT NOT NULL
 		)
@@ -113,3 +114,5 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		""",
 		r,
 	)
+
+get_talk_dialogue(2)
