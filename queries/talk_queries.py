@@ -12,12 +12,12 @@ def get_talk_dialogue(personality_index: int):
 	- Join answers that have the question id as its talk_id
 	- Join reactions that have the answer id as its answer_id
 	"""
-	pers_col = Personality(personality_index).name
+	pers_col = Personality(personality_index).name.lower()
 
 	# Get a randomly selected question.
 	talk_id, q_text = query_one(
 		f"""
-			SELECT id, LOWER({pers_col}) FROM talk_questions
+			SELECT id, {pers_col} FROM talk_questions
 			ORDER BY RANDOM() LIMIT 1
 		"""
 	)
@@ -47,6 +47,6 @@ def get_talk_dialogue(personality_index: int):
 
 	answers = tuple(AnswerData(label=label, reactions=reactions) for label, reactions in d.items())
 
-	print(f"DEBUG: Question text chosen will be: {q_text}.\n\nDialogue options will be: {answers}")
+	# print(f"DEBUG: Question text chosen will be: {q_text}.\n\nDialogue options will be: {answers}")
 
 	return TalkData(question=q_text, answers=answers)

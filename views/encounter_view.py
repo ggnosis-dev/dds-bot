@@ -6,34 +6,8 @@ from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
 from helpers.encounter_utils import join_player_party
 from queries import talk_queries
-from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
-
-DIALOGUE_OPTIONS = [
-	{
-		"label": "Cheerful",
-		"response": {
-			Personality.CHEERFUL: ResponseType.GOOD,
-			Personality.SHY: ResponseType.NEUTRAL,
-			Personality.AGGRESSIVE: ResponseType.BAD,
-		},
-	},
-	{
-		"label": "Shy",
-		"response": {
-			Personality.CHEERFUL: ResponseType.NEUTRAL,
-			Personality.SHY: ResponseType.GOOD,
-			Personality.AGGRESSIVE: ResponseType.BAD,
-		},
-	},
-	{
-		"label": "Aggressive",
-		"response": {
-			Personality.CHEERFUL: ResponseType.BAD,
-			Personality.SHY: ResponseType.BAD,
-			Personality.AGGRESSIVE: ResponseType.GOOD,
-		},
-	},
-]
+from shared_enums import DemonRegistration, Emotes, ResponseType
+from views.common_view import MessageView
 
 
 class EncounterViewTemplate(discord.ui.LayoutView, ABC):
@@ -144,30 +118,31 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			"""
 			# Get the answer at the given button index.
 			r_type = reaction_data.response_type
+			r_text = reaction_data.response
 
 			match r_type:
 				case ResponseType.GOOD:
 					# Send ephemeral message that demon will join, edit the footer.
-					await self._encounter_successful(interaction)
+					await self._encounter_successful(interaction, r_text)
 				case ResponseType.NEUTRAL:
 					bad_count = self.consecutive_bad_interactions + 1
 
 					if bad_count >= 3 and not self.tutorial:
-						await self._encounter_flee(interaction)
+						await self._encounter_flee(interaction, r_text)
 					else:
-						await self._encounter_followup(interaction)
+						await self._encounter_followup(interaction, r_text)
 				case ResponseType.BAD:
 					# Send followup message with new options.
 					bad_count = self.consecutive_bad_interactions + 2
 
 					if bad_count >= 3 and not self.tutorial:
-						await self._encounter_flee(interaction)
+						await self._encounter_flee(interaction, r_text)
 					else:
-						await self._encounter_followup(interaction)
+						await self._encounter_followup(interaction, r_text)
 
 		return callback
 
-	async def _encounter_successful(self, interaction: discord.Interaction) -> None:
+	async def _encounter_successful(self, interaction: discord.Interaction, response: str) -> None:
 		"""
 		Handler for when an encounter is successful. Adds to party and comp, then sends an ephemeral
 		message confirming the demon has joined.
@@ -199,9 +174,9 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 					f"+{mag_received} MAG"
 				)
 
-		await self._handle_demon_interacted(interaction, status)
+		await self._handle_demon_interacted(interaction, status, response)
 
-	async def _encounter_flee(self, interaction: discord.Interaction) -> None:
+	async def _encounter_flee(self, interaction: discord.Interaction, response: str) -> None:
 		"""
 		Handler for when encounter flees. Sends an ephemeral message that the demon has fled and
 		updates the status.
@@ -210,11 +185,10 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		    interaction (discord.Interaction): The Discord interaction object from the button press.
 		"""
 		await self._handle_demon_interacted(
-			interaction,
-			f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}...",
+			interaction, f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}...", response
 		)
 
-	async def _encounter_followup(self, interaction: discord.Interaction) -> None:
+	async def _encounter_followup(self, interaction: discord.Interaction, response: str) -> None:
 		"""
 		Handler for when encounter needs a followup. This happens on neutral responses, and on bad
 		responses that haven't hit the flee threshold. Creates a new ephemeral message with new
@@ -227,8 +201,9 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		parent_view = self._root_view
 
 		followup_view = EncounterViewFollowup(
-			demon=self.demon,
-			parent_view=parent_view,
+			self.demon,
+			parent_view,
+			response,
 			consecutive_bad=self.consecutive_bad_interactions + 1,
 			tutorial=self.tutorial,
 		)
@@ -242,7 +217,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		else:
 			await interaction.response.send_message(view=followup_view, ephemeral=True)
 
-	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str) -> None:
+	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str, response: str) -> None:
 		"""
 		Handler for when an encounter has finished. Updates the status message and icon count, then
 		edits the original parent view message to reflect the outcome.
@@ -263,11 +238,18 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			# Update the original message with the new view that has the updated icon count and status message.
 			await parent_view.message.edit(view=parent_view)
 			await interaction.response.edit_message(view=self)
-			await interaction.followup.send(status_message, ephemeral=True)
 		else:
 			# For the initial view, edit the message with any changes to icon count and status.
 			await interaction.response.edit_message(view=parent_view)
-			await interaction.followup.send(status_message, ephemeral=True)
+
+		# Send a final message to the user.
+		race = self.demon.race.upper()
+		name = self.demon.name.upper()
+
+		msg = MessageView(
+			f"-# **{race} {name}**:\n-# {response}\n\n`{status_message}`", self.demon.image_url, self.demon.colour
+		)
+		await interaction.followup.send(view=msg, ephemeral=True)
 
 
 class EncounterViewInitial(EncounterViewTemplate):
@@ -402,6 +384,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		self,
 		demon: DemonData,
 		parent_view: EncounterViewTemplate,
+		response: str,
 		consecutive_bad: int = 0,
 		tutorial=False,
 	):
@@ -419,6 +402,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		"""
 		super().__init__(demon, consecutive_bad, tutorial=tutorial)
 
+		self.response = response
 		self.parent_view = parent_view
 		self.interacted = False
 
@@ -436,7 +420,13 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		ui = discord.ui
 		container = ui.Container(accent_color=self.demon.colour)
 
-		container.add_item(ui.TextDisplay(f"## {self.demon.race} {self.demon.name} {message}"))
+		race = self.demon.race.upper()
+		name = self.demon.name.upper()
+
+		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.image_url))
+		section.add_item(ui.TextDisplay(f"-# **{race} {name}:**\n-# {self.response}\n\n-# {message}"))
+
+		container.add_item(section)
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		self._build_option_buttons(container, dialogue_options)
