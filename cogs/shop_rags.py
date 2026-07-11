@@ -30,7 +30,7 @@ class RagsShop(commands.Cog):
 		player_id = interaction.user.id
 		server_id = interaction.guild.id
 
-		print(f"DEBUG: item_data: {item_data}")
+		# print(f"DEBUG: item_data: {item_data}")
 
 		check = item_queries.attempt_purchase_item(
 			player_id=player_id,

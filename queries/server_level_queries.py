@@ -23,7 +23,7 @@ async def try_server_level_up(server_id: int, rank: int) -> LevelUpData:
 	Returns:
 		tuple[int, list[LevelReward]]: The new server level and the details of each applied reward.
 	"""
-	print("DEBUG: try_server_level_up")
+	# print("DEBUG: try_server_level_up")
 	# Update server level XP and return the XP.
 	xp, server_level = query_one(
 		"""
@@ -104,7 +104,7 @@ async def get_server_status(server_id: int) -> ServerStats:
 
 
 async def _do_server_level_update(server_id: int, old_level: int, new_level: int) -> list[LevelReward]:
-	print("DEBUG: Do server level update.")
+	# print("DEBUG: Do server level update.")
 	leveled_up = new_level > old_level
 	new_rewards = []
 
@@ -118,7 +118,7 @@ async def _do_server_level_update(server_id: int, old_level: int, new_level: int
 	for level in levels_to_update:
 		# Use level 2 as default. This will do a standard rank cap increase.
 		reward = LEVEL_REWARDS.get(level, LEVEL_REWARDS[2])
-		print(f"DEBUG: Applying rank ({level}) reward to server: {server_id} | Reward is: {reward.r_type}.")
+		# print(f"DEBUG: Applying rank ({level}) reward to server: {server_id} | Reward is: {reward.r_type}.")
 		await _apply_reward(server_id, reward, leveled_up)
 		new_rewards.append(reward)
 

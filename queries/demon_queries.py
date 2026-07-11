@@ -185,7 +185,7 @@ def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | 
 		LIMIT 1
 	"""
 
-	print(f"DEBUG: Race: {race} | Rank: {rank} | Direction {direction} | Query: {query}")
+	# print(f"DEBUG: Race: {race} | Rank: {rank} | Direction {direction} | Query: {query}")
 
 	response = query_one(
 		query,

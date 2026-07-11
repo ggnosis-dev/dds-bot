@@ -43,7 +43,7 @@ class Fusion(commands.Cog):
 	async def special_fusion_command(self, ctx: commands.Context) -> None:
 		"""Command to view the Rags Shop and trade gems for items."""
 
-		print("DEBUG: In special_fusion")
+		# print("DEBUG: In special_fusion")
 		server_id = gets.get_server(ctx).id
 
 		entries = await fusion_queries.get_special_fusion_list(server_id)
