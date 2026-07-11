@@ -3,7 +3,9 @@ from abc import ABC, abstractmethod
 import discord
 
 from entities.demon_data import DemonData
+from entities.encounter_data import AnswerData, ReactionData
 from helpers.encounter_utils import join_player_party
+from queries import talk_queries
 from shared_enums import DemonRegistration, Emotes, Personality, ResponseType
 
 DIALOGUE_OPTIONS = [
@@ -64,11 +66,14 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		self.consecutive_bad_interactions = consecutive_bad_interactions
 		self.message = message
 		self.tutorial = tutorial
+
+		self.talk_data = talk_queries.get_talk_dialogue(demon.personality_type.value)
+
 		self.status_display: discord.ui.TextDisplay | None = None
 		self.parent_view: EncounterViewTemplate | None = None
 
 	@abstractmethod
-	def _build_layout(self, message: str, dialogue_options: list[dict]) -> None:
+	def _build_layout(self, message: str, dialogue_options: tuple[AnswerData, ...]) -> None:
 		"""Override in subclasses to build the layout of the encounter."""
 		pass
 
@@ -87,7 +92,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		for section in self._option_sections:
 			section.accessory.disabled = True
 
-	def _build_option_buttons(self, container: discord.ui.Container, dialogue_options: list[dict]) -> None:
+	def _build_option_buttons(self, container: discord.ui.Container, answers: tuple[AnswerData, ...]) -> None:
 		"""
 		Build any dialogue option buttons into the container.
 
@@ -97,31 +102,33 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		        and value is 'response' that maps Personality types to ResponseType.
 		"""
 		# Store dialogue options in the view to access them in the callbacks.
-		self.dialogue_options = dialogue_options
 		self._option_sections = []
 		button_emotes = [Emotes.ONE, Emotes.TWO, Emotes.THREE]
 
-		for i, option in enumerate(dialogue_options):
+		# Enumerate for label and to filter on the right reaction data.
+		for i, option in enumerate(answers, 0):
+			print(i, option)
 			button = discord.ui.Button(
 				emoji=button_emotes[i].value,
 				style=discord.ButtonStyle.grey,
 			)
-			button.callback = self._make_dialogue_callback(i)
+
+			# Callback should know data about the reaction.
+			reaction_data = option.reactions[0]
+			button.callback = self._make_dialogue_callback(reaction_data)
 
 			new_section = discord.ui.Section(accessory=button)
-			new_section.add_item(discord.ui.TextDisplay(f"Option {i + 1}: {option['label']}"))
+			new_section.add_item(discord.ui.TextDisplay(f"{option.label}"))
 
 			container.add_item(new_section)
 			self._option_sections.append(new_section)
 
-	def _make_dialogue_callback(self, option_index: int):
+	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
 		Factory to create a dialogue button's callback for any given option index. Each button will
-		remember the option index it corresponds to so we can determine the outcome of the encounter
+		remember the reaction_data it corresponds to so we can determine the outcome of the encounter
 		based on personality and response.
 
-		Args:
-		    option_index (int): Index of the dialogue option to create the callback for.
 		Returns:
 		    Callable: The callback function for the dialogue option.
 		"""
@@ -135,23 +142,28 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			Args:
 			    interaction (discord.Interaction): Discord interaction object from the button press.
 			"""
-			option = self.dialogue_options[option_index]
-			outcome = option["response"][self.demon.personality_type]
+			# Get the answer at the given button index.
+			r_type = reaction_data.response_type
 
-			match outcome:
+			match r_type:
 				case ResponseType.GOOD:
 					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction)
-				case ResponseType.BAD:
-					# Send followup message with new options.
+				case ResponseType.NEUTRAL:
 					bad_count = self.consecutive_bad_interactions + 1
 
-					if bad_count >= 2 and not self.tutorial:
+					if bad_count >= 3 and not self.tutorial:
 						await self._encounter_flee(interaction)
 					else:
 						await self._encounter_followup(interaction)
-				case _:
-					await self._encounter_followup(interaction)
+				case ResponseType.BAD:
+					# Send followup message with new options.
+					bad_count = self.consecutive_bad_interactions + 2
+
+					if bad_count >= 3 and not self.tutorial:
+						await self._encounter_flee(interaction)
+					else:
+						await self._encounter_followup(interaction)
 
 		return callback
 
@@ -291,9 +303,9 @@ class EncounterViewInitial(EncounterViewTemplate):
 		self.interacted_users: set[int] = set()
 		self.icon_display = discord.ui.TextDisplay((Emotes.ICON.value + " ") * self.count)
 
-		self._build_layout("Hey, what's going on?", DIALOGUE_OPTIONS)
+		self._build_layout(self.talk_data.question, self.talk_data.answers)
 
-	def _build_layout(self, message: str, dialogue_options: list[dict]) -> None:
+	def _build_layout(self, message: str, dialogue_options: tuple[AnswerData, ...]) -> None:
 		"""
 		Function to build the view layout for the initial encounter. Creates icons, status display, and dialogue option
 		buttons.
@@ -303,35 +315,37 @@ class EncounterViewInitial(EncounterViewTemplate):
 		    dialogue_options (list[dict]): List of dialogue options, where key is the button 'label' and value is
 				'response' that maps Personality types to ResponseType.
 		"""
-		ui = discord.ui
-		container = ui.Container(accent_color=self.demon.colour)
+		try:
+			ui = discord.ui
+			container = ui.Container(accent_color=self.demon.colour)
 
-		container.add_item(self.icon_display)
-		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {message}\n"))
-		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+			container.add_item(self.icon_display)
+			container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {message}\n"))
+			container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-		self._build_option_buttons(container, dialogue_options)
+			self._build_option_buttons(container, dialogue_options)
 
-		container.add_item(ui.MediaGallery().add_item(media=self.demon.image_url))
+			container.add_item(ui.MediaGallery().add_item(media=self.demon.image_url))
 
-		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
-		self.status_display = ui.TextDisplay("-# *What will you do?*")
-		container.add_item(self.status_display)
+			container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
+			self.status_display = ui.TextDisplay("-# *What will you do?*")
+			container.add_item(self.status_display)
 
-		self.add_item(container)
+			self.add_item(container)
+		except Exception as e:
+			print(e)
 
-	def _make_dialogue_callback(self, option_index: int):
+	# TODO: Shouldn't this just be the default?
+	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
 		Extension of _make_dialogue_callback from the base view and adds a layer of logic to handle user exclusivity and
 		multiple interactions.
 
-		Args:
-		    option_index (int): Index of the dialogue option to create the callback for.
 		Returns:
 		    Callable: Callback function for the dialogue option logic for user exclusivity and multiple interactions.
 		"""
 		# Explicitly build the callback, not just use super().
-		base_callback = EncounterViewTemplate._make_dialogue_callback(self, option_index)
+		base_callback = EncounterViewTemplate._make_dialogue_callback(self, reaction_data)
 
 		async def callback(interaction: discord.Interaction) -> None:
 			"""
@@ -357,6 +371,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 			# if it's a multi-option encounter, an ephemeral message will be sent next.
 			self.interacted_users.add(user.id)
 
+			# Call the original _make_dialogue_callback.
 			await base_callback(interaction)
 
 		return callback
@@ -407,9 +422,9 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		self.parent_view = parent_view
 		self.interacted = False
 
-		self._build_layout("seems disinterested...", DIALOGUE_OPTIONS)
+		self._build_layout(self.talk_data.question, self.talk_data.answers)
 
-	def _build_layout(self, message: str, dialogue_options: list[dict]) -> None:
+	def _build_layout(self, message: str, dialogue_options: tuple[AnswerData, ...]) -> None:
 		"""
 		Function to build the view layout for the followup encounter.
 
@@ -427,7 +442,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		self._build_option_buttons(container, dialogue_options)
 		self.add_item(container)
 
-	def _make_dialogue_callback(self, option_index: int):
+	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
 		Extension of _make_dialogue_callback from the base view and adds a layer of logic to handle disabling buttons
 		after an interaction.
@@ -435,7 +450,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		Args:
 		    option_index (int): Index of the dialogue option to create the callback for.
 		"""
-		base_callback = EncounterViewTemplate._make_dialogue_callback(self, option_index)
+		base_callback = EncounterViewTemplate._make_dialogue_callback(self, reaction_data)
 
 		async def callback(interaction: discord.Interaction) -> None:
 			"""

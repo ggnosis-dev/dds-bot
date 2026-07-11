@@ -72,7 +72,6 @@ async def join_player_party(
 			await player_demons_queries.update_party_average(player.id, server_id)
 
 		case DemonRegistration.IN_PARTY | DemonRegistration.CANT_JOIN:
-			print("HERE")
 			# Add gem to player and increase MAG paid.
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.9

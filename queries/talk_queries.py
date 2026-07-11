@@ -5,17 +5,19 @@ from helpers.db import query_all, query_one
 from shared_enums import Personality, ResponseType
 
 
-def get_talk_dialogue(personality_key: str):
+def get_talk_dialogue(personality_index: int):
 	"""
 	- Get randomly selected question.
 	- Get out the one based on the personality value.
 	- Join answers that have the question id as its talk_id
 	- Join reactions that have the answer id as its answer_id
 	"""
+	pers_col = Personality(personality_index).name
+
 	# Get a randomly selected question.
 	talk_id, q_text = query_one(
 		f"""
-			SELECT id, LOWER({personality_key}) FROM talk_questions
+			SELECT id, LOWER({pers_col}) FROM talk_questions
 			ORDER BY RANDOM() LIMIT 1
 		"""
 	)
@@ -25,9 +27,9 @@ def get_talk_dialogue(personality_key: str):
 			SELECT ta.label, tr.personality, tr.response_type, tr.response
 			FROM talk_answers ta
 			JOIN talk_reactions tr ON tr.answer_id = ta.id
-			WHERE ta.talk_id = ?
+			WHERE ta.talk_id = ? AND tr.personality = ?
 		""",
-		(talk_id,),
+		(talk_id, personality_index),
 	)
 
 	d: defaultdict[str, list[ReactionData]] = defaultdict(list)
