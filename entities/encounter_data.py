@@ -11,6 +11,12 @@ class ReactionData:
 
 
 @dataclass
+class AnswerData:
+	label: str
+	reactions: list[ReactionData]
+
+
+@dataclass
 class TalkData:
 	question: str
-	answers: dict[str, list[ReactionData]]
+	answers: tuple[AnswerData, ...]
