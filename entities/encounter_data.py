@@ -6,7 +6,7 @@ from shared_enums import Personality, ResponseType
 @dataclass
 class ReactionData:
 	personality: Personality
-	responseType: ResponseType
+	response_type: ResponseType
 	response: str
 
 

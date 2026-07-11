@@ -37,7 +37,7 @@ def get_talk_dialogue(personality_key: str):
 
 		new_reaction = ReactionData(
 			personality=Personality(pers),
-			responseType=ResponseType(r_type),
+			response_type=ResponseType(r_type),
 			response=r,
 		)
 
