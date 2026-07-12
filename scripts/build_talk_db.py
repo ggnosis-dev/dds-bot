@@ -12,6 +12,8 @@ def load_questions_answers():
 	all_answers = []
 	all_reactions = []
 
+	answer_id_counter = 0
+
 	with open(TALK_JSON) as f:
 		data = json.load(f)
 
@@ -30,14 +32,17 @@ def load_questions_answers():
 			all_question_tones.append((talk_id, tone_id))
 
 		# Do answers next.
-		for a_id, a in enumerate(answers, 1):
+		for a in answers:
+			answer_id_counter += 1
+
 			# Each answer has a label acting as the words the player says.
 			label = a["label"]
 			all_answers.append((talk_id, label))
 
 			for r in a["reactions"]:
+				print(r)
 				new_reaction = (
-					a_id,
+					answer_id_counter,
 					Personality[r["personality"]].value,
 					ResponseType[r["type"]].value,
 					r["response"],
