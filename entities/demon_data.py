@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from shared_enums import Personality
+from shared_enums import Personality, Tone
 
 
 @dataclass
@@ -18,6 +18,7 @@ class DemonData:
 		gem (str): Gem that the demon can hunt for.
 		image_url (str): Image URL for demon's encounter art.
 		profile_url (str): Image URL for the profile art.
+		tone_type (Tone): The category the demon falls into for dialogue. Dialogue altered based on it.
 	"""
 
 	id: int
@@ -30,6 +31,7 @@ class DemonData:
 	profile_url: str
 	image_url: str
 	prevent_spawn: bool
+	tone_type: Tone
 
 
 ## FUSION RELATED.
@@ -67,19 +69,20 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
 	try:
-		id, name, race, rank, colour, personality_type, gem, profile_url, image_url, prevent_spawn = row
+		d_id, name, race, rank, col, pers, gem, pr_url, im_url, prevent, tone = row
 
 		return DemonData(
-			id=id,
+			id=d_id,
 			name=name,
 			race=race,
 			rank=rank,
-			colour=colour,
-			personality_type=Personality[personality_type],
+			colour=col,
+			personality_type=Personality[pers],
 			gem=gem,
-			profile_url=profile_url,
-			image_url=image_url,
-			prevent_spawn=prevent_spawn,
+			profile_url=pr_url,
+			image_url=im_url,
+			prevent_spawn=prevent,
+			tone_type=tone,
 		)
 	except Exception as e:
 		print(e)

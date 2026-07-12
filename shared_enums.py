@@ -71,3 +71,15 @@ class Banners(Enum):
 class ShopColour(Enum):
 	RAGS = 0x1B6340
 	SP_FUSION = 0x0000A7
+
+
+class Tone(Enum):
+	UNIQUE = 0
+	JACK = 1
+	CUTE = 2
+	ROOKIE = 3
+	BRUTE = 4
+	FATALE = 5
+	PEPPY = 6
+	NOBLE = 7
+	MONSTER = 8

@@ -2,7 +2,7 @@ import json
 import sqlite3
 
 from database_paths import DEMONS_DIR, PLAYERS_DB_PATH
-from shared_enums import GemList, Personality
+from shared_enums import GemList, Personality, Tone
 
 demon_data = []
 
@@ -19,17 +19,20 @@ for race_json in DEMONS_DIR.glob("*.json"):
 	for entry in data:
 		prevent_spawn = bool(entry.get("prevent_spawn", False))
 		image_url = entry.get("image_url", None)
+		pers_id = Personality[entry.get("personality", "NONE")].value
+		tone_id = Tone[entry.get("tone", "UNIQUE")].value
 
 		demon = (
 			entry["name"],
 			race,
 			entry["rank"],
 			int(entry["color"], 16),
-			Personality[entry["personality"]].name,
+			pers_id,
 			GemList[entry["gem"]].name,
 			entry["profile_url"],
 			image_url,
 			prevent_spawn,
+			tone_id,
 		)
 
 		demon_data.append(demon)
@@ -45,15 +48,16 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS demons (
 			id INTEGER PRIMARY KEY,
-			name TEXT,
-			race TEXT,
-			rank INTEGER,
-			colour INTEGER,
-			personality TEXT,
-			gem TEXT,
+			name TEXT NOT NULL,
+			race TEXT NOT NULL,
+			rank INTEGER NOT NULL,
+			colour INTEGER NOT NULL,
+			personality INTEGER NOT NULL,
+			gem TEXT NOT NULL,
 			profile_url TEXT,
 			image_url TEXT,
 			prevent_spawn INTEGER DEFAULT 0,
+			tone INTEGER,
 			UNIQUE (race, name)
 		)
 	""")
@@ -61,8 +65,10 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# Insert demon data.
 	cursor.executemany(
 		"""
-			INSERT OR IGNORE INTO demons (name, race, rank, colour, personality, gem, profile_url, image_url, prevent_spawn)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT OR IGNORE INTO demons
+				(name, race, rank, colour, personality, gem, profile_url, image_url, prevent_spawn, tone)
+			VALUES
+				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(race, name) DO UPDATE SET
 				rank = excluded.rank,
 				colour = excluded.colour,
@@ -70,7 +76,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 				gem = excluded.gem,
 				profile_url = excluded.profile_url,
 				image_url = excluded.image_url,
-				prevent_spawn = excluded.prevent_spawn
+				prevent_spawn = excluded.prevent_spawn,
+				tone = excluded.tone
 		""",
 		demon_data,
 	)
