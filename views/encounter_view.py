@@ -41,7 +41,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		self.message = message
 		self.tutorial = tutorial
 
-		self.talk_data = talk_queries.get_talk_dialogue(demon.personality_type.value)
+		self.talk_data = talk_queries.get_talk_dialogue(demon.tone_type.value, demon.personality_type.value)
 
 		self.status_display: discord.ui.TextDisplay | None = None
 		self.parent_view: EncounterViewTemplate | None = None

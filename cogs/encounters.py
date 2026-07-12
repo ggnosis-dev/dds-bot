@@ -31,17 +31,19 @@ class Encounters(commands.Cog):
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "test_encounter"))
 	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None = None) -> None:
 		"""Command to start a test encounter with a random demon."""
+		try:
+			if not isinstance(ctx.channel, discord.TextChannel):
+				raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
 
-		if not isinstance(ctx.channel, discord.TextChannel):
-			raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
+			d = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(name)
 
-		d = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(name)
+			if d is None:
+				print(f"WARN: Demon {name} was None.")
+				return
 
-		if d is None:
-			print(f"WARN: Demon {name} was None.")
-			return
-
-		await self._start_encounter(ctx.channel, d, 3)
+			await self._start_encounter(ctx.channel, d, 3)
+		except Exception as e:
+			print(f"ERROR: test_encounter_command | {e}")
 
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "start"))
 	async def start_tutorial_command(self, ctx: commands.Context) -> None:

@@ -69,7 +69,8 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
 	try:
-		d_id, name, race, rank, col, pers, gem, pr_url, im_url, prevent, tone = row
+		print(row)
+		d_id, name, race, rank, col, pers_id, gem, pr_url, im_url, prevent, tone_id = row
 
 		return DemonData(
 			id=d_id,
@@ -77,12 +78,12 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 			race=race,
 			rank=rank,
 			colour=col,
-			personality_type=Personality[pers],
+			personality_type=Personality(pers_id),
 			gem=gem,
 			profile_url=pr_url,
 			image_url=im_url,
 			prevent_spawn=prevent,
-			tone_type=tone,
+			tone_type=Tone(tone_id),
 		)
 	except Exception as e:
 		print(e)

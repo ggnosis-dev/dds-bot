@@ -21,7 +21,7 @@ def load_questions_answers():
 		tones = entry["tones"]
 		answers = entry["answers"]
 
-		print(f"INFO: Adding Talk entry for: {question}")
+		print(f"INFO: Adding Talk entry for: {tones} | Question: {question}")
 
 		all_questions.append((talk_id, question))
 
@@ -124,4 +124,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		r,
 	)
 
-get_talk_dialogue(2)
+try:
+	get_talk_dialogue(2, 2)
+except Exception as e:
+	print(f"ERROR: {e}")
+	raise RuntimeError(f"ERROR: {e}")

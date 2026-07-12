@@ -5,24 +5,21 @@ from helpers.db import query_all, query_one
 from shared_enums import Personality, ResponseType
 
 
-# TODO: Update this to use tone instead of personality_index
-def get_talk_dialogue(personality_index: int):
-	"""
-	- Get randomly selected question.
-	- Get out the one based on the personality value.
-	- Join answers that have the question id as its talk_id
-	- Join reactions that have the answer id as its answer_id
-	"""
-	pers_col = Personality(personality_index).name.lower()
+def get_talk_dialogue(tone_index: int, personality_index: int):
+	"""Get a randomly selected question, answers and reactions based on the demon's tone and personality."""
 
 	# Get a randomly selected question.
 	talk_id, q_text = query_one(
-		f"""
-			SELECT id, {pers_col} FROM talk_questions
-			ORDER BY RANDOM() LIMIT 1
 		"""
+			SELECT id, question FROM talk_questions tq
+			JOIN talk_question_tones tqt ON tqt.talk_id = tq.id
+			WHERE tqt.tone = ?
+			ORDER BY RANDOM() LIMIT 1
+		""",
+		(tone_index,),
 	)
 
+	# Get the answer label and response variations.
 	answer_react_data = query_all(
 		"""
 			SELECT ta.label, tr.personality, tr.response_type, tr.response
@@ -33,6 +30,7 @@ def get_talk_dialogue(personality_index: int):
 		(talk_id, personality_index),
 	)
 
+	# Create dictionary where label: list of reactions.
 	d: defaultdict[str, list[ReactionData]] = defaultdict(list)
 
 	for entry in answer_react_data:
