@@ -85,3 +85,4 @@ class Tone(Enum):
 	MONSTER = 8
 	POMPOUS = 9
 	OLD = 10
+	BEAST = 11

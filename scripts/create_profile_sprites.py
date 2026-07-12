@@ -88,6 +88,6 @@ if __name__ == "__main__":
 		duration = sprite.info.get("duration", 100)
 
 		composite = combine_sprite_on_background(sprite)
-		save_image(composite, f"{name}_profile.gif", duration)
+		save_image(composite, f"{name}_pr.gif", duration)
 
 		print(f"INFO: Created new Profile GIF for {name}")
