@@ -5,6 +5,7 @@ from helpers.db import query_all, query_one
 from shared_enums import Personality, ResponseType
 
 
+# TODO: Update this to use tone instead of personality_index
 def get_talk_dialogue(personality_index: int):
 	"""
 	- Get randomly selected question.
