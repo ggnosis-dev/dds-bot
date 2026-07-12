@@ -40,7 +40,6 @@ def load_questions_answers():
 			all_answers.append((talk_id, label))
 
 			for r in a["reactions"]:
-				print(r)
 				new_reaction = (
 					answer_id_counter,
 					Personality[r["personality"]].value,

@@ -81,7 +81,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		# Enumerate for label and to filter on the right reaction data.
 		for i, option in enumerate(answers, 0):
-			print(i, option)
 			button = discord.ui.Button(
 				emoji=button_emotes[i].value,
 				style=discord.ButtonStyle.grey,

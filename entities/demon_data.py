@@ -69,7 +69,6 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
 	try:
-		print(row)
 		d_id, name, race, rank, col, pers_id, gem, pr_url, im_url, prevent, tone_id = row
 
 		return DemonData(
