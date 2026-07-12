@@ -83,3 +83,5 @@ class Tone(Enum):
 	PEPPY = 6
 	NOBLE = 7
 	MONSTER = 8
+	POMPOUS = 9
+	OLD = 10
