@@ -77,14 +77,14 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 	class RaceSelect(discord.ui.Select):
 		"""Custom select menu for filtering demons by race."""
 
-		def __init__(self, races: list[str]) -> None:
+		def __init__(self, races: list[str], selected: str) -> None:
 			options = [discord.SelectOption(label="All", value="all")]
 			sorted_races = sorted(races)
 
 			for r in sorted_races:
 				options.append(discord.SelectOption(label=r, value=r.lower()))
 
-			super().__init__(placeholder="Filter By Race", options=options)
+			super().__init__(placeholder=selected.title(), options=options)
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			"""Callback for when a race is selected from the filter menu."""
@@ -108,17 +108,12 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 		for entry in self.entries:
 			race = entry.race
 			races.add(race)
-		race_select = self.RaceSelect(list(races))
+		race_select = self.RaceSelect(list(races), selected=self.filtered_race)
 		return discord.ui.ActionRow(race_select)
 
 	def _get_filtered_entries(self) -> list[DemonEntry]:
-		"""
-		Helper function to get the entries to be displayed on the current page of the compendium view.
-		Sets self.total_pages based on the number of entries after filtering.
+		"""Filter entries by the race select dropdown."""
 
-		Returns:
-			list[dict]: List of demon entries to be displayed on the current page.
-		"""
 		page_entries = []
 
 		for entry in self.entries:
@@ -182,12 +177,31 @@ class CompendiumView(BaseCompendiumView):
 		self.add_item(container)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Compendium"))
+		# Draw the info button next to the title.
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Compendium"))
+		container.add_item(section)
 
-		race_select = self._build_race_filter()
-		container.add_item(race_select)
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+			container.add_item(
+				discord.ui.TextDisplay(
+					"-# - The Demonic Compendium is a list of every demon you have ever recruited."
+					"\n-# - You can `>summon` a demon again from your Compendium for a fee."
+					"\n-# - You can view other player's Compendiums by mentioning them or using their ID."
+					"\n-# - A demon's Stored Rank will update as they get stronger."
+				),
+			)
+
+			container.add_item(discord.ui.TextDisplay("-# **FILTER BY RACE**"))
+			race_select = self._build_race_filter()
+			container.add_item(race_select)
+
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		return container
 
@@ -222,8 +236,6 @@ class PartyView(BaseCompendiumView):
 		self.add_item(container)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Party"))
-
 		# Party stat information.
 		container.add_item(
 			discord.ui.TextDisplay(
@@ -232,16 +244,42 @@ class PartyView(BaseCompendiumView):
 			)
 		)
 
-		# Mention if player doesn't have a leader.
+		# Note if player doesn't have a leader.
 		if not self.selected_demon_id:
-			container.add_item(discord.ui.TextDisplay("-# No demon is leading your party. Use `>select` to choose a leader"))
-
-		if self.party_stats.size >= self.party_stats.cap:
 			container.add_item(
-				discord.ui.TextDisplay("-# Party is full. Use `>increase_party` to increase party's capacity.")
+				discord.ui.TextDisplay("-# **NOTE:** No demon is leading your party. Use `>select` to choose a leader")
 			)
 
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		# Note if player has a full party.
+		if self.party_stats.size >= self.party_stats.cap:
+			container.add_item(
+				discord.ui.TextDisplay("-# **NOTE:** Party is full. Use `>increase_party` to increase party's capacity.")
+			)
+
+		# Draw the info button next to the title.
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Party"))
+		container.add_item(section)
+
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
+			container.add_item(
+				discord.ui.TextDisplay(
+					"-# - The average demon rank controls the weight of your encounter's spawning rank."
+					"\n-# - You can check details about your party's leader with `>leader` and swap them using `>select`."
+					"\n-# - You can `>increase_party` slots for a fee, or `>release` demons to make space."
+				),
+			)
+
+			container.add_item(discord.ui.TextDisplay("-# **FILTER BY RACE**"))
+			race_select = self._build_race_filter()
+			container.add_item(race_select)
+
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		return container
 

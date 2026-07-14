@@ -211,16 +211,19 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		self._build_layout()
 
 	def _get_page_entries(self) -> list[EntryT]:
-		self.total_pages = int(max(1, (len(self.entries) + self.page_size - 1) / self.page_size))
+		entries = self._get_filtered_entries()
+
+		self.total_pages = int(max(1, (len(entries) + self.page_size - 1) / self.page_size))
 		self.page = max(1, min(self.page, self.total_pages))
 
 		start_index = (self.page - 1) * self.page_size
 		end_index = start_index + self.page_size
 
 		# Use delimiter to slice out entries.
-		return self.entries[start_index:end_index]
+		return entries[start_index:end_index]
 
 	def _get_filtered_entries(self) -> list[EntryT]:
+		"""Override for dedicated filters, such as Compendium's race filter."""
 		return self.entries
 
 	@abstractmethod
