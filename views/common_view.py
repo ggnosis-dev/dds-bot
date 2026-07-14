@@ -149,6 +149,8 @@ EntryT = TypeVar("EntryT")
 
 
 class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
+	"""Our own quirky little base class for displaying things in a layout view."""
+
 	def __init__(
 		self,
 		entries: list[EntryT],
@@ -156,6 +158,16 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		page_size: int = DEFAULT_PAGE_SIZE,
 		colour: int = DEFAULT_COLOUR,
 	) -> None:
+		"""
+		Init for the base table view.
+
+		Args:
+			entries (list[EntryT]): List of a generic Entry Type.
+			page (int): Current page number of the view. Defaults to 1.
+			page_size (int): The number of entries to show on the page. Defaults to 10.
+			colour (int): Colour of the view's left side.
+		"""
+
 		# Run the standard layout view stuff.
 		super().__init__()
 
