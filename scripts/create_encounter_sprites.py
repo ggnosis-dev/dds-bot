@@ -82,6 +82,26 @@ def bulk_get_backgrounds(
 def bulk_find_character_sprites(race: str) -> list[Path]:
 	# Characters stored in subdirs by race.
 	race_dir = CHARACTER_DIRS / race.lower()
+	image_locations = []
+
+	if not race_dir.exists():
+		raise FileNotFoundError(f"Race directory not found: {race_dir}")
+
+	for file in race_dir.iterdir():
+		for ext in [".gif", ".png"]:
+			file = race_dir / f"{file.name}{ext}"
+
+			if file.exists():
+				image_locations.append(file)
+				break
+
+	return image_locations if image_locations else []
+
+
+def bulk_find_character_sprites_in_db(race: str) -> list[Path]:
+	# Characters stored in subdirs by race.
+	race_dir = CHARACTER_DIRS / race.lower()
+	image_locations = []
 
 	if not race_dir.exists():
 		raise FileNotFoundError(f"Race directory not found: {race_dir}")
@@ -93,7 +113,6 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 	d_names = [normalise_name(n) for n in d_names]
 
 	# Find sprites for names from the race.
-	image_locations = []
 	for name in d_names:
 		for ext in [".gif", ".png"]:
 			file = race_dir / f"{name}{ext}"
