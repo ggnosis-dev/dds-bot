@@ -63,7 +63,7 @@ class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 			value = getattr(entry, col.key)
 
 			if col.width == 0:
-				new_row += Emotes.BLANK.value
+				new_row += Emotes.GEM.value
 				continue
 
 			text = str(value).title()
@@ -324,22 +324,35 @@ class ServerCompendiumView(BaseCompendiumView):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(
 			discord.ui.TextDisplay(
-				f"-# **Server Level: {self.server_stats.level} | Server Experience: {self.server_stats.total_xp}**"
+				f"-# Server Level: **{self.server_stats.level}** • Server Experience: **{self.server_stats.total_xp}**"
 			)
 		)
-		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Server Compendium"))
 
-		# Average rank/Weighted rank.
-		if self.page == 1:
-			container.add_item(discord.ui.TextDisplay("-# Loan your demon by using `>loan`."))
+		# Draw the info button next to the title.
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Server Compendium"))
+		container.add_item(section)
+
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
 			container.add_item(
-				discord.ui.TextDisplay("-# Use `>server_stats` to see detailed information on server level and experience.")
+				discord.ui.TextDisplay(
+					"-# - The Server's Demonic Compendium is a list of every demon that has been loaned by a player."
+					"\n-# - `>loan` your demon to the Server Compendium to add their worth in rank to the server experience."
+					"\n-# - You can overwrite a loaned demon with your own if it is stronger in rank."
+					"\n-# - Use `>server_stats` to see detailed information on server level and experience."
+				),
 			)
 
-		race_select = self._build_race_filter()
-		container.add_item(race_select)
+			container.add_item(discord.ui.TextDisplay("-# **FILTER BY RACE**"))
+			race_select = self._build_race_filter()
+			container.add_item(race_select)
 
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		return container
 
@@ -351,6 +364,7 @@ class GemCollectionView(BaseTableView[ItemEntry]):
 
 		container = self._build_header(container)
 		container = self._build_table_header(container)
+
 		for entry in page_entries:
 			container = self._build_page_entry(container, entry)
 		container = self._build_footer(container)
