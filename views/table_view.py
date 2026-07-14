@@ -24,14 +24,15 @@ class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		filtered_race: str = "all",
 	) -> None:
 		"""
-		Init for the compendium view.
+		Init for the base table view.
 
 		Args:
-			user_name (str): Name of the user whose compendium is being displayed.
-			entries (list[dict]): List of demons in the player's compendium.
-			page (int): Current page number of the compendium view. Defaults to 1.
-			colour (int): Colour of the compendium view.
-			filtered_race (str): Race to filter the compendium view by. Defaults to 'all'.
+			user_name (str): Name of the user we are looking at.
+			entries (list[EntryT]): List of a generic Entry Type.
+			columns (list[ColumnConfig]): List of columns to show.
+			page (int): Current page number of the view. Defaults to 1.
+			colour (int): Colour of the view's left side.
+			filtered_race (str): Race to filter the view by. Defaults to 'all'.
 		"""
 		super().__init__(entries, page=page, colour=colour)
 
@@ -372,8 +373,27 @@ class GemCollectionView(BaseTableView[ItemEntry]):
 		self.add_item(container)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Gem Collection"))
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		# Draw the info button next to the title.
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Gem Collection"))
+		container.add_item(section)
+
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
+			container.add_item(
+				discord.ui.TextDisplay(
+					"-# - Gemstones can be traded with Rag at his shop by using `>rags`."
+					"\n-# - Gems can be found by your `>leader` while you're off being social (go be social)."
+					"\n-# - Gems can also be gifted by demons you already own when encountered again."
+				),
+			)
+
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
 		return container
 
 
@@ -391,6 +411,25 @@ class InventoryView(BaseTableView[ItemEntry]):
 		self.add_item(container)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Item Collection"))
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		# Draw the info button next to the title.
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Item Inventory"))
+		container.add_item(section)
+
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+
+			container.add_item(
+				discord.ui.TextDisplay(
+					"-# - Items can be used with the `>use` command."
+					"\n-# - Some items can only be used by specific demons."
+					"\n-# - Maybe I'll show keys here one day but I'm lazy."
+				),
+			)
+
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
 		return container
