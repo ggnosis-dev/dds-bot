@@ -51,16 +51,21 @@ class Demon(commands.Cog):
 		if d is None:
 			raise RuntimeError("ERROR: leader_command | ID was found but DemonData was not.")
 
-		gem_progress = round(gem_queries.get_gem_progress(player_id, server_id, d.gem) / 10)
+		# Get gem progress.
+		gem_progress = round(gem_queries.get_gem_progress(player_id, server_id, d.id) / 10)
 		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * gem_progress + f"{Unicode.UNFILLED_CIRCLE.value} " * (
 			10 - gem_progress
 		)
 
+		# Get gems player can get with demon.
+		gems = gem_queries.get_possible_gems(d.race)
+		gem_text = "; ".join(gems).title()
+
 		view = MessageView(
 			(
-				f"**{d.race} {d.name}** currently leads your party.\n\n"
+				f"**{d.race} {d.name}** is currently leading your party.\n\n"
 				f"-# **Rank:** {d.rank}\n"
-				f"-# **Hunting:** {d.gem.title()}\n"
+				f"-# **Hunting:** {gem_text}\n"
 				f"-# **Progress:** {progress_bar}"
 			),
 			d.profile_url,

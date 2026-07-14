@@ -6,7 +6,20 @@ GEM_EXP_MULTIPLIER = 1
 GEM_METER_FULL = 100
 
 
-def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | None:
+def get_possible_gems(race: str) -> tuple:
+	gem_names = query_all(
+		"""
+			SELECT gem_name FROM race_gems
+			WHERE LOWER(race) = LOWER(?)
+			ORDER BY gem_name ASC
+		""",
+		(race,),
+	)
+
+	return tuple(g[0] for g in gem_names)
+
+
+async def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | None:
 	"""
 	Add to player's gem meter and add a gem to their count if over a threshold.
 	Return whether a gem has been found.
@@ -18,6 +31,7 @@ def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | None:
 	Returns:
 		bool: True if gem was found, False otherwise.
 	"""
+
 	# Get gem type and the player's stored rank for demon.
 	gem_name, stored_rank = query_one(
 		"""
@@ -32,34 +46,42 @@ def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | None:
 
 	increment = stored_rank * GEM_EXP_MULTIPLIER
 
-	# Increase gem meter, returning meter value. excluded.meter is the value that was going to be insert into the meter.
-	meter_val = query_one(
+	# Increase meter value.
+	query_write(
 		"""
-			INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
-			VALUES (?, ?, ?, ?, 0)
-			ON CONFLICT (player_id, server_id, gem_name) DO
-			UPDATE SET meter = meter + excluded.meter
-			RETURNING meter
+			UPDATE player_demons SET gem_meter = gem_meter + ?
+			WHERE player_id = ? AND server_id = ?
 		""",
-		(player_id, server_id, gem_name, increment),
-	)[0]
+		(increment, player_id, server_id),
+	)
+
+	meter_val = get_gem_progress(player_id, server_id, demon_id)
 
 	# Add gem to count and reset meter if gem found.
 	if meter_val >= GEM_METER_FULL:
+		# Add a gem to the player's count.
 		query_write(
 			"""
 				UPDATE player_gems
-				SET meter = 0, quantity = quantity + 1
+				quantity = quantity + 1
 				WHERE player_id = ? AND server_id = ? AND gem_name = ?
 			""",
 			(player_id, server_id, gem_name),
+		)
+
+		# Remove a full meter worth of XP from the gem meter.
+		query_write(
+			"""
+				UPDATE player_demons SET gem_meter = gem_meter - ?
+			""",
+			(GEM_METER_FULL,),
 		)
 
 		return gem_name
 	return None
 
 
-def add_gem(player_id: int, server_id: int, race: str, number: int) -> None:
+async def add_gem(player_id: int, server_id: int, race: str, number: int) -> str:
 	# Get gem type.
 	gem_name = query_one(
 		"""
@@ -72,13 +94,15 @@ def add_gem(player_id: int, server_id: int, race: str, number: int) -> None:
 
 	query_write(
 		"""
-			INSERT INTO player_gems (player_id, server_id, gem_name, meter, quantity)
-			VALUES (?, ?, ?, 0, ?)
+			INSERT INTO player_gems (player_id, server_id, gem_name, quantity)
+			VALUES (?, ?, ?, ?)
 			ON CONFLICT (player_id, server_id, gem_name) DO
 			UPDATE SET quantity = quantity + ?
 		""",
 		(player_id, server_id, gem_name, number, number),
 	)
+
+	return gem_name
 
 
 def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
@@ -113,14 +137,14 @@ def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
 	return entries
 
 
-def get_gem_progress(player_id: int, server_id: int, gem_name: str) -> int:
+def get_gem_progress(player_id: int, server_id: int, demon_id: int) -> int:
 	"""Get gem meter progress."""
 	result = query_one(
 		"""
-			SELECT meter FROM player_gems
-			WHERE player_id = ? AND server_id = ? AND gem_name = ?
+			SELECT gem_meter FROM player_demons
+			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
-		(player_id, server_id, gem_name),
+		(player_id, server_id, demon_id),
 	)
 
 	return result[0] if result else 0

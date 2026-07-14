@@ -15,7 +15,6 @@ class DemonData:
 		rank (int): Demon's Rank signifies its strength and base rarity.
 		colour (int): Colour is used for styling and various embeds.
 		personality_type (Personality): Personality type, stored as a string in DB but converted to a Personality enum.
-		gem (str): Gem that the demon can hunt for.
 		image_url (str): Image URL for demon's encounter art.
 		profile_url (str): Image URL for the profile art.
 		tone_type (Tone): The category the demon falls into for dialogue. Dialogue altered based on it.
@@ -27,7 +26,6 @@ class DemonData:
 	rank: int
 	colour: int
 	personality_type: Personality
-	gem: str
 	profile_url: str
 	image_url: str
 	prevent_spawn: bool
@@ -69,7 +67,7 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 		DemonData: Normalised DemonData object created from values provided.
 	"""
 	try:
-		d_id, name, race, rank, col, pers_id, gem, pr_url, im_url, prevent, tone_id = row
+		d_id, name, race, rank, col, pers_id, pr_url, im_url, prevent, tone_id = row
 
 		return DemonData(
 			id=d_id,
@@ -78,7 +76,6 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 			rank=rank,
 			colour=col,
 			personality_type=Personality(pers_id),
-			gem=gem,
 			profile_url=pr_url,
 			image_url=im_url,
 			prevent_spawn=prevent,

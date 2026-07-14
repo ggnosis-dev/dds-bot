@@ -153,7 +153,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		d_name = self.demon.name
 		d_race = self.demon.race
 
-		new_entry, mag_received, gems_added = await join_player_party(user, interaction.guild, self.demon)
+		new_entry, mag_received, gems_added, gem_name = await join_player_party(user, interaction.guild, self.demon)
 
 		match new_entry:
 			case DemonRegistration.UNREGISTERED:
@@ -163,13 +163,11 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 				status = f"> {d_race} {d_name} has joined {user.name}'s party! +{mag_received} MAG"
 
 			case DemonRegistration.IN_PARTY:
-				gem_name = self.demon.gem.title()
-				status = f"> {d_race} {d_name} gifted {user.name} {gems_added} {gem_name}! +{mag_received} MAG"
+				status = f"> {d_race} {d_name} gifted {user.name} {gems_added} {gem_name.title()}! +{mag_received} MAG"
 
 			case DemonRegistration.CANT_JOIN:
-				gem_name = self.demon.gem.title()
 				status = (
-					f"> {d_race} {d_name} could not join {user.name}. Party was full. {gems_added} {gem_name}! "
+					f"> {d_race} {d_name} could not join {user.name}. Party was full. {gems_added} {gem_name.title()}! "
 					f"+{mag_received} MAG"
 				)
 

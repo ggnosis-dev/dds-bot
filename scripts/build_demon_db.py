@@ -40,7 +40,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# Delete existing demon table in case changes to general structure.
-	cursor.execute("DROP TABLE IF EXISTS demons")
+	# cursor.execute("DROP TABLE IF EXISTS demons")
 	# cursor.execute("DELETE FROM demons WHERE name LIKE 'Jack%'")
 
 	# Create demon table.
@@ -66,7 +66,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			INSERT OR IGNORE INTO demons
 				(name, race, rank, colour, personality, profile_url, image_url, prevent_spawn, tone)
 			VALUES
-				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				(?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(race, name) DO UPDATE SET
 				rank = excluded.rank,
 				colour = excluded.colour,

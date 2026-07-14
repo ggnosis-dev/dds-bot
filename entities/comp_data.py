@@ -20,7 +20,6 @@ class DemonEntry:
 	race: str
 	personality: str
 	rank: int | None
-	gem: str
 	# For player demon only.
 	in_party: bool | None = None
 	# For server demon only.

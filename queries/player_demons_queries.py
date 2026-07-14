@@ -105,7 +105,7 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 	# print("DEBUG: check_party")
 	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party, d.gem
+			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
 			FROM demons d
 			JOIN player_demons pd ON pd.demon_id = d.id
 				AND pd.player_id = ? AND pd.server_id = ?
@@ -117,7 +117,7 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 
 	entries = []
 	for row in rows:
-		demon_id, name, race, pers, rank, in_party, gem = row
+		demon_id, name, race, pers, rank, in_party = row
 
 		entries.append(
 			DemonEntry(
@@ -127,7 +127,6 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 				personality=pers,
 				rank=rank,
 				in_party=in_party,
-				gem=gem,
 			)
 		)
 	return entries
@@ -144,7 +143,7 @@ async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
 	# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party, d.gem
+			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
 			FROM demons d
 			LEFT JOIN player_demons pd ON pd.demon_id = d.id
 				AND pd.player_id = ? AND pd.server_id = ?
@@ -155,7 +154,7 @@ async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
 
 	entries = []
 	for row in rows:
-		demon_id, name, race, pers, rank, in_party, gem = row
+		demon_id, name, race, pers, rank, in_party = row
 
 		entries.append(
 			DemonEntry(
@@ -165,7 +164,6 @@ async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
 				personality=pers,
 				rank=rank,
 				in_party=in_party,
-				gem=gem,
 			)
 		)
 	return entries

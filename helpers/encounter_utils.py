@@ -29,7 +29,7 @@ async def join_player_party(
 	player: discord.User | discord.Member,
 	server: discord.Guild | None,
 	demon: DemonData,
-) -> tuple[DemonRegistration, int, int]:
+) -> tuple[DemonRegistration, int, int, str]:
 	"""
 	Organises a demon to either be added to COMP, party or if it should give the player a gift
 	instead.
@@ -49,6 +49,7 @@ async def join_player_party(
 
 	mag_multiplier = 0
 	gems_to_add = 0
+	gem_name = ""
 	party_has_space = player_demons_queries.get_party_has_space(player.id, server_id)
 
 	# Check if party has space before anything. If it doesn't, assign CANT_JOIN.
@@ -75,12 +76,12 @@ async def join_player_party(
 			# Add gem to player and increase MAG paid.
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.9
-			add_gem(player.id, server_id, demon.race, gems_to_add)
+			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
 	mag_to_add = int((demon.rank * 10) / mag_multiplier)
 	update_mag(player.id, server_id, mag_to_add)
 
-	return new_entry, mag_to_add, gems_to_add
+	return new_entry, mag_to_add, gems_to_add, gem_name
 
 
 def _gems_for_rank(rank: int) -> int:

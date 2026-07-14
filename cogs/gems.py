@@ -42,21 +42,18 @@ class Gems(commands.Cog):
 				return
 
 			# Increase exp towards finding a gem.
-			gem_found = gem_queries.increase_gems(player_id, server_id, selected_demon_id)
+			gem_found = await gem_queries.increase_gems(player_id, server_id, selected_demon_id)
 
 			if gem_found:
-				try:
-					d = typing.cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
-					view = MessageView(
-						f"{message.author.mention}, your **{d.name}** has found a **{gem_found.title()}**!",
-						d.profile_url,
-						d.colour,
-					)
-					await message.channel.send(view=view)
-				except Exception as e:
-					print(f"ERROR: Failed to send gem found message: {e}")
+				d = typing.cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
+				view = MessageView(
+					f"{message.author.mention}, your **{d.name}** has found a **{gem_found.title()}**!",
+					d.profile_url,
+					d.colour,
+				)
+				await message.channel.send(view=view)
 		except Exception as e:
-			print(f"WARN: Does not have correct permissions {e}")
+			print(f"ERROR: gems.py | on_message | {e}")
 
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gem_collection_command(self, ctx: commands.Context) -> None:

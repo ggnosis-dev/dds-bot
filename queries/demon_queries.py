@@ -110,7 +110,7 @@ def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 		weighted_rank = min(weighted_rank, max_rank)
 		rank = round(triangular(left=0.5, mode=weighted_rank, right=max_rank + 0.5))
 	except Exception as e:
-		print(f"ERROR: {type(e)}: {e}")
+		print(f"ERROR: demon_queries.py | get_demon_by_distribution | {type(e)}: {e}")
 		print(f"weighted_rank={weighted_rank}, max_rank={max_rank}")
 		raise
 

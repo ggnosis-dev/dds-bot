@@ -137,7 +137,7 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None) -
 
 	rows = query_all(
 		f"""
-			SELECT d.id, d.name, d.race, d.personality, d.gem, pd.player_id, pd.stored_rank
+			SELECT d.id, d.name, d.race, d.personality, pd.player_id, pd.stored_rank
 			FROM demons d
 			LEFT JOIN server_demons sd
 				ON sd.demon_id = d.id
@@ -154,7 +154,7 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None) -
 
 	entries = []
 	for row in rows:
-		did, name, race, pers, gem, oid, rank = row
+		did, name, race, pers, oid, rank = row
 
 		entries.append(
 			DemonEntry(
@@ -164,7 +164,6 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None) -
 				race=race,
 				personality=pers,
 				rank=rank,
-				gem=gem,
 			)
 		)
 	return entries

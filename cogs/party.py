@@ -31,21 +31,25 @@ class Party(commands.Cog):
 			mentioned (discord.Member | None): Optional user to check party for.
 		"""
 
-		player, server = gets.get_player_server(ctx)
-		mentioned = None
-		columns = list(Columns.PLAYER_DEFAULT)
+		try:
+			player, server = gets.get_player_server(ctx)
+			mentioned = None
+			columns = list(Columns.PLAYER_DEFAULT)
 
-		if args:
-			columns, mentioned = get_args(args, server, columns)
+			if args:
+				columns, mentioned = get_args(args, server, columns)
 
-		player = mentioned if mentioned is not None else player
+			player = mentioned if mentioned is not None else player
 
-		party_list = await player_demons_queries.check_party(player.id, server.id)
-		sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
-		party_stats = await player_demons_queries.get_party_stats(player.id, server.id)
+			party_list = await player_demons_queries.check_party(player.id, server.id)
+			sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
+			party_stats = await player_demons_queries.get_party_stats(player.id, server.id)
 
-		view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id, party_stats=party_stats)
-		await ctx.send(view=view)
+			view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id, party_stats=party_stats)
+			await ctx.send(view=view)
+		except Exception as e:
+			print(e)
+			raise RuntimeError(e)
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "release"))
