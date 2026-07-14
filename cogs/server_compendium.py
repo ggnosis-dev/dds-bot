@@ -223,6 +223,7 @@ class ServerCompendium(commands.Cog):
 	async def server_stats_command(self, ctx: commands.Context) -> None:
 		server = gets.get_server(ctx)
 		stats = await server_level_queries.get_server_status(server.id)
+		image = server.icon.url if server.icon is not None else None
 
 		progress_xp = int((stats.current_level_xp / stats.xp_required) * 10)
 
@@ -237,6 +238,7 @@ class ServerCompendium(commands.Cog):
 			f"\n\nTotal Experience: **{stats.total_xp}**"
 			f"\n\nExperience to Next Level: **{stats.current_level_xp}** / **{stats.xp_required}**"
 			f"\n{progress_bar}",
+			image=image,
 		)
 		await ctx.send(view=msg)
 
