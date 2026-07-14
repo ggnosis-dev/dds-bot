@@ -75,7 +75,7 @@ async def join_player_party(
 			# Add gem to player and increase MAG paid.
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.9
-			await add_gem(player.id, server_id, demon.id, gems_to_add)
+			add_gem(player.id, server_id, demon.race, gems_to_add)
 
 	mag_to_add = int((demon.rank * 10) / mag_multiplier)
 	update_mag(player.id, server_id, mag_to_add)

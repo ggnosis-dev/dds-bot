@@ -37,7 +37,7 @@ class ResponseType(Enum):
 	BAD = 3
 
 
-class GemList(Enum):
+class Gem(Enum):
 	AGATE = 0
 	AMETHYST = 1
 	AQUAMARINE = 2

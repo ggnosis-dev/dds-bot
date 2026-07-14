@@ -6,7 +6,7 @@ GEM_EXP_MULTIPLIER = 1
 GEM_METER_FULL = 100
 
 
-async def increase_gems(player_id: int, server_id: int, demon_id: int) -> bool:
+def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | None:
 	"""
 	Add to player's gem meter and add a gem to their count if over a threshold.
 	Return whether a gem has been found.
@@ -21,9 +21,11 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> bool:
 	# Get gem type and the player's stored rank for demon.
 	gem_name, stored_rank = query_one(
 		"""
-			SELECT d.gem, pd.stored_rank FROM demons d
+			SELECT rg.gem_name, pd.stored_rank FROM demons d
 			JOIN player_demons pd ON pd.demon_id = d.id
+			JOIN race_gems rg ON d.race = rg.race
 			WHERE d.id = ?
+			ORDER BY RANDOM() LIMIT 1
 		""",
 		(demon_id,),
 	)
@@ -53,18 +55,19 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> bool:
 			(player_id, server_id, gem_name),
 		)
 
-		return True
-	return False
+		return gem_name
+	return None
 
 
-async def add_gem(player_id: int, server_id: int, demon_id: int, number: int) -> None:
+def add_gem(player_id: int, server_id: int, race: str, number: int) -> None:
 	# Get gem type.
 	gem_name = query_one(
 		"""
-			SELECT gem FROM demons
-			WHERE id = ?
+			SELECT gem_name FROM race_gems
+			WHERE race = ?
+			ORDER BY RANDOM() LIMIT 1
 		""",
-		(demon_id,),
+		(race,),
 	)[0]
 
 	query_write(

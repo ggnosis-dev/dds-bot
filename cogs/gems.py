@@ -24,36 +24,39 @@ class Gems(commands.Cog):
 		Listener for player messages to track progress towards finding a gem.
 		Only triggers if player has a profile.
 		"""
-		# Exit early if message is from bot or not in a server.
-		if message.author.bot or message.guild is None:
-			return
+		try:
+			# Exit early if message is from bot or not in a server.
+			if message.author.bot or message.guild is None:
+				return
 
-		ctx = await self.bot.get_context(message)
+			ctx = await self.bot.get_context(message)
 
-		# This check will exit if the player uses a proper command.
-		if ctx.valid:
-			return
+			# This check will exit if the player uses a proper command.
+			if ctx.valid:
+				return
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		selected_demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
+			player_id, server_id = gets.get_player_server_ids(ctx)
+			selected_demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
 
-		if selected_demon_id is None:
-			return
+			if selected_demon_id is None:
+				return
 
-		# Increase exp towards finding a gem.
-		gem_found = await gem_queries.increase_gems(player_id, server_id, selected_demon_id)
+			# Increase exp towards finding a gem.
+			gem_found = gem_queries.increase_gems(player_id, server_id, selected_demon_id)
 
-		if gem_found:
-			try:
-				d = typing.cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
-				view = MessageView(
-					f"{message.author.mention}, your **{d.name}** has found a **{d.gem.title()}**!",
-					d.profile_url,
-					d.colour,
-				)
-				await message.channel.send(view=view)
-			except Exception as e:
-				print(f"ERROR: Failed to send gem found message: {e}")
+			if gem_found:
+				try:
+					d = typing.cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
+					view = MessageView(
+						f"{message.author.mention}, your **{d.name}** has found a **{gem_found.title()}**!",
+						d.profile_url,
+						d.colour,
+					)
+					await message.channel.send(view=view)
+				except Exception as e:
+					print(f"ERROR: Failed to send gem found message: {e}")
+		except Exception as e:
+			print(f"WARN: Does not have correct permissions {e}")
 
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gem_collection_command(self, ctx: commands.Context) -> None:
