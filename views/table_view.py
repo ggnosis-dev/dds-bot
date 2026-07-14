@@ -1,12 +1,4 @@
-"""
-Things to do:
-	- Make a "Filters" button on the compendium views that open up the filter dropdown
-		- Extend this to include the column options maybe?
-		- Definitely good for sorting.
-"""
-
-from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, cast
+from typing import Generic, cast
 
 import discord
 
@@ -14,22 +6,22 @@ from entities.comp_data import DemonEntry
 from entities.item_data import ItemEntry
 from entities.player_data import PartyStats
 from entities.server_data import ServerStats
-from entities.view_data import COMP_PAGE_SIZE, ColumnConfig
+from entities.view_data import ColumnConfig
 from shared_enums import Emotes
+from views.common_view import BaseLayoutView, EntryT
 
-T = TypeVar("T")
 
-
-class BaseTableView(ABC, Generic[T], discord.ui.LayoutView):
-	"""Custom view for displaying the player's viewed demons and hints at unseen ones."""
+class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
+	"""Custom view for displaying things in a table format."""
 
 	def __init__(
 		self,
 		user_name: str,
-		entries: list[T],
+		entries: list[EntryT],
 		columns: list[ColumnConfig],
 		page: int = 1,
 		colour: int = 0xE93700,
+		filtered_race: str = "all",
 	) -> None:
 		"""
 		Init for the compendium view.
@@ -41,18 +33,47 @@ class BaseTableView(ABC, Generic[T], discord.ui.LayoutView):
 			colour (int): Colour of the compendium view.
 			filtered_race (str): Race to filter the compendium view by. Defaults to 'all'.
 		"""
-		super().__init__()
+		super().__init__(entries, page=page, colour=colour)
 
 		self.user_name = user_name
-		self.entries = entries
 		self.columns = columns
-		self.page = page
-		self.colour = colour
-		self.total_pages = 1
-		self.filtered_race = "all"
+		self.filtered_race = filtered_race
 
-		self._build_layout()
+		self.refresh()
 
+	def _build_table_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		if len(self.entries) < 1:
+			return container
+
+		tab = "\u2003"
+		header = ""
+
+		for col in self.columns:
+			header += f"{tab * col.header_tabs}{col.label:^{col.width}}"
+
+		container.add_item(discord.ui.TextDisplay(f"-# {header}"))
+
+		return container
+
+	def _build_page_entry(self, container: discord.ui.Container, entry: EntryT) -> discord.ui.Container:
+		tab = "\u2003"
+		new_row = ""
+
+		for col in self.columns:
+			value = getattr(entry, col.key)
+
+			if col.width == 0:
+				new_row += Emotes.BLANK.value
+				continue
+
+			text = str(value).title()
+			new_row += f"{tab}`{text:{col.align}{col.width}}`"
+
+		container.add_item(discord.ui.TextDisplay(new_row))
+		return container
+
+
+class BaseCompendiumView(BaseTableView[DemonEntry]):
 	class RaceSelect(discord.ui.Select):
 		"""Custom select menu for filtering demons by race."""
 
@@ -71,64 +92,9 @@ class BaseTableView(ABC, Generic[T], discord.ui.LayoutView):
 			view.filtered_race = self.values[0]
 			view.page = 1
 			view.total_pages = 1
-			view.clear_items()
-			view._build_layout()
+			view.refresh()
 			await interaction.response.edit_message(view=view)
 
-	class PageButton(discord.ui.Button):
-		"""Custom button for navigating between pages of the compendium view."""
-
-		def __init__(self, direction: str) -> None:
-			if direction == "prev":
-				super().__init__(label="<", style=discord.ButtonStyle.primary)
-			else:
-				super().__init__(label=">", style=discord.ButtonStyle.primary)
-
-		async def callback(self, interaction: discord.Interaction) -> None:
-			"""Callback for when a page navigation button is clicked. Allows wrapping around the pages."""
-
-			view = cast(BaseCompendiumView, self.view)
-
-			if self.label == "<":
-				view.page = view.total_pages if view.page <= 1 else view.page - 1
-			elif self.label == ">":
-				view.page = 1 if view.page >= view.total_pages else view.page + 1
-
-			view.clear_items()
-			view._build_layout()
-			await interaction.response.edit_message(view=view)
-
-	@abstractmethod
-	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		pass
-
-	@abstractmethod
-	def _build_layout(self) -> None:
-		pass
-
-	def _build_table_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		tab = "\u2003"
-		header = ""
-
-		for col in self.columns:
-			header += f"{tab * col.header_tabs}{col.label:^{col.width}}"
-
-		container.add_item(discord.ui.TextDisplay(f"-# {header}"))
-
-		return container
-
-	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
-
-		if self.total_pages != 1:
-			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))
-			container.add_item(page_nav)
-
-		return container
-
-
-class BaseCompendiumView(BaseTableView[DemonEntry]):
 	def _build_race_filter(self) -> discord.ui.ActionRow:
 		"""
 		Helper to build the race filter select menu. Gathers distinct races from the comp entries
@@ -145,7 +111,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 		race_select = self.RaceSelect(list(races))
 		return discord.ui.ActionRow(race_select)
 
-	def _get_page_entries(self) -> list[DemonEntry]:
+	def _get_filtered_entries(self) -> list[DemonEntry]:
 		"""
 		Helper function to get the entries to be displayed on the current page of the compendium view.
 		Sets self.total_pages based on the number of entries after filtering.
@@ -162,14 +128,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 			if self.filtered_race == "all" or selected_race == self.filtered_race:
 				page_entries.append(entry)
 
-		self.total_pages = int(max(1, (len(page_entries) + COMP_PAGE_SIZE - 1) / COMP_PAGE_SIZE))
-		self.page = max(1, min(self.page, self.total_pages))
-
-		start_index = (self.page - 1) * COMP_PAGE_SIZE
-		end_index = start_index + COMP_PAGE_SIZE
-
-		# Use delimiter to slice out entries.
-		return page_entries[start_index:end_index]
+		return page_entries
 
 	def _build_page_entry(
 		self,
@@ -210,16 +169,6 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 
 
 class CompendiumView(BaseCompendiumView):
-	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Compendium"))
-
-		race_select = self._build_race_filter()
-		container.add_item(race_select)
-
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-
-		return container
-
 	def _build_layout(self) -> None:
 		container = discord.ui.Container(accent_color=self.colour)
 		page_entries = self._get_page_entries()
@@ -231,6 +180,16 @@ class CompendiumView(BaseCompendiumView):
 		container = self._build_footer(container)
 
 		self.add_item(container)
+
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Compendium"))
+
+		race_select = self._build_race_filter()
+		container.add_item(race_select)
+
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		return container
 
 
 class PartyView(BaseCompendiumView):
@@ -244,6 +203,23 @@ class PartyView(BaseCompendiumView):
 		self.selected_demon_id = selected_demon_id
 		self.party_stats = party_stats
 		super().__init__(*args, **kwargs)
+
+	def _build_layout(self) -> None:
+		container = discord.ui.Container(accent_color=self.colour)
+		page_entries = self._get_page_entries()
+
+		container = self._build_header(container)
+		container = self._build_table_header(container)
+		container = self._build_selected_demon_row(container)
+
+		for entry in page_entries:
+			if entry.demon_id == self.selected_demon_id:
+				continue
+
+			container = self._build_page_entry(container, entry)
+		container = self._build_footer(container)
+
+		self.add_item(container)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Party"))
@@ -268,23 +244,6 @@ class PartyView(BaseCompendiumView):
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		return container
-
-	def _build_layout(self) -> None:
-		container = discord.ui.Container(accent_color=self.colour)
-		page_entries = self._get_page_entries()
-
-		container = self._build_header(container)
-		container = self._build_table_header(container)
-		container = self._build_selected_demon_row(container)
-
-		for entry in page_entries:
-			if entry.demon_id == self.selected_demon_id:
-				continue
-
-			container = self._build_page_entry(container, entry)
-		container = self._build_footer(container)
-
-		self.add_item(container)
 
 	def _build_selected_demon_row(self, container: discord.ui.Container) -> discord.ui.Container:
 		# Only render selected if first page and selected has been passed in.
@@ -312,6 +271,18 @@ class ServerCompendiumView(BaseCompendiumView):
 		self.server_stats = server_stats
 		super().__init__(*args, **kwargs)
 
+	def _build_layout(self) -> None:
+		container = discord.ui.Container(accent_color=self.colour)
+		page_entries = self._get_page_entries()
+
+		container = self._build_header(container)
+		container = self._build_table_header(container)
+		for entry in page_entries:
+			container = self._build_page_entry(container, entry)
+		container = self._build_footer(container)
+
+		self.add_item(container)
+
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(
 			discord.ui.TextDisplay(
@@ -334,6 +305,8 @@ class ServerCompendiumView(BaseCompendiumView):
 
 		return container
 
+
+class GemCollectionView(BaseTableView[ItemEntry]):
 	def _build_layout(self) -> None:
 		container = discord.ui.Container(accent_color=self.colour)
 		page_entries = self._get_page_entries()
@@ -346,20 +319,13 @@ class ServerCompendiumView(BaseCompendiumView):
 
 		self.add_item(container)
 
-
-class GemCollectionView(BaseTableView[ItemEntry]):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Gem Collection"))
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 		return container
 
-	def _get_page_entries(self) -> list[ItemEntry]:
-		self.total_pages = int(max(1, (len(self.entries) + COMP_PAGE_SIZE - 1) / COMP_PAGE_SIZE))
-		self.page = max(1, min(self.page, self.total_pages))
 
-		start = (self.page - 1) * COMP_PAGE_SIZE
-		return self.entries[start : start + COMP_PAGE_SIZE]
-
+class InventoryView(BaseTableView[ItemEntry]):
 	def _build_layout(self) -> None:
 		container = discord.ui.Container(accent_color=self.colour)
 		page_entries = self._get_page_entries()
@@ -372,62 +338,7 @@ class GemCollectionView(BaseTableView[ItemEntry]):
 
 		self.add_item(container)
 
-	def _build_page_entry(self, container: discord.ui.Container, entry: ItemEntry) -> discord.ui.Container:
-		tab = "\u2003"
-		new_row = ""
-
-		for col in self.columns:
-			value = getattr(entry, col.key)
-
-			if col.width == 0:
-				new_row += Emotes.BLANK.value
-				continue
-
-			text = str(value).title()
-			new_row += f"{tab}`{text:{col.align}{col.width}}`"
-
-		container.add_item(discord.ui.TextDisplay(new_row))
-		return container
-
-
-class InventoryView(BaseTableView[ItemEntry]):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Item Collection"))
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-		return container
-
-	def _get_page_entries(self) -> list[ItemEntry]:
-		self.total_pages = int(max(1, (len(self.entries) + COMP_PAGE_SIZE - 1) / COMP_PAGE_SIZE))
-		self.page = max(1, min(self.page, self.total_pages))
-
-		start = (self.page - 1) * COMP_PAGE_SIZE
-		return self.entries[start : start + COMP_PAGE_SIZE]
-
-	def _build_layout(self) -> None:
-		container = discord.ui.Container(accent_color=self.colour)
-		page_entries = self._get_page_entries()
-
-		container = self._build_header(container)
-		container = self._build_table_header(container)
-		for entry in page_entries:
-			container = self._build_page_entry(container, entry)
-		container = self._build_footer(container)
-
-		self.add_item(container)
-
-	def _build_page_entry(self, container: discord.ui.Container, entry: ItemEntry) -> discord.ui.Container:
-		tab = "\u2003"
-		new_row = ""
-
-		for col in self.columns:
-			value = getattr(entry, col.key)
-
-			if col.width == 0:
-				new_row += Emotes.BLANK.value
-				continue
-
-			text = str(value).title()
-			new_row += f"{tab}`{text:{col.align}{col.width}}`"
-
-		container.add_item(discord.ui.TextDisplay(new_row))
 		return container

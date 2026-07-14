@@ -47,7 +47,7 @@ class Fusion(commands.Cog):
 		server_id = gets.get_server(ctx).id
 
 		entries = await fusion_queries.get_special_fusion_list(server_id)
-		view = SpecialFusionView(entries, self._purchase_callback, ShopColour.SP_FUSION.value)
+		view = SpecialFusionView(entries, self._purchase_callback, colour=ShopColour.SP_FUSION.value)
 		await ctx.send(view=view)
 
 	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)

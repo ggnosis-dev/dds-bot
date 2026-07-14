@@ -1,5 +1,7 @@
 import asyncio
-import typing
+
+from abc import ABC, abstractmethod
+from typing import Generic, TypeVar, cast
 
 import discord
 
@@ -132,10 +134,110 @@ class ConfirmationView(discord.ui.LayoutView):
 			self.value = value
 
 		async def callback(self, interaction: discord.Interaction) -> None:
-			view = typing.cast(ConfirmationView, self.view)
+			view = cast(ConfirmationView, self.view)
 			view.confirmed = self.value
 			view._event.set()
 			view.stop()
 			view._disable_buttons()
 
 			await interaction.response.edit_message(view=view)
+
+
+DEFAULT_PAGE_SIZE = 10
+DEFAULT_COLOUR = 0x1E452F
+EntryT = TypeVar("EntryT")
+
+
+class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
+	def __init__(
+		self,
+		entries: list[EntryT],
+		page: int = 1,
+		page_size: int = DEFAULT_PAGE_SIZE,
+		colour: int = DEFAULT_COLOUR,
+	) -> None:
+		# Run the standard layout view stuff.
+		super().__init__()
+
+		self.entries = entries
+		self.page = page
+		self.page_size = page_size
+		self.total_pages = 1
+		self.colour = colour
+		self.show_info: bool = False
+
+	class PageButton(discord.ui.Button):
+		"""Custom button for navigating between pages."""
+
+		def __init__(self, direction: str) -> None:
+			if direction == "prev":
+				super().__init__(label="<", style=discord.ButtonStyle.primary)
+			else:
+				super().__init__(label=">", style=discord.ButtonStyle.primary)
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			"""Callback for when a page navigation button is clicked. Allows wrapping around the pages."""
+
+			view = cast(BaseLayoutView, self.view)
+
+			if self.label == "<":
+				view.page = view.total_pages if view.page <= 1 else view.page - 1
+			elif self.label == ">":
+				view.page = 1 if view.page >= view.total_pages else view.page + 1
+
+			view.refresh()
+			await interaction.response.edit_message(view=view)
+
+	class InfoButton(discord.ui.Button):
+		"""Custom button for showing more information in a view."""
+
+		def __init__(self, show_info: bool) -> None:
+			super().__init__(
+				label="ⓘ ◥" if show_info else "ⓘ ◢",
+				style=discord.ButtonStyle.secondary,
+			)
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			"""Callback for when the information button is clicked. Allows wrapping around the pages."""
+
+			view = cast(BaseLayoutView, self.view)
+			view.show_info = not view.show_info
+
+			view.refresh()
+			await interaction.response.edit_message(view=view)
+
+	def refresh(self) -> None:
+		self.clear_items()
+		self._build_layout()
+
+	def _get_page_entries(self) -> list[EntryT]:
+		self.total_pages = int(max(1, (len(self.entries) + self.page_size - 1) / self.page_size))
+		self.page = max(1, min(self.page, self.total_pages))
+
+		start_index = (self.page - 1) * self.page_size
+		end_index = start_index + self.page_size
+
+		# Use delimiter to slice out entries.
+		return self.entries[start_index:end_index]
+
+	def _get_filtered_entries(self) -> list[EntryT]:
+		return self.entries
+
+	@abstractmethod
+	def _build_layout(self) -> None:
+		pass
+
+	@abstractmethod
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		pass
+
+	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
+		"""Footer shows number of pages and given there's more than one page, will create page navigation."""
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
+
+		if self.total_pages != 1:
+			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))
+			container.add_item(page_nav)
+
+		return container

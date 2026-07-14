@@ -4,8 +4,6 @@ import discord
 
 from shared_enums import Emotes
 
-COMP_PAGE_SIZE = 10
-
 
 @dataclass
 class ColumnConfig:

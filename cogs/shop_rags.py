@@ -20,7 +20,7 @@ class RagsShop(commands.Cog):
 		"""Command to view the Rags Shop and trade gems for items."""
 
 		items = await item_queries.get_rags_item_list()
-		view = RagsShopView(items, self._purchase_callback, ShopColour.RAGS.value)
+		view = RagsShopView(items, self._purchase_callback, colour=ShopColour.RAGS.value)
 		await ctx.send(view=view)
 
 	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
