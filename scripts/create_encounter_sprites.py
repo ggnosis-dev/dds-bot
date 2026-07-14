@@ -89,7 +89,8 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 
 	for file in race_dir.iterdir():
 		for ext in [".gif", ".png"]:
-			file = race_dir / f"{file.name}{ext}"
+			file = race_dir / f"{file.stem}{ext}"
+			print(file)
 
 			if file.exists():
 				image_locations.append(file)
