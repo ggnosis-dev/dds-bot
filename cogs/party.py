@@ -97,13 +97,16 @@ class Party(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "increase_party"))
 	async def increase_party_command(self, ctx: commands.Context, number: int = 1) -> None:
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		player_data = await get_player(player_id, server_id)
+		try:
+			player_id, server_id = gets.get_player_server_ids(ctx)
+			player_data = await get_player(player_id, server_id)
 
-		if player_data is None:
-			raise RuntimeError("ERROR: increase_party_command | Player found but no data retrieved.")
+			if player_data is None:
+				raise RuntimeError("ERROR: increase_party_command | Player found but no data retrieved.")
 
-		await self._increase_party_slots_check(ctx, player_data, number)
+			await self._increase_party_slots_check(ctx, player_data, number)
+		except Exception as e:
+			print(f"party.py | increase_party_command | {e}")
 
 	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
 		party_cap = p.party_stats.cap

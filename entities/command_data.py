@@ -148,14 +148,14 @@ PARTY_COMMANDS = {
 		usage=">party | p {opt: @player | gemstone | personality}",
 	),
 	"increase_party": CommandData(
-		name="increase",
-		aliases=["inc"],
+		name="increase_party",
+		aliases=["inp"],
 		help=(
 			"Increase number of slots available in your party."
 			" Multiple can be upgraded at once by specifying a number."
 			" Each new slot's cost increments by 500 MAG."
 		),
-		usage=">increase | inc {opt: number}",
+		usage=">increase_party | inp {opt: number}",
 	),
 	"release": CommandData(
 		name="release",
