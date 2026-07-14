@@ -74,7 +74,7 @@ class ShopColour(Enum):
 
 
 class Tone(Enum):
-	UNIQUE = 0
+	NONE = 0
 	JACK = 1
 	CUTE = 2
 	ROOKIE = 3

@@ -2,7 +2,7 @@ import json
 import sqlite3
 
 from database_paths import DEMONS_DIR, PLAYERS_DB_PATH
-from shared_enums import GemList, Personality, Tone
+from shared_enums import Personality, Tone
 
 demon_data = []
 
@@ -20,7 +20,7 @@ for race_json in DEMONS_DIR.glob("*.json"):
 		prevent_spawn = bool(entry.get("prevent_spawn", False))
 		image_url = entry.get("image_url", None)
 		pers_id = Personality[entry.get("personality", "NONE")].value
-		tone_id = Tone[entry.get("tone", "UNIQUE")].value
+		tone_id = Tone[entry.get("tone", "NONE")].value
 
 		demon = (
 			entry["name"],
@@ -28,7 +28,6 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			entry["rank"],
 			int(entry["color"], 16),
 			pers_id,
-			GemList[entry["gem"]].name,
 			entry["profile_url"],
 			image_url,
 			prevent_spawn,
@@ -41,7 +40,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# Delete existing demon table in case changes to general structure.
-	# cursor.execute("DROP TABLE IF EXISTS demons")
+	cursor.execute("DROP TABLE IF EXISTS demons")
 	# cursor.execute("DELETE FROM demons WHERE name LIKE 'Jack%'")
 
 	# Create demon table.
@@ -53,7 +52,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			rank INTEGER NOT NULL,
 			colour INTEGER NOT NULL,
 			personality INTEGER NOT NULL,
-			gem TEXT NOT NULL,
 			profile_url TEXT,
 			image_url TEXT,
 			prevent_spawn INTEGER DEFAULT 0,
@@ -66,14 +64,13 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor.executemany(
 		"""
 			INSERT OR IGNORE INTO demons
-				(name, race, rank, colour, personality, gem, profile_url, image_url, prevent_spawn, tone)
+				(name, race, rank, colour, personality, profile_url, image_url, prevent_spawn, tone)
 			VALUES
 				(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(race, name) DO UPDATE SET
 				rank = excluded.rank,
 				colour = excluded.colour,
 				personality = excluded.personality,
-				gem = excluded.gem,
 				profile_url = excluded.profile_url,
 				image_url = excluded.image_url,
 				prevent_spawn = excluded.prevent_spawn,
