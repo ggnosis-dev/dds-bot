@@ -59,6 +59,7 @@ class ServerCompendium(commands.Cog):
 
 		# Check if demon is in party.
 		in_party = await player_demons_queries.check_demon_registration(player.id, server.id, demon.id)
+		player_demon_rank = await player_demons_queries.get_player_demon_rank(player.id, server.id, demon.id)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"**{demon_name}** was not found in your party...")
@@ -67,8 +68,9 @@ class ServerCompendium(commands.Cog):
 
 		# Send a confirmation view.
 		view = ConfirmationView(
-			f"Do you wish to loan your **{demon.race} {demon.name}** to the **{server.name}'s Compendium**?\n\n"
-			f"-# You will not be able to use the demon again until taken back.",
+			f"Do you wish to loan your **{demon.race} {demon.name}** (Rank **{player_demon_rank}**)"
+			f" to **{server.name}'s Compendium**?\n\n"
+			f"-# You will not be able to use the demon again until they are retrieved.",
 			confirmLabel="Yes",
 			denyLabel="No",
 			colour=demon.colour,
@@ -86,7 +88,7 @@ class ServerCompendium(commands.Cog):
 			stored_owner = typing.cast(discord.Member, self.bot.get_user(stored_demon.player_id))
 
 			# If weaker, send message regarding that.
-			if demon.rank <= stored_demon.stored_rank:
+			if player_demon_rank <= stored_demon.stored_rank:
 				msg = MessageView(
 					f"**{stored_owner}**'s **{demon_name}** (Rank {stored_demon.stored_rank}) "
 					f"is already in {server.name}'s Compendium."
@@ -97,8 +99,9 @@ class ServerCompendium(commands.Cog):
 			# If stronger, prompt to overwrite.
 			view = ConfirmationView(
 				f"**{stored_owner}** is already loaning their **{demon.name}** to **{server.name}'s Compendium**."
-				"-# Do you wish to replace it? The demon will be returned to its owner.\n\n"
-				"-# You will not be able to use the demon again until taken back.",
+				f"\nYour {demon.name} is stronger ({player_demon_rank} to {stored_demon.stored_rank})."
+				"\n-# Do you wish to replace it? The demon will be returned to its owner."
+				f"\n\n-# You will not be able to use the demon again until they are retrieved.",
 				confirmLabel="Replace",
 				denyLabel="Cancel",
 				colour=demon.colour,
@@ -117,7 +120,7 @@ class ServerCompendium(commands.Cog):
 			# Add experience to the server's level. Take away stored demon first, then add new.
 			r1, r2 = await asyncio.gather(
 				server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank),
-				server_level_queries.try_server_level_up(server.id, demon.rank),
+				server_level_queries.try_server_level_up(server.id, player_demon_rank),
 			)
 
 			if r1 or r2:
@@ -166,7 +169,7 @@ class ServerCompendium(commands.Cog):
 			return
 
 		msg = MessageView(
-			f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
+			f"Your **{demon.race} {demon.name}** (Rank {player_demon_rank}) has been sacrificed to **{server.name}'s "
 			f"Compendium** for the time being.",
 			image=demon.profile_url,
 			colour=demon.colour,
@@ -174,7 +177,7 @@ class ServerCompendium(commands.Cog):
 		await ctx.send(view=msg)
 
 		# Add experience to the server's level.
-		level_data = await server_level_queries.try_server_level_up(server.id, demon.rank)
+		level_data = await server_level_queries.try_server_level_up(server.id, player_demon_rank)
 		if level_data.old_level != level_data.new_level:
 			reward_descs = {reward.desc for reward in level_data.rewards}
 			await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
@@ -195,7 +198,7 @@ class ServerCompendium(commands.Cog):
 
 		if stored_demon is not None and player.id == stored_demon.player_id:
 			view = ConfirmationView(
-				f"Are you sure you want to retrieve **{demon.race} {demon.name}** (Rank {demon.rank}) "
+				f"Are you sure you want to retrieve **{demon.race} {demon.name}** (Rank {stored_demon.stored_rank}) "
 				f"from **{server.name}'s Compendium**?",
 				confirmLabel="Yes",
 				denyLabel="No",
@@ -215,6 +218,7 @@ class ServerCompendium(commands.Cog):
 				await ctx.send(view=msg)
 
 				level_data = await server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank)
+
 				if level_data.old_level != level_data.new_level:
 					reward_descs = self._adjust_level_up_desc({reward.desc for reward in level_data.rewards})
 					await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)

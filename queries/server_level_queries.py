@@ -15,7 +15,7 @@ def get_xp_threshold(level: int) -> int:
 	return xp_required
 
 
-async def try_server_level_up(server_id: int, rank: int) -> LevelUpData:
+async def try_server_level_up(server_id: int, stored_rank: int) -> LevelUpData:
 	"""
 	Try to level up the server. Code will compare threshold to next level with current XP every time XP is added to the
 	server. For each level, apply their new rewards.
@@ -32,7 +32,7 @@ async def try_server_level_up(server_id: int, rank: int) -> LevelUpData:
 			WHERE server_id = ?
 			RETURNING server_level_xp, server_level
 		""",
-		(rank, server_id),
+		(stored_rank, server_id),
 	)
 
 	old_level = server_level

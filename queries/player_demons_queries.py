@@ -132,6 +132,18 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 	return entries
 
 
+async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -> int:
+	response = query_one(
+		"""
+			SELECT stored_rank FROM player_demons
+			WHERE player_id = ? AND server_id = ? AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	return response[0] if response else -1
+
+
 async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
 	"""
 	Query the database for the player's encountered demons. Joins the player_demons table with the demon database.

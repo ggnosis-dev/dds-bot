@@ -45,7 +45,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		denyColour: discord.ButtonStyle = discord.ButtonStyle.danger,
 		image: str | None = None,
 		colour: int = 0xE93700,
-		timeout: float = 10.0,
+		timeout: float = 20.0,
 	):
 		super().__init__(timeout=timeout)
 
