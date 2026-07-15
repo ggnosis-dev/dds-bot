@@ -142,6 +142,8 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 			if col.width == 0:
 				if emote_override:
 					new_row += emote_override.value
+				elif entry.on_loan:
+					new_row += Emotes.LOAN.value
 				elif entry.in_party:
 					new_row += Emotes.ICON.value
 				else:
@@ -295,7 +297,7 @@ class PartyView(BaseCompendiumView):
 
 		# Draw selected demon at the top of the list on the first page.
 		if selected_demon:
-			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.KNOT)
+			container = self._build_page_entry(container, selected_demon, emote_override=Emotes.LEAD)
 
 		return container
 
