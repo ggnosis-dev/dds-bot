@@ -50,7 +50,8 @@ async def join_player_party(
 	mag_multiplier = 0
 	gems_to_add = 0
 	gem_name = ""
-	party_has_space = player_demons_queries.get_party_has_space(player.id, server_id)
+	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
+	party_has_space = party_stats.size < party_stats.cap
 
 	# Check if party has space before anything. If it doesn't, assign CANT_JOIN.
 	if party_has_space:
@@ -66,16 +67,24 @@ async def join_player_party(
 			await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
 			await player_demons_queries.update_party_average(player.id, server_id)
 
+			if party_stats.size < 1:
+				player_demons_queries.set_selected_demon(player.id, server_id, demon.id)
+
 		case DemonRegistration.IN_COMP:
-			# Only add demon to player's party.
+			# Only add demon to player's party, has been obtained before.
 			mag_multiplier = 0.3
 			await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
 			await player_demons_queries.update_party_average(player.id, server_id)
 
-		case DemonRegistration.IN_PARTY | DemonRegistration.CANT_JOIN:
-			# Add gem to player and increase MAG paid.
+		case DemonRegistration.IN_PARTY:
+			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.9
+			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
+
+		case DemonRegistration.CANT_JOIN:
+			gems_to_add = _gems_for_rank(demon.rank)
+			mag_multiplier = 0.3
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
 	mag_to_add = int((demon.rank * 10) / mag_multiplier)
