@@ -1,4 +1,5 @@
 import argparse
+import math
 import random
 import re
 import sys
@@ -25,7 +26,7 @@ UPSCALE_FACTOR = 3
 HORIZONTAL_OFFSET = 0.5
 
 # 1 = bottom, 0 = top.
-VERTICAL_OFFSET = 0.4
+VERTICAL_OFFSET = 0.8
 
 # Crop constants.
 BG_VERTICAL_START = 0.8
@@ -36,6 +37,12 @@ CROP_HEIGHT = 108
 BORDER_SIZE = 1
 BORDER_COLOUR = 0xFFFFFF
 BG_BRIGHTNESS = 1
+
+# Max pixel offset (in upscaled sprite).
+HOVER_AMPLITUDE = 4
+HOVER_FRAMES = 16
+# Can control the speed with this.
+HOVER_DURATION = 240
 
 
 def extract_number(file: Path) -> int:
@@ -141,7 +148,11 @@ def get_rgba_sprite(sprite_path: str | Path) -> Image.Image:
 	return Image.open(sprite_path).convert("RGBA")
 
 
-def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> list[Image.Image]:
+def combine_sprite_on_background(
+	sprite_path: Path,
+	background: Image.Image,
+	hover: bool = False,
+) -> tuple[list[Image.Image], list[int]]:
 	# Upscale the background sprite.
 	bg_base = background.copy()
 	bg_base = crop_from_bottom(bg_base, CROP_WIDTH, CROP_HEIGHT, BG_VERTICAL_START)
@@ -149,40 +160,70 @@ def combine_sprite_on_background(sprite_path: Path, background: Image.Image) -> 
 	bg_base = upscale_sprite(bg_base, BG_UPSCALE_FACTOR)
 	bg_base = tile_background(bg_base, int(CROP_WIDTH * BG_UPSCALE_FACTOR), int(CROP_HEIGHT * BG_UPSCALE_FACTOR))
 
-	frames = []
+	# Load every sprite frame and its own duration.
 	sprite = Image.open(sprite_path)
+	sprite_frames = []
+	sprite_durations = []
 
 	try:
 		while True:
-			# Convert and upscale the character sprite.
+			# Convert character sprite to RGBA.
 			frame = sprite.convert("RGBA")
-			frame = upscale_sprite(frame, UPSCALE_FACTOR)
 
-			bg_copy = bg_base.copy()
-
-			# Calculate positions to paste character.
-			x = int((bg_copy.width - frame.width) * HORIZONTAL_OFFSET)
-
-			# Cast int due to VERTICAL_OFFSET being a float.
-			y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
-
-			# Paste character at x, y with alpha mask to preserve transparency.
-			bg_copy.paste(frame, (x, y), frame)
-
-			# Add a border.
-			bg_copy = add_border(bg_copy, BORDER_COLOUR)
-
-			# Append completed frame to list of frames.
-			frames.append(bg_copy)
-
-			# Move to next frame.
+			sprite_frames.append(frame)
+			sprite_durations.append(sprite.info.get("duration", 100))
 			sprite.seek(sprite.tell() + 1)
 	except EOFError:
 		# No more frames in the sprite.
 		pass
 
+	# Check if we're using a GIF or not.
+	is_animated = len(sprite_frames) > 1
+
+	if hover and not is_animated:
+		# Static sprite, do hovering at rate of hover frames.
+		total_frames = HOVER_FRAMES
+		hover_cycle_len = HOVER_FRAMES
+	else:
+		# Animated sprite, don't change its native frame count/timing.
+		total_frames = len(sprite_frames)
+		hover_cycle_len = len(sprite_frames)
+
+	frames = []
+	durations = []
+	for i in range(total_frames):
+		idx = i % len(sprite_frames)
+		sprite_frame = sprite_frames[idx]
+
+		# Upscale the character sprite.
+		frame = upscale_sprite(sprite_frame, UPSCALE_FACTOR)
+
+		bg_copy = bg_base.copy()
+
+		# Calculate position to paste character.
+		x = int((bg_copy.width - frame.width) * HORIZONTAL_OFFSET)
+
+		# Cast int due to VERTICAL_OFFSET being a float.
+		y = int((bg_copy.height - frame.height) * VERTICAL_OFFSET)
+
+		if hover:
+			y += round(HOVER_AMPLITUDE * math.sin(2 * math.pi * i / hover_cycle_len))
+
+		# Paste character at x, y with alpha mask to preserve transparency.
+		bg_copy.paste(frame, (x, y), frame)
+
+		# Add a border.
+		bg_copy = add_border(bg_copy, BORDER_COLOUR)
+
+		# Append completed frame to list of frames.
+		frames.append(bg_copy)
+
+		durations.append(sprite_durations[idx] if is_animated else HOVER_DURATION)
+
 	print(f"INFO: Created new GIF for {sprite_path}")
-	return frames if len(frames) > 1 else frames[0]
+	if len(frames) > 1:
+		return frames, durations
+	return frames[0], durations[0]
 
 
 def tile_background(tile: Image.Image, target_width: int, target_height: int) -> Image.Image:
@@ -248,7 +289,7 @@ def upscale_sprite(sprite: Image.Image, factor: int) -> Image.Image:
 	return sprite.resize((new_w, new_h), resample=Image.Resampling.NEAREST)
 
 
-def save_image(frames: list[Image.Image] | Image.Image, filename: str, duration: int = 100) -> None:
+def save_image(frames: list[Image.Image] | Image.Image, filename: str, duration: int | list[int] = 100) -> None:
 	"""
 	Helper to save the final image.
 
@@ -257,6 +298,7 @@ def save_image(frames: list[Image.Image] | Image.Image, filename: str, duration:
 		filename (str): The filename to save the final image as.
 		duration (int): The frame delay of the GIF. Defaults to 100ms.
 	"""
+
 	OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 	output_path = OUTPUT_DIR / filename
 	gif = []
@@ -294,6 +336,7 @@ if __name__ == "__main__":
 	char_group = parser.add_mutually_exclusive_group(required=True)
 	char_group.add_argument("--name", type=str, help="Name of the demon to place on a background. (e.g. Pixie)")
 	char_group.add_argument("--race", type=str, help="Select a whole race to create sprites for. (e.g. Fairy)")
+	parser.add_argument("--hover", action="store_true", help="Animate the sprite with a hover.")
 
 	bg_group = parser.add_mutually_exclusive_group(required=True)
 	bg_group.add_argument("--number", type=int, default=1, help="Number of backgrounds to use.")
@@ -344,11 +387,10 @@ if __name__ == "__main__":
 			bg_indices = char_assignments[name]
 			backgrounds = bulk_get_backgrounds(number=args.number, indices=bg_indices)
 			sprite = get_rgba_sprite(char_path)
-			duration = sprite.info.get("duration", 100)  # Default 100ms if not found.
 
 			for i, bg in enumerate(backgrounds):
-				composite = combine_sprite_on_background(char_path, bg)
-				save_image(composite, f"{name}_{i + 1}.gif", duration)
+				composite, durations = combine_sprite_on_background(char_path, bg, hover=args.hover)
+				save_image(composite, f"{name}_{i + 1}.gif", durations)
 
 	else:
 		# Single demon mode.
@@ -369,8 +411,7 @@ if __name__ == "__main__":
 			raise FileNotFoundError(f"Sprite not found for {name}")
 
 		sprite = get_rgba_sprite(sprite_path)
-		duration = sprite.info.get("duration", 100)  # Default 100ms if not found.
 
 		for i, bg in enumerate(backgrounds):
-			composite = combine_sprite_on_background(sprite_path, bg)
-			save_image(composite, f"{name}_{i + 1}.gif", duration)
+			composite, durations = combine_sprite_on_background(sprite_path, bg, hover=args.hover)
+			save_image(composite, f"{name}_{i + 1}.gif", durations)
