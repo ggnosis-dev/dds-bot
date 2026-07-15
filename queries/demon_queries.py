@@ -1,6 +1,6 @@
 from numpy.random import triangular
 
-from entities.demon_data import DemonData, convert_row_to_demon_data
+from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
 
 
@@ -196,3 +196,15 @@ def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | 
 		return None
 
 	return get_demon_by_id(response[0])
+
+
+async def get_design_data(demon_id: int) -> DesignData:
+	col, p_url, im_url = query_one(
+		"""
+			SELECT colour, profile_url, image_url FROM demons
+			WHERE id = ?
+		""",
+		(demon_id,),
+	)
+
+	return DesignData(colour=col, profile_url=p_url, image_url=im_url)

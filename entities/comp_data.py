@@ -18,8 +18,8 @@ class DemonEntry:
 	demon_id: int
 	name: str
 	race: str
-	personality: str
-	rank: int | None
+	on_loan: bool = False
+	stored_rank: int = 0
 	# For player demon only.
 	in_party: bool | None = None
 	# For server demon only.

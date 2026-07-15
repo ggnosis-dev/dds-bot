@@ -25,88 +25,104 @@ class ServerCompendium(commands.Cog):
 
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "server_compendium"))
 	async def server_comp_command(self, ctx: commands.Context, *args: str) -> None:
-		server = gets.get_server(ctx)
+		try:
+			server = gets.get_server(ctx)
 
-		columns = list(Columns.SERVER_DEFAULT)
-		columns, mentioned = get_args(args, server, columns) if args else (columns, None)
-		mentioned = mentioned.id if mentioned else None
+			columns = list(Columns.SERVER_DEFAULT)
+			columns, mentioned = get_args(args, server, columns) if args else (columns, None)
+			mentioned = mentioned.id if mentioned else None
 
-		comp_list, stats = await asyncio.gather(
-			server_demons_queries.check_server_compendium(server.id, mentioned),
-			server_level_queries.get_server_status(server.id),
-		)
+			comp_list, stats = await asyncio.gather(
+				server_demons_queries.check_server_compendium(server.id, mentioned),
+				server_level_queries.get_server_status(server.id),
+			)
 
-		# Because the server COMP only stores user IDs, we need to retrieve their names.
-		for entry in comp_list:
-			if entry.owner_id is not None:
-				player = server.get_member(entry.owner_id)
-				entry.owner = player.display_name if player else "Unknown"
+			# Because the server COMP only stores user IDs, we need to retrieve their names.
+			for entry in comp_list:
+				if entry.owner_id is not None:
+					player = server.get_member(entry.owner_id)
+					entry.owner = player.display_name if player else "Unknown"
 
-		view = ServerCompendiumView(server.name, comp_list, columns, server_stats=stats)
-		await ctx.send(view=view)
+			view = ServerCompendiumView(server.name, comp_list, columns, server_stats=stats)
+			await ctx.send(view=view)
+		except Exception as e:
+			print(f"server_compendium.py | server_comp_command | {e}")
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "loan"))
 	async def loan_command(self, ctx: commands.Context, *, demon_name: str) -> None:
+
 		player, server = gets.get_player_server(ctx)
 		demon_name = demon_name.title()
-		demon = demon_queries.get_demon_by_name(demon_name)
+		demon_id = demon_queries.get_demon_id_by_name(demon_name)
 
-		if demon is None:
+		if demon_id is None:
 			msg = MessageView(f"**{demon_name}** was not found in your party...")
 			await ctx.send(view=msg)
 			return
 
+		# Do not let player's loan their leaders.
+		selected_d_id = await player_demons_queries.get_selected_demon_id(player.id, server.id)
+		if demon_id == selected_d_id:
+			msg = MessageView(f"**{demon_name}** cannot be loaned as they are currently leading your party...")
+			await ctx.send(view=msg)
+			return
+
 		# Check if demon is in party.
-		in_party, player_demon_rank = asyncio.gather(
-			player_demons_queries.check_demon_registration(player.id, server.id, demon.id),
-			player_demons_queries.get_player_demon_rank(player.id, server.id, demon.id),
+		player_demon, in_party, design_data = await asyncio.gather(
+			player_demons_queries.get_player_demon_by_id(player.id, server.id, demon_id),
+			player_demons_queries.check_demon_registration(player.id, server.id, demon_id),
+			demon_queries.get_design_data(demon_id),
 		)
 
-		if in_party != DemonRegistration.IN_PARTY:
+		if player_demon is None or in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"**{demon_name}** was not found in your party...")
 			await ctx.send(view=msg)
 			return
 
 		# Send a confirmation view.
 		view = ConfirmationView(
-			f"Do you wish to loan your **{demon.race} {demon.name}** (Rank **{player_demon_rank}**)"
+			f"Do you wish to loan your **{player_demon.race} {player_demon.name}** (Rank **{player_demon.stored_rank}**)"
 			f" to **{server.name}'s Compendium**?\n\n"
 			f"-# You will not be able to use the demon again until they are retrieved.",
 			confirmLabel="Yes",
 			denyLabel="No",
-			colour=demon.colour,
+			image=design_data.profile_url,
+			colour=design_data.colour,
 		)
 		result = await ConfirmationView.send_message(view, ctx)
 
 		if result is False or result is None:
 			return
 
-		success = await server_demons_queries.add_demon_to_server_compendium(player.id, server.id, demon.id)
+		success = await server_demons_queries.add_demon_to_server_compendium(player.id, server.id, player_demon.demon_id)
 
 		# If a demon is already stored, check if they can overwrite it.
 		if success is False:
-			stored_demon = await server_demons_queries.get_single_serv_comp_demon(server.id, demon.id)
+			stored_demon = await server_demons_queries.get_single_serv_comp_demon(server.id, player_demon.demon_id)
 			stored_owner = typing.cast(discord.Member, self.bot.get_user(stored_demon.player_id))
 
 			# If weaker, send message regarding that.
-			if player_demon_rank <= stored_demon.stored_rank:
+			if player_demon.stored_rank <= stored_demon.stored_rank:
 				msg = MessageView(
 					f"**{stored_owner}**'s **{demon_name}** (Rank {stored_demon.stored_rank}) "
-					f"is already in {server.name}'s Compendium."
+					f"is already in {server.name}'s Compendium.",
+					image=design_data.profile_url,
+					colour=design_data.colour,
 				)
 				await ctx.send(view=msg)
 				return
 
 			# If stronger, prompt to overwrite.
 			view = ConfirmationView(
-				f"**{stored_owner}** is already loaning their **{demon.name}** to **{server.name}'s Compendium**."
-				f"\nYour {demon.name} is stronger ({player_demon_rank} to {stored_demon.stored_rank})."
+				f"**{stored_owner}** is already loaning their **{player_demon.name}** to **{server.name}'s Compendium**."
+				f"\nYour {player_demon.name} is stronger ({player_demon.stored_rank} to {stored_demon.stored_rank})."
 				"\n-# Do you wish to replace it? The demon will be returned to its owner."
 				f"\n\n-# You will not be able to use the demon again until they are retrieved.",
 				confirmLabel="Replace",
 				denyLabel="Cancel",
-				colour=demon.colour,
+				image=design_data.profile_url,
+				colour=design_data.colour,
 			)
 			result = await ConfirmationView.send_message(view, ctx)
 
@@ -116,13 +132,13 @@ class ServerCompendium(commands.Cog):
 			await server_demons_queries.replace_server_compendium_demon(
 				player.id,
 				server.id,
-				demon.id,
+				player_demon.demon_id,
 			)
 
 			# Add experience to the server's level. Take away stored demon first, then add new.
 			r1, r2 = await asyncio.gather(
 				server_level_queries.try_server_level_up(server.id, -stored_demon.stored_rank),
-				server_level_queries.try_server_level_up(server.id, player_demon_rank),
+				server_level_queries.try_server_level_up(server.id, player_demon.stored_rank),
 			)
 
 			if r1 or r2:
@@ -161,25 +177,25 @@ class ServerCompendium(commands.Cog):
 				await self._do_level_up_notif(ctx, server, old_level, new_level, reward_descs)
 
 			msg = MessageView(
-				f"Your **{demon.race} {demon.name}** (Rank {demon.rank}) has been sacrificed to **{server.name}'s "
-				f"Compendium** for the time being."
-				f"\n\n{stored_owner.mention}'s {demon.name} has been returned to its owner's COMP.",
-				image=demon.profile_url,
-				colour=demon.colour,
+				f"Your **{player_demon.race} {player_demon.name}** (Rank {player_demon.stored_rank})"
+				f" has been sacrificed to **{server.name}'s Compendium** for the time being."
+				f"\n\n>`{stored_owner.mention}'s {player_demon.name} has been returned to its owner's COMP`",
+				image=design_data.profile_url,
+				colour=design_data.colour,
 			)
 			await ctx.send(view=msg)
 			return
 
 		msg = MessageView(
-			f"Your **{demon.race} {demon.name}** (Rank {player_demon_rank}) has been sacrificed to **{server.name}'s "
-			f"Compendium** for the time being.",
-			image=demon.profile_url,
-			colour=demon.colour,
+			f"Your **{player_demon.race} {player_demon.name}** (Rank {player_demon.stored_rank})"
+			f" has been sacrificed to **{server.name}'s Compendium** for the time being.",
+			image=design_data.profile_url,
+			colour=design_data.colour,
 		)
 		await ctx.send(view=msg)
 
 		# Add experience to the server's level.
-		level_data = await server_level_queries.try_server_level_up(server.id, player_demon_rank)
+		level_data = await server_level_queries.try_server_level_up(server.id, player_demon.stored_rank)
 		if level_data.old_level != level_data.new_level:
 			reward_descs = {reward.desc for reward in level_data.rewards}
 			await self._do_level_up_notif(ctx, server, level_data.old_level, level_data.new_level, reward_descs)
@@ -204,7 +220,7 @@ class ServerCompendium(commands.Cog):
 				f"from **{server.name}'s Compendium**?",
 				confirmLabel="Yes",
 				denyLabel="No",
-				colour=demon.colour,
+				colour=demon.design_data.colour,
 			)
 			result = await ConfirmationView.send_message(view, ctx)
 
@@ -215,7 +231,9 @@ class ServerCompendium(commands.Cog):
 				# Remove the experience from the server's level.
 
 				msg = MessageView(
-					f"**{demon.race} {demon.name}** has been returned to you.", demon.profile_url, demon.colour
+					f"**{demon.race} {demon.name}** has been returned to you.",
+					demon.design_data.profile_url,
+					demon.design_data.colour,
 				)
 				await ctx.send(view=msg)
 

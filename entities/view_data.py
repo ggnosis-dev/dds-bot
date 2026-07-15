@@ -21,7 +21,7 @@ class Columns:
 	REGISTRY = ColumnConfig(key="in_party", label=Emotes.BLANK.value)
 	RACE = ColumnConfig(key="race", label="Race", width=12, header_tabs=3)
 	NAME = ColumnConfig(key="name", label="Name", width=18, header_tabs=6)
-	RANK = ColumnConfig(key="rank", label="Rank", width=3, header_tabs=4, align=">")
+	RANK = ColumnConfig(key="stored_rank", label="Rank", width=3, header_tabs=4, align=">")
 	OWNER = ColumnConfig(key="owner", label="Owner", width=12, header_tabs=3)
 	GEM = ColumnConfig(key="gem", label="Gemstone", width=12, header_tabs=3)
 	PERSONALITY = ColumnConfig(key="personality", label="Personality", width=12, header_tabs=3)

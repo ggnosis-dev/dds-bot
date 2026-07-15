@@ -4,6 +4,33 @@ from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
 
 
+async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonEntry | None:
+	row = query_all(
+		"""
+			SELECT d.id, d.name, d.race, pd.on_loan, pd.stored_rank, pd.in_party
+			FROM demons d
+			JOIN player_demons pd ON pd.demon_id = d.id
+				AND pd.player_id = ? AND pd.server_id = ?
+			WHERE pd.demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	if row:
+		d_id, name, race, on_loan, st_rank, in_party = row[0]
+
+		return DemonEntry(
+			demon_id=d_id,
+			name=name,
+			race=race,
+			on_loan=on_loan,
+			stored_rank=st_rank,
+			in_party=in_party,
+			owner_id=player_id,
+		)
+	return None
+
+
 async def set_demon_in_party(player_id: int, server_id: int, demon_id: int, set_in_party: bool = True) -> bool:
 	"""
 	Manage whether to add or remove a demon from a player's party.
@@ -105,7 +132,7 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 	# print("DEBUG: check_party")
 	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
+			SELECT d.id, d.name, d.race, pd.on_loan, pd.stored_rank, pd.in_party
 			FROM demons d
 			JOIN player_demons pd ON pd.demon_id = d.id
 				AND pd.player_id = ? AND pd.server_id = ?
@@ -117,15 +144,15 @@ async def check_party(user_id: int, server_id: int) -> list[DemonEntry]:
 
 	entries = []
 	for row in rows:
-		demon_id, name, race, pers, rank, in_party = row
+		demon_id, name, race, on_loan, rank, in_party = row
 
 		entries.append(
 			DemonEntry(
 				demon_id=demon_id,
 				name=name,
 				race=race,
-				personality=pers,
-				rank=rank,
+				on_loan=on_loan,
+				stored_rank=rank,
 				in_party=in_party,
 			)
 		)
@@ -155,7 +182,7 @@ async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
 	# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, d.personality, pd.stored_rank, pd.in_party
+			SELECT d.id, d.name, d.race, pd.on_loan, pd.stored_rank, pd.in_party
 			FROM demons d
 			LEFT JOIN player_demons pd ON pd.demon_id = d.id
 				AND pd.player_id = ? AND pd.server_id = ?
@@ -166,15 +193,15 @@ async def check_compendium(user_id: int, server_id: int) -> list[DemonEntry]:
 
 	entries = []
 	for row in rows:
-		demon_id, name, race, pers, rank, in_party = row
+		demon_id, name, race, on_loan, rank, in_party = row
 
 		entries.append(
 			DemonEntry(
 				demon_id=demon_id,
 				name=name,
 				race=race,
-				personality=pers,
-				rank=rank,
+				on_loan=on_loan,
+				stored_rank=rank,
 				in_party=in_party,
 			)
 		)
@@ -275,7 +302,7 @@ async def calculate_party_average(player_id: int, server_id: int) -> int:
 
 	# Isolate rank.
 	for demon in party:
-		ranks.append(demon.rank)
+		ranks.append(demon.stored_rank)
 
 	average = max(1, sum(ranks) // len(ranks))
 

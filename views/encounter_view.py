@@ -244,7 +244,9 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		name = self.demon.name.upper()
 
 		msg = MessageView(
-			f"-# **{race} {name}**:\n-# {response}\n\n`{status_message}`", self.demon.image_url, self.demon.colour
+			f"-# **{race} {name}**:\n-# {response}\n\n`{status_message}`",
+			self.demon.design_data.image_url,
+			self.demon.design_data.colour,
 		)
 		await interaction.followup.send(view=msg, ephemeral=True)
 
@@ -296,7 +298,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		"""
 		try:
 			ui = discord.ui
-			container = ui.Container(accent_color=self.demon.colour)
+			container = ui.Container(accent_color=self.demon.design_data.colour)
 
 			container.add_item(self.icon_display)
 			container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {message}\n"))
@@ -304,7 +306,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 			self._build_option_buttons(container, dialogue_options)
 
-			container.add_item(ui.MediaGallery().add_item(media=self.demon.image_url))
+			container.add_item(ui.MediaGallery().add_item(media=self.demon.design_data.image_url))
 
 			container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
 			self.status_display = ui.TextDisplay("-# *What will you do?*")
@@ -415,12 +417,12 @@ class EncounterViewFollowup(EncounterViewTemplate):
 				'response' that maps Personality types to ResponseType.
 		"""
 		ui = discord.ui
-		container = ui.Container(accent_color=self.demon.colour)
+		container = ui.Container(accent_color=self.demon.design_data.colour)
 
 		race = self.demon.race.upper()
 		name = self.demon.name.upper()
 
-		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.image_url))
+		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.design_data.image_url))
 		section.add_item(ui.TextDisplay(f"-# **{race} {name}:**\n-# {self.response}\n\n-# {message}"))
 
 		container.add_item(section)

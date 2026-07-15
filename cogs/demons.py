@@ -68,8 +68,8 @@ class Demon(commands.Cog):
 				f"-# **Hunting:** {gem_text}\n"
 				f"-# **Progress:** {progress_bar}"
 			),
-			d.profile_url,
-			d.colour,
+			d.design_data.profile_url,
+			d.design_data.colour,
 		)
 		await ctx.send(view=view)
 

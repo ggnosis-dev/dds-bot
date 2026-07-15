@@ -95,7 +95,7 @@ class Fusion(commands.Cog):
 			f"\n\nComplete the ritual?",
 			confirmLabel="Summon",
 			confirmColour=discord.ButtonStyle.primary,
-			image=demon.profile_url,
+			image=demon.design_data.profile_url,
 		)
 		result = await ConfirmationView.send_message(view, interaction)
 
@@ -110,7 +110,9 @@ class Fusion(commands.Cog):
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True)
 
 		# Needs to be a followup.
-		msg = MessageView(f"You have successfully summoned **{demon.race} {demon.name}**!", image=demon.profile_url)
+		msg = MessageView(
+			f"You have successfully summoned **{demon.race} {demon.name}**!", image=demon.design_data.profile_url
+		)
 		await interaction.followup.send(view=msg)
 
 	async def _fuse_demons(
@@ -165,8 +167,8 @@ class Fusion(commands.Cog):
 					f"**{demon_result.race} {demon_result.name}**"
 					f"\n\n{demon_result.name} can already be found in your party..."
 				),
-				demon_result.profile_url,
-				demon_result.colour,
+				demon_result.design_data.profile_url,
+				demon_result.design_data.colour,
 			)
 			await ctx.send(view=view)
 			return
@@ -175,8 +177,8 @@ class Fusion(commands.Cog):
 
 		view = MessageView(
 			f"**{demon_1.race} {name_1}** + **{demon_2.race} {name_2}** = **{demon_result.race} {demon_result.name}**",
-			demon_result.profile_url,
-			demon_result.colour,
+			demon_result.design_data.profile_url,
+			demon_result.design_data.colour,
 		)
 		await ctx.send(view=view)
 
@@ -228,8 +230,8 @@ class Fusion(commands.Cog):
 
 		view = MessageView(
 			fuse_complete_text,
-			demon_result.profile_url,
-			demon_result.colour,
+			demon_result.design_data.profile_url,
+			demon_result.design_data.colour,
 		)
 		await ctx.send(view=view)
 

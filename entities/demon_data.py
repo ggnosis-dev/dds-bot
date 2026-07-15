@@ -4,6 +4,13 @@ from shared_enums import Personality, Tone
 
 
 @dataclass
+class DesignData:
+	colour: int
+	profile_url: str
+	image_url: str
+
+
+@dataclass
 class DemonData:
 	"""
 	Data class for a demon's information.
@@ -24,10 +31,8 @@ class DemonData:
 	name: str
 	race: str
 	rank: int
-	colour: int
 	personality_type: Personality
-	profile_url: str
-	image_url: str
+	design_data: DesignData
 	prevent_spawn: bool
 	tone_type: Tone
 
@@ -74,10 +79,12 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 			name=name,
 			race=race,
 			rank=rank,
-			colour=col,
 			personality_type=Personality(pers_id),
-			profile_url=pr_url,
-			image_url=im_url,
+			design_data=DesignData(
+				colour=col,
+				profile_url=pr_url,
+				image_url=im_url,
+			),
 			prevent_spawn=prevent,
 			tone_type=Tone(tone_id),
 		)

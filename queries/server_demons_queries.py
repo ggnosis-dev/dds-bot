@@ -162,8 +162,7 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None) -
 				owner_id=oid,
 				name=name,
 				race=race,
-				personality=pers,
-				rank=rank,
+				stored_rank=rank,
 			)
 		)
 	return entries
