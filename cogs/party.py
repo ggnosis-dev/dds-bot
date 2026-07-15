@@ -1,3 +1,5 @@
+import asyncio
+
 from discord.ext import commands
 
 from entities.command_data import PARTY_COMMANDS, command_kwargs
@@ -41,9 +43,11 @@ class Party(commands.Cog):
 
 			player = mentioned if mentioned is not None else player
 
-			party_list = await player_demons_queries.check_party(player.id, server.id)
-			sd_id = player_demons_queries.get_selected_demon_id(player.id, server.id)
-			party_stats = await player_demons_queries.get_party_stats(player.id, server.id)
+			party_list, party_stats, sd_id = asyncio.gather(
+				player_demons_queries.check_party(player.id, server.id),
+				player_demons_queries.get_party_stats(player.id, server.id),
+				player_demons_queries.get_selected_demon_id(player.id, server.id),
+			)
 
 			view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id, party_stats=party_stats)
 			await ctx.send(view=view)

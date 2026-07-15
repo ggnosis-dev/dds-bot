@@ -196,7 +196,7 @@ def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:
 	)
 
 
-def get_selected_demon_id(player_id: int, server_id: int) -> int | None:
+async def get_selected_demon_id(player_id: int, server_id: int) -> int | None:
 	"""
 	Get the player's selected demon ID.
 

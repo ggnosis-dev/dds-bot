@@ -40,7 +40,7 @@ class Demon(commands.Cog):
 	@commands.command(**command_kwargs(DEMONS_COMMANDS, "leader"))
 	async def leader_command(self, ctx: commands.Context) -> None:
 		player_id, server_id = gets.get_player_server_ids(ctx)
-		demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
+		demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 		if demon_id is None:
 			await ctx.send("There is currently no demon leading your party. Select one using `>select {demon}`.")

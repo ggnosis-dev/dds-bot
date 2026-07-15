@@ -48,7 +48,7 @@ class Items(commands.Cog):
 				await ctx.send(f"A **{demon_name}** was not found in your party...")
 				return
 		else:
-			demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
+			demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 			# No demon was specified in command, and player doesn't have a demon selected.
 			if demon_id is None:

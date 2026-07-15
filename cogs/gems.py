@@ -36,7 +36,7 @@ class Gems(commands.Cog):
 				return
 
 			player_id, server_id = gets.get_player_server_ids(ctx)
-			selected_demon_id = player_demons_queries.get_selected_demon_id(player_id, server_id)
+			selected_demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 			if selected_demon_id is None:
 				return
