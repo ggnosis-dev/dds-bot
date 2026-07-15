@@ -58,8 +58,10 @@ class ServerCompendium(commands.Cog):
 			return
 
 		# Check if demon is in party.
-		in_party = await player_demons_queries.check_demon_registration(player.id, server.id, demon.id)
-		player_demon_rank = await player_demons_queries.get_player_demon_rank(player.id, server.id, demon.id)
+		in_party, player_demon_rank = asyncio.gather(
+			player_demons_queries.check_demon_registration(player.id, server.id, demon.id),
+			player_demons_queries.get_player_demon_rank(player.id, server.id, demon.id),
+		)
 
 		if in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"**{demon_name}** was not found in your party...")
