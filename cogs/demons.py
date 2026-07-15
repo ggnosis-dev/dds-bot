@@ -26,6 +26,14 @@ class Demon(commands.Cog):
 			await ctx.send(f"A **{demon_name}** is not in your party...")
 			return
 
+		# Check if demon is loaned at the moment.
+		is_loaned = await player_demons_queries.check_demon_on_loan(player_id, server_id, demon_id)
+
+		if is_loaned:
+			msg = MessageView(f"**{demon_name}** is currently away and can't be loaned...")
+			await ctx.send(view=msg)
+			return
+
 		# Check if in player's party.
 		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 
@@ -34,7 +42,11 @@ class Demon(commands.Cog):
 			return
 
 		player_demons_queries.set_selected_demon(player_id, server_id, demon_id)
-		await ctx.send(f"**{demon_name}** has been selected to lead your party!")
+
+		dd = await demon_queries.get_design_data(demon_id)
+		msg = MessageView(f"**{demon_name}** has been selected to lead your party!", image=dd.profile_url, colour=dd.colour)
+		await ctx.send(view=msg)
+		return
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(DEMONS_COMMANDS, "leader"))
