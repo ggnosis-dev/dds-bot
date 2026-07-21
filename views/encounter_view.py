@@ -262,7 +262,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		self,
 		demon: DemonData,
 		count: int = 1,
-		user_exclusive_to: discord.Member | None = None,
+		user_exclusive_to: int | None = None,
 		tutorial=False,
 	) -> None:
 		"""
@@ -271,7 +271,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		Args:
 		    demon (DemonData): The encounter's demon information.
 		    count (int, optional): The number of interactions before encounter ends. Defaults to 1.
-		    user_exclusive_to (discord.User | None, optional): If set, only this user can interact with the encounter.
+		    user_exclusive_to (int | None, optional): If set, only this user ID can interact with the encounter.
 		    tutorial (bool, optional): If set to True, the encounter can't be failed. Defaults to False.
 		"""
 		super().__init__(demon, tutorial=tutorial)
@@ -336,21 +336,21 @@ class EncounterViewInitial(EncounterViewTemplate):
 			Args:
 			    interaction (discord.Interaction): The Discord interaction object from the button press.
 			"""
-			user = interaction.user
+			user_id = interaction.user.id
 
 			# Check if user has already interacted.
-			if user.id in self.interacted_users:
+			if user_id in self.interacted_users:
 				await interaction.response.defer()
 				return
 
 			# If user isn't the one who the encounter is for (when option exists), exit early.
-			if self.user_exclusive_to and user != self.user_exclusive_to:
+			if self.user_exclusive_to and user_id != self.user_exclusive_to:
 				await interaction.response.defer()
 				return
 
 			# We only want the user to be able to interact once with the box,
 			# if it's a multi-option encounter, an ephemeral message will be sent next.
-			self.interacted_users.add(user.id)
+			self.interacted_users.add(user_id)
 
 			# Call the original _make_dialogue_callback.
 			await base_callback(interaction)

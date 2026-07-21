@@ -1,33 +1,20 @@
-from discord.ext import commands
-
 from entities.player_data import PartyStats, PlayerData
 from helpers.db import query_one, query_write
 
 
 # TODO: Really don't need to do this setup procedure.
-async def setup_player(ctx: commands.Context) -> bool:
+async def setup_player(player_id, server_id) -> bool:
 	"""
 	Set up a new player in the database if they don't already have a profile.
 
 	Returns:
 		bool: True if a new profile was created, False if player already exists.
 	"""
-	if ctx.guild is None:
-		raise RuntimeError(f"ERROR: Server ID could not be determined: {ctx}.")
-
-	player_id = ctx.author.id
-	server_id = ctx.guild.id
-
 	if check_player_exists(player_id, server_id):
-		await ctx.send("You already have a profile set up on this server!")
 		return False
-
-	await ctx.send(f"Welcome to the bot {ctx.author.mention}! Setting up your profile now...")
 
 	save_player_to_db(player_id, server_id)
 	update_server_in_db(server_id)
-
-	await ctx.send("Your profile has been set up!")
 
 	return True
 
@@ -88,7 +75,7 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 		player_id (int): Player ID.
 		server_id (int): Sever ID player belongs to.
 	Returns:
-		PlayerData: A data class of player properties.
+		PlayerData | None: A data class of player properties or None if non-existent.
 	"""
 	response = query_one(
 		"""

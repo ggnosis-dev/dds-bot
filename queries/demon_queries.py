@@ -105,7 +105,7 @@ def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> Demon
 	return convert_row_to_demon_data(row)
 
 
-def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
+async def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
 	try:
 		weighted_rank = min(weighted_rank, max_rank)
 		rank = round(triangular(left=0.5, mode=weighted_rank, right=max_rank + 0.5))
