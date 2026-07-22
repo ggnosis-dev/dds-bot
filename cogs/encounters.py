@@ -54,7 +54,6 @@ class Encounters(commands.Cog):
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		player_data = await player_queries.get_player(player_id, server_id)
-		# TODO: Test this to see interaction when deleted a dedicated channel.
 		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(dedicated_channel) or ctx.channel)
 
 		if player_data is None:
@@ -82,6 +81,7 @@ class Encounters(commands.Cog):
 		demon = await demon_queries.get_demon_by_distribution(average_rank, server_cap)
 		count = random.randint(1, 3)
 
+		# Start the encounter.
 		await asyncio.gather(
 			self._start_encounter(send_to_channel, demon, count),
 			player_queries.set_encounter_timer(player_id, server_id, now),
@@ -103,7 +103,8 @@ class Encounters(commands.Cog):
 			exclusive_to (discord.Member | None): Optional lock encounter to the player.
 		"""
 		view = EncounterViewInitial(demon_data, count=count, user_exclusive_to=exclusive_to)
-		await send_to_channel.send(view=view)
+		sent = await send_to_channel.send(view=view)
+		view.message = sent
 
 	async def _start_tutorial_encounter(self, send_to_channel: discord.TextChannel, player_id: int, server_id: int) -> None:
 		"""Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial."""

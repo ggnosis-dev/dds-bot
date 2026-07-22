@@ -205,13 +205,13 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			tutorial=self.tutorial,
 		)
 
-		# On consecutive followups, we want to make sure buttons will get disabled.
-		# First followup we don't want to disable any buttons.
-		if self.parent_view is not None:
+		# On consecutive followups, we want to make sure buttons from the previous ones will get disabled.
+		if isinstance(self, EncounterViewFollowup):
 			# Edit the existing ephemeral message to disable buttons, then send the next one.
 			await interaction.response.edit_message(view=self)
 			await interaction.followup.send(view=followup_view, ephemeral=True)
 		else:
+			# This is the initial view, which we don't want to edit in case someone else interacts with it.
 			await interaction.response.send_message(view=followup_view, ephemeral=True)
 
 	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str, response: str) -> None:
@@ -230,13 +230,18 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		if parent_view.status_display is not None:
 			parent_view.status_display.content = parent_view.status_display.content + f"\n-# `{status_message}`"
 
-		# If this is a followup view...
-		if parent_view is not self and parent_view.message is not None:
-			# Update the original message with the new view that has the updated icon count and status message.
-			await parent_view.message.edit(view=parent_view)
+		# Update the view messages with information.
+		if parent_view is not self:
+			# If this is a followup view, update the original message and the ephemeral one.
+			if parent_view.message is not None:
+				# Update the original message with the new view that has the updated icon count and status message.
+				await parent_view.message.edit(view=parent_view)
+			else:
+				# Should never happen.
+				print(f"WARN: parent_view.message is None for demon {self.demon.name}.")
 			await interaction.response.edit_message(view=self)
 		else:
-			# For the initial view, edit the message with any changes to icon count and status.
+			# Initial view finished without a followup.
 			await interaction.response.edit_message(view=parent_view)
 
 		# Send a final message to the user.
