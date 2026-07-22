@@ -36,6 +36,10 @@ class HelpOverwrite(commands.HelpCommand):
 
 				entries.append(cog_entry)
 
+			entries = sorted(
+				entries,
+				key=lambda item: item["name"],
+			)
 			channel = self.get_destination()
 			view = HelpView(entries=entries)
 			await channel.send(view=view)
