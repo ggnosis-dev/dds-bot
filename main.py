@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 
@@ -7,49 +6,51 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-# Load the environment variables from the .env file.
-load_dotenv()
-token = os.getenv("DISCORD_TOKEN")
 
-# Every permission needs to be enabled through intents.
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+class DDSBot(commands.Bot):
+	def __init__(self):
+		# Every permission needs to be enabled through intents.
+		intents = discord.Intents.default()
+		intents.message_content = True
+		intents.members = True
 
-bot = commands.Bot(command_prefix=">", intents=intents)
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("discord")
-logger.info("This message will show in logs!")
-logging.basicConfig(filename="bot_errors.log", level=logging.ERROR)
+		super().__init__(
+			command_prefix=">",
+			case_insensitive=True,
+			intents=intents,
+		)
 
+		# Load the environment variables from the .env file.
+		load_dotenv()
+		self.token = os.getenv("DISCORD_TOKEN")
 
-@bot.event
-async def on_ready():
-	print(f"{bot.user} has connected to Discord!")
+		# Remove built-in help command.
+		self.remove_command("help")
 
+		logging.basicConfig(level=logging.INFO)
+		logging.getLogger("discord")
 
-@bot.command()
-async def ping(ctx):
-	print("Pong")
-	await ctx.send("Pong")
+		file_handler = logging.FileHandler("bot_errors.log")
+		file_handler.setLevel(logging.ERROR)
+		logging.getLogger().addHandler(file_handler)
 
+	async def setup_hook(self) -> None:
+		await self.load_cogs()
 
-async def load_cogs():
-	async with bot:
-		await bot.load_extension("cogs.demons")
-		await bot.load_extension("cogs.check_handler")
-		await bot.load_extension("cogs.compendium")
-		await bot.load_extension("cogs.encounters")
-		await bot.load_extension("cogs.fusion")
-		await bot.load_extension("cogs.items")
-		await bot.load_extension("cogs.gems")
-		await bot.load_extension("cogs.party")
-		await bot.load_extension("cogs.server_compendium")
-		await bot.load_extension("cogs.shop_rags")
-		await bot.load_extension("cogs.utility")
+	async def load_cogs(self):
+		for file in os.listdir("./cogs"):
+			if file.endswith(".py"):
+				await self.load_extension(f"cogs.{file[:-3]}")
 
-		if token is not None:
-			await bot.start(token)
+	async def on_ready(self):
+		# self.user can be None in some runtime/type-checking scenarios, guard against that.
+		name = self.user.name if self.user is not None else "Unknown"
+		print(f"INFO: {name} has connected to Discord.")
 
 
-asyncio.run(load_cogs())
+bot = DDSBot()
+
+if bot.token is not None:
+	bot.run(bot.token)
+else:
+	print("ERROR: DISCORD TOKEN NOT SET")
