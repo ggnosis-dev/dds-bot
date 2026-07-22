@@ -223,6 +223,10 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		self._build_layout()
 
 	def _get_page_entries(self) -> list[EntryT]:
+		"""
+		Get the entries that will populate the page, acknowledging any filters that come from overriding
+		_get_filtered_entries.
+		"""
 		entries = self._get_filtered_entries()
 
 		self.total_pages = int(max(1, (len(entries) + self.page_size - 1) / self.page_size))

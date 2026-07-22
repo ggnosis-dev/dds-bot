@@ -25,6 +25,19 @@ def command_kwargs(command_type: dict[str, CommandData], key: str):
 	return return_data
 
 
+COG_DESCRIPTIONS = {
+	"Compendium": "Is for the compendium stuff woah",
+	"Demon": "",
+	"Encounters": "",
+	"Fusion": "",
+	"Gems": "",
+	"Items": "",
+	"Party": "",
+	"ServerCompendium": "",
+	"RagsShop": "",
+	"Utility": "",
+}
+
 COMPENDIUM_COMMANDS = {
 	"compendium": CommandData(
 		name="compendium",
