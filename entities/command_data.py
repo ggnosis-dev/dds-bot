@@ -26,13 +26,12 @@ def command_kwargs(command_type: dict[str, CommandData], key: str):
 
 
 COG_DESCRIPTIONS = {
+	"Collection": "Commands for your currently owned demons.",
 	"Compendium": "Commands for viewing your registered demon collection",
-	"Demon": "Commands specific to individual demons",
 	"Encounters": "Commands for encountering demons",
 	"Fusion": "Commands to fuse two or more demons together",
 	"Gems": "Commands for the gem currency",
 	"Items": "Commands for the player's items",
-	"Party": "Commands for your currently owned demons.",
 	"ServerCompendium": "Commands for viewing the server's registered demon collection",
 	"RagsShop": "Commands for using the Rag's Jewelrey Shop",
 	"Utility": "Commands for miscellaneous checks and tools",
@@ -47,7 +46,7 @@ COMPENDIUM_COMMANDS = {
 			" You can view other player's Compendiums by mentioning them,"
 			' and can view hidden columns by typing part of "gemstone" or "tone".'
 		),
-		usage=">compendium {opt: @player | gemstone | personality}",
+		usage=">compendium {opt: @player | gemstone | tone}",
 	),
 	"summon": CommandData(
 		name="summon",
@@ -81,8 +80,10 @@ ENCOUNTERS_COMMANDS = {
 		aliases=["e"],
 		help=(
 			"-# Starts an encounter with a demon."
-			" Its rank is determined at random using distribution up to the Server's Maximum Rank Capacity"
-			" with weight at your Party's Average Rank."
+			"\n\n-# The demon's rank is determined using a random distribution; up to the *Server's Maximum Rank Capacity*"
+			" and weighted at your own *Party's Average Rank*."
+			"The *Server's Maximum Rank Capacity* can be increased by adding to the Server's Compendium"
+			" (see **Server Compendium** for more details)."
 		),
 		usage=">encounter | >e",
 	),
@@ -150,9 +151,9 @@ PARTY_COMMANDS = {
 		help=(
 			"-# Displays the player's current Party."
 			" You can view other player's Compendiums by mentioning them,"
-			' and can view hidden columns by typing part of "gemstone" or "personality".'
+			' and can view hidden columns by typing part of "gemstone" or "tone".'
 		),
-		usage=">party | p {opt: @player | gemstone | personality}",
+		usage=">party | p {opt: @player | gemstone | tone}",
 	),
 	"increase_party": CommandData(
 		name="increase_party",
@@ -170,7 +171,6 @@ PARTY_COMMANDS = {
 		help=(
 			"-# Release a demon from your Party to free up space."
 			" This does not remove it from your Compendium and you can resummon them anytime using the `>summon` command."
-			"\n\n-# Occassionally, the demon may give you something as a parting gift."
 		),
 		usage=">release | rel {demon}",
 	),
