@@ -48,8 +48,8 @@ class Gems(commands.Cog):
 				d = typing.cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
 				view = MessageView(
 					f"{message.author.mention}, your **{d.name}** has found a **{gem_found.title()}**!",
-					d.profile_url,
-					d.colour,
+					d.design_data.profile_url,
+					d.design_data.colour,
 				)
 				await message.channel.send(view=view)
 		except Exception as e:
