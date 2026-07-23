@@ -1,15 +1,13 @@
-import asyncio
+import re
 
-from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Generic, TypeVar, cast
+from typing import cast
 
 import discord
 
-from discord.ext import commands
-
 from shared_enums import Emotes
 from views.common_view import BaseLayoutView
+
+PAGE_SIZE = 6
 
 
 class HelpView(BaseLayoutView[dict]):
@@ -21,7 +19,7 @@ class HelpView(BaseLayoutView[dict]):
 		# bot: commands.Bot | commands.AutoShardedBot,
 		colour: int = 0xE93700,
 	):
-		super().__init__(entries, colour=colour)
+		super().__init__(entries, page_size=PAGE_SIZE, colour=colour)
 
 		self.entries = entries
 
@@ -40,7 +38,6 @@ class HelpView(BaseLayoutView[dict]):
 			super().__init__(
 				label="ⓘ ◥" if expanded else "ⓘ ◢",
 				style=discord.ButtonStyle.secondary,
-				custom_id=f"cmd-section-{entry['name'].lower()}",
 			)
 
 		async def callback(self, interaction: discord.Interaction) -> None:
@@ -49,12 +46,13 @@ class HelpView(BaseLayoutView[dict]):
 			view = cast(HelpView, self.view)
 
 			# Toggle the section that is currently open.
-			if view.expanded_cog != self.entry["name"]:
-				view.expanded_cog = self.entry["name"]
-			else:
+			if view.expanded_cog == self.entry["name"]:
 				view.expanded_cog = None
+			else:
+				view.expanded_cog = self.entry["name"]
 
 			view.refresh()
+			print(f"The cog that is expanded is: {view.expanded_cog}")
 			await interaction.response.edit_message(view=view)
 
 	def refresh(self) -> None:
@@ -82,11 +80,12 @@ class HelpView(BaseLayoutView[dict]):
 		# info_button = self.InfoButton(self.show_info)
 
 		container.add_item(discord.ui.TextDisplay(f"## `> DDS-BOT HELP SYSTEM` {Emotes['HUH'].value}"))
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 		return container
 
 	def _build_page_entry(self, container: discord.ui.Container, entry: dict, expanded: bool) -> discord.ui.Container:
 		cog_section_btn = self.SectionButton(entry, expanded)
-		cog_name = entry["name"]
+		cog_name = re.sub(r"(?<!^)(?=[A-Z])", " ", entry["name"])
 		cog_desc = entry["cog_desc"]
 
 		section = discord.ui.Section(
@@ -97,8 +96,10 @@ class HelpView(BaseLayoutView[dict]):
 
 		if expanded:
 			for cmd in entry["commands"]:
-				container.add_item(discord.ui.TextDisplay(f"{cmd['signature']}"))
+				usage = cmd["usage"]
+				hlp = cmd["help"]
 
-			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+				container.add_item(discord.ui.TextDisplay(f"-# `{usage}`:\n{hlp}"))
+				container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 
 		return container

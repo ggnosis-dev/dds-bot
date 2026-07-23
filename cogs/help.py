@@ -8,7 +8,6 @@ class HelpOverwrite(commands.HelpCommand):
 	async def send_bot_help(self, mapping):
 		try:
 			entries = []
-			print(mapping)
 
 			for cog, cmds in mapping.items():
 				filtered = await self.filter_commands(cmds, sort=True)
@@ -18,15 +17,13 @@ class HelpOverwrite(commands.HelpCommand):
 
 				cog_name = cog.qualified_name
 				cog_desc = COG_DESCRIPTIONS[cog_name]
-				cog_cmds = (
+				cog_cmds = [
 					{
-						"signature": self.get_command_signature(cmd),
-						"help": cmd.help,
 						"usage": cmd.usage,
-						"aliases": cmd.aliases,
+						"help": cmd.help,
 					}
 					for cmd in filtered
-				)
+				]
 
 				cog_entry = {
 					"name": cog_name,
