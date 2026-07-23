@@ -4,6 +4,8 @@ from typing import cast
 
 import discord
 
+from discord.ext import commands
+
 from shared_enums import Emotes
 from views.common_view import BaseLayoutView
 
@@ -16,12 +18,13 @@ class HelpView(BaseLayoutView[dict]):
 	def __init__(
 		self,
 		entries: list[dict],
-		# bot: commands.Bot | commands.AutoShardedBot,
+		bot: commands.Bot | commands.AutoShardedBot,
 		colour: int = 0xE93700,
 	):
 		super().__init__(entries, page_size=PAGE_SIZE, colour=colour)
 
 		self.entries = entries
+		self.bot = bot
 
 		# Expanding a cog will show us its commands. Should only ever be one at a time because messages are
 		# limited to 4000 characters or something.
@@ -52,7 +55,6 @@ class HelpView(BaseLayoutView[dict]):
 				view.expanded_cog = self.entry["name"]
 
 			view.refresh()
-			# print(f"The cog that is expanded is: {view.expanded_cog}")
 			await interaction.response.edit_message(view=view)
 
 	def refresh(self) -> None:
@@ -61,9 +63,9 @@ class HelpView(BaseLayoutView[dict]):
 
 	def _build_layout(self) -> None:
 		try:
-			container = discord.ui.Container(accent_color=self.colour)
 			page_entries = self._get_page_entries()
 
+			container = discord.ui.Container(accent_color=self.colour)
 			container = self._build_header(container)
 
 			for entry in page_entries:
@@ -77,9 +79,18 @@ class HelpView(BaseLayoutView[dict]):
 			print(e)
 
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		# info_button = self.InfoButton(self.show_info)
+		bot_user = self.bot.user
 
-		container.add_item(discord.ui.TextDisplay(f"## `> DDS-BOT HELP SYSTEM` {Emotes['HUH'].value}"))
+		if bot_user is None:
+			raise RuntimeError(
+				"ERROR: Bot user was None, which shouldn't happen but to get linter to stop complaining, I will do a check."
+			)
+
+		section = discord.ui.Section(
+			discord.ui.TextDisplay(f"{Emotes.BLANK.value}\n## `> DDS-BOT HELP SYSTEM` {Emotes['HUH'].value}"),
+			accessory=discord.ui.Thumbnail(media=bot_user.display_avatar.url),
+		)
+		container.add_item(section)
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 		return container
 

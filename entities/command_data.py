@@ -26,11 +26,11 @@ def command_kwargs(command_type: dict[str, CommandData], key: str):
 
 
 COG_DESCRIPTIONS = {
-	"Party": "Commands for the demons currently in your party",
 	"Compendium": "Commands for viewing your registered demon collection",
 	"Encounters": "Commands for encountering demons",
 	"Fusion": "Commands to fuse two or more demons together",
 	"Items": "Commands for the player's gems and item collections",
+	"Party": "Commands for the demons currently in your party",
 	"ServerCompendium": "Commands for viewing the server's registered demon collection",
 	"Shop": "Commands for using the Rag's Jewelrey Shop",
 	"Utility": "Commands for miscellaneous checks and tools",
@@ -54,7 +54,7 @@ COMPENDIUM_COMMANDS = {
 			"-# Summon a registered demon from your Demonic Compendium to your Party for a fee."
 			" Provide the demon's name after the command."
 		),
-		usage=">summon | >sum {demon}",
+		usage=">summon | sum {demon}",
 	),
 }
 
@@ -63,13 +63,13 @@ DEMONS_COMMANDS = {
 		name="select",
 		aliases=["sel"],
 		help="-# Select a demon to lead your Party. The selected demon will hunt for gemstones while you use the server.",
-		usage=">select | >sel {demon}",
+		usage=">select | sel {demon}",
 	),
 	"leader": CommandData(
 		name="leader",
 		aliases=["le"],
 		help="-# View the status of the demon leading your Party.",
-		usage=">leader | >le",
+		usage=">leader | le",
 	),
 }
 
@@ -84,7 +84,7 @@ ENCOUNTERS_COMMANDS = {
 			"The *Server's Maximum Rank Capacity* can be increased by adding to the Server's Compendium"
 			" (see **Server Compendium** for more details)."
 		),
-		usage=">encounter | >e",
+		usage=">encounter | e",
 	),
 	"test_encounter": CommandData(
 		name="test_encounter",

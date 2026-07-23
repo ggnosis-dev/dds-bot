@@ -38,7 +38,7 @@ class HelpOverwrite(commands.HelpCommand):
 				key=lambda item: item["name"],
 			)
 			channel = self.get_destination()
-			view = HelpView(entries=entries)
+			view = HelpView(entries, self.context.bot)
 			await channel.send(view=view)
 		except Exception as e:
 			print(f"ERROR: send_bot_help | {e}")
