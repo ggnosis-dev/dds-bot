@@ -8,7 +8,7 @@ from shared_enums import ShopColour
 from views.shop_view import RagsShopView
 
 
-class RagsShop(commands.Cog):
+class Shop(commands.Cog):
 	"""Cog for the Rags Shop where players can spend Rags to buy items."""
 
 	def __init__(self, bot):
@@ -49,4 +49,4 @@ class RagsShop(commands.Cog):
 
 
 async def setup(bot: commands.Bot) -> None:
-	await bot.add_cog(RagsShop(bot))
+	await bot.add_cog(Shop(bot))

@@ -52,7 +52,7 @@ class HelpView(BaseLayoutView[dict]):
 				view.expanded_cog = self.entry["name"]
 
 			view.refresh()
-			print(f"The cog that is expanded is: {view.expanded_cog}")
+			# print(f"The cog that is expanded is: {view.expanded_cog}")
 			await interaction.response.edit_message(view=view)
 
 	def refresh(self) -> None:

@@ -15,7 +15,7 @@ from views.common_view import ConfirmationView, MessageView
 from views.table_view import PartyView
 
 
-class Party(commands.Cog):
+class PartyCommands(commands.Cog):
 	"""Cog for viewing and managing player parties."""
 
 	def __init__(self, bot: commands.Bot):
@@ -223,10 +223,10 @@ class LeaderCommands(commands.Cog):
 		await ctx.send(view=view)
 
 
-class Collection(Party, LeaderCommands):
+class Party(PartyCommands, LeaderCommands):
 	def __init__(self, bot):
 		self.bot = bot
 
 
 async def setup(bot: commands.Bot) -> None:
-	await bot.add_cog(Collection(bot))
+	await bot.add_cog(Party(bot))

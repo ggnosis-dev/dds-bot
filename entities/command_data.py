@@ -26,14 +26,13 @@ def command_kwargs(command_type: dict[str, CommandData], key: str):
 
 
 COG_DESCRIPTIONS = {
-	"Collection": "Commands for your currently owned demons.",
+	"Party": "Commands for the demons currently in your party",
 	"Compendium": "Commands for viewing your registered demon collection",
 	"Encounters": "Commands for encountering demons",
 	"Fusion": "Commands to fuse two or more demons together",
-	"Gems": "Commands for the gem currency",
-	"Items": "Commands for the player's items",
+	"Items": "Commands for the player's gems and item collections",
 	"ServerCompendium": "Commands for viewing the server's registered demon collection",
-	"RagsShop": "Commands for using the Rag's Jewelrey Shop",
+	"Shop": "Commands for using the Rag's Jewelrey Shop",
 	"Utility": "Commands for miscellaneous checks and tools",
 }
 
