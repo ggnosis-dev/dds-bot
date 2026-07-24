@@ -1,6 +1,8 @@
 import asyncio
 import time
 
+import discord
+
 from discord.ext import commands
 
 from entities.command_data import UTILITY_COMMANDS, command_kwargs
@@ -8,7 +10,7 @@ from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW_HOURS
 from helpers import checks, gets
 from helpers.costs import daily_mag
 from helpers.encounter_utils import get_current_encounter_window
-from queries import currency_queries, player_queries, server_level_queries
+from queries import currency_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
 
 
@@ -109,6 +111,37 @@ class Utility(commands.Cog):
 
 		view = MessageView(f"Added {amount} MAG.\n\nTotal MAG: **{mag}**")
 		await ctx.send(view=view)
+
+	@checks.is_admin()
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "set_channel"))
+	async def set_channel_command(self, ctx: commands.Context, channel: discord.TextChannel | int | None):
+		"""Set the dedicated channel for encounters."""
+
+		server_id = gets.get_server(ctx).id
+
+		if channel is None:
+			channel_id = await server_queries.get_dedicated_channel(server_id)
+
+			view = (
+				MessageView(
+					f"Encounters will only appear in <#{channel_id}>."
+					" You can update this by using `>set_channel {channel_name}`."
+				)
+				if channel_id
+				else MessageView(
+					"Encounters can appear anywhere. Use `>set_channel {channel_name}` to set a dedicated channel."
+				)
+			)
+			await ctx.send(view=view)
+			return
+
+		# We only want the ID.
+		channel_id = channel.id if isinstance(channel, discord.TextChannel) else channel
+		success = await server_queries.set_dedicated_channel(server_id, channel_id)
+
+		if success:
+			view = MessageView(f"Encounters will now only appear in <#{channel_id}>")
+			await ctx.send(view=view)
 
 
 async def setup(bot: commands.Bot) -> None:

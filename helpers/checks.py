@@ -1,6 +1,7 @@
 from discord.ext import commands
 
-from queries import player_queries
+from helpers import gets
+from queries import player_queries, server_queries
 
 
 class IsDeveloperCheck(commands.CheckFailure):
@@ -21,6 +22,12 @@ class ProfileSetupCheck(commands.CheckFailure):
 	pass
 
 
+class NotInSetChannel(commands.CheckFailure):
+	"""Custom exception for failed in set dedicated channel check."""
+
+	pass
+
+
 def is_developer():
 	def predicate(ctx: commands.Context):
 		return ctx.author.id == 233142721819312128
@@ -36,6 +43,22 @@ def in_server():
 	def predicate(ctx: commands.Context):
 		if ctx.guild is None:
 			raise NotInServerCheck("Now how exactly did the bot get here?")
+
+		return True
+
+	return commands.check(predicate)
+
+
+def in_set_channel():
+	async def predicate(ctx: commands.Context):
+		s_id = gets.get_server(ctx).id
+		set_channel_id = await server_queries.get_dedicated_channel(s_id)
+
+		# When set channel ID is -1, we don't have a set channel.
+		if set_channel_id != ctx.channel.id and set_channel_id is not None:
+			raise NotInSetChannel(
+				f"Command RESTRICTED to <#{set_channel_id}>. Get an admin to use `>set_channel` to allow it elsewhere."
+			)
 
 		return True
 

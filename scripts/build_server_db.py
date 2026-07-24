@@ -11,17 +11,18 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS servers (
-			server_id		INTEGER PRIMARY KEY,
-			player_count	INTEGER DEFAULT 1,
-			server_level	INTEGER DEFAULT 1,
-			server_level_xp INTEGER DEFAULT 0,
+			server_id			INTEGER PRIMARY KEY,
+			player_count		INTEGER DEFAULT 1,
+			dedicated_channel	INTEGER,
+			server_level		INTEGER DEFAULT 1,
+			server_level_xp 	INTEGER DEFAULT 0,
 			-- Rank cap is upper bound of what a player can spawn.
-			rank_cap		INTEGER DEFAULT 5,
+			rank_cap			INTEGER DEFAULT 5,
 
-			law_level		INTEGER DEFAULT 1,
-			law_rank_cap	INTEGER DEFAULT 5,
-			chaos_level		INTEGER DEFAULT 1,
-			chaos_rank_cap	INTEGER DEFAULT 5
+			law_level			INTEGER DEFAULT 1,
+			law_rank_cap		INTEGER DEFAULT 5,
+			chaos_level			INTEGER DEFAULT 1,
+			chaos_rank_cap		INTEGER DEFAULT 5
 		)
 	""")
 

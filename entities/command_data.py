@@ -242,6 +242,11 @@ UTILITY_COMMANDS = {
 		help="-# **Developer Only**. Give MAG to self.",
 		usage=">give_mag | gm {number}",
 	),
+	"set_channel": CommandData(
+		name="set_channel",
+		help="-# Set the dedicated channel for encounters.",
+		usage=">set_channel {channel_id}",
+	),
 	"stuff": CommandData(
 		name="stuff",
 		aliases=["st"],
