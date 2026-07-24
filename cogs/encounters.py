@@ -52,12 +52,8 @@ class Encounters(commands.Cog):
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		player_data = await player_queries.get_player(player_id, server_id)
-		dedicated_channel = await server_queries.get_dedicated_channel(server_id)
-
-		if dedicated_channel is not None:
-			send_to_channel = cast(discord.TextChannel, self.bot.get_channel(dedicated_channel))
-		else:
-			send_to_channel = cast(discord.TextChannel, ctx.channel)
+		set_channel = await server_queries.get_dedicated_channel(server_id)
+		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(set_channel) if set_channel else ctx.channel)
 
 		if player_data is None:
 			await self._start_tutorial_encounter(send_to_channel, player_id, server_id, ctx.author.name)

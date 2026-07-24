@@ -8,7 +8,7 @@ from entities.command_data import GEMS_COMMANDS, ITEMS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
 from entities.view_data import Columns
 from helpers import checks, gets
-from queries import demon_queries, gem_queries, item_queries, player_demons_queries
+from queries import demon_queries, gem_queries, item_queries, player_demons_queries, server_queries
 from shared_enums import DemonRegistration
 from views.common_view import MessageView
 from views.table_view import GemCollectionView, InventoryView
@@ -131,7 +131,11 @@ class GemCommands(commands.Cog):
 					d.design_data.profile_url,
 					d.design_data.colour,
 				)
-				await message.channel.send(view=view)
+
+				set_channel = await server_queries.get_dedicated_channel(server_id)
+				send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
+
+				await send_to_channel.send(view=view)
 		except Exception as e:
 			print(f"ERROR: gems.py | on_message | {e}")
 

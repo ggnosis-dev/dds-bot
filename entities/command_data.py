@@ -244,7 +244,7 @@ UTILITY_COMMANDS = {
 	),
 	"set_channel": CommandData(
 		name="set_channel",
-		help="-# Set the dedicated channel for encounters.",
+		help="-# Set the dedicated channel for encounters and alerts.",
 		usage=">set_channel {channel_id}",
 	),
 	"stuff": CommandData(
