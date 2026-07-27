@@ -16,10 +16,8 @@ class CheckHandler(commands.Cog):
 			case checks.IsDeveloperCheck():
 				# Fail silently.
 				pass
-			case checks.NotInServerCheck():
-				await ctx.reply(str(error), mention_author=False)
-			case checks.ProfileSetupCheck():
-				await ctx.reply(str(error), mention_author=False)
+			case checks.NotInServerCheck() | checks.ProfileSetupCheck() | checks.NotInSetChannel():
+				await ctx.reply(str(error), mention_author=True)
 
 
 async def setup(bot: commands.Bot) -> None:

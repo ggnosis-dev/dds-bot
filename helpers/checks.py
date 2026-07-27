@@ -57,7 +57,7 @@ def in_set_channel():
 		# When set channel ID is -1, we don't have a set channel.
 		if set_channel_id != ctx.channel.id and set_channel_id is not None:
 			raise NotInSetChannel(
-				f"Command RESTRICTED to <#{set_channel_id}>. Get an admin to use `>set_channel` to allow it elsewhere."
+				f"Command restricted to <#{set_channel_id}>. Get an admin to use `>set_channel` to allow it elsewhere."
 			)
 
 		return True
@@ -72,7 +72,7 @@ def has_profile():
 
 		has_profile = player_queries.check_player_exists(ctx.author.id, ctx.guild.id)
 		if not has_profile:
-			raise ProfileSetupCheck("You don't have a profile set up yet! Use `>start` to begin.")
+			raise ProfileSetupCheck("You don't have a profile set up yet! Use `>encounter` to get you set up!")
 
 		return True
 
