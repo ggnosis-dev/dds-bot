@@ -8,21 +8,21 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor.execute("DROP TABLE IF EXISTS factions")
 	cursor.execute("DROP TABLE IF EXISTS faction_unlocks")
 
-	cursor.execute("""
-		CREATE TABLE IF NOT EXISTS factions (
-			server_id			INTEGER NOT NULL,
-			-- faction_id also helps determine the alignment type.
-			faction_id			INTEGER NOT NULL,
-			name				TEXT NOT NULL,
-			member_count		INTEGER DEFAULT 0,
-			level				INTEGER DEFAULT 1,
-			level_xp			INTEGER DEFAULT 0,
-			rank_cap			INTEGER DEFAULT 10,
-			PRIMARY KEY (server_id, faction_id),
-			-- Names in servers should be unique.
-			UNIQUE (server_id, name)
-		)
-	""")
+	# cursor.execute("""
+	# 	CREATE TABLE IF NOT EXISTS factions (
+	# 		server_id			INTEGER NOT NULL,
+	# 		-- faction_id also helps determine the alignment type.
+	# 		faction_id			INTEGER NOT NULL,
+	# 		name				TEXT NOT NULL,
+	# 		member_count		INTEGER DEFAULT 0,
+	# 		level				INTEGER DEFAULT 1,
+	# 		level_xp			INTEGER DEFAULT 0,
+	# 		rank_cap			INTEGER DEFAULT 10,
+	# 		PRIMARY KEY (server_id, faction_id),
+	# 		-- Names in servers should be unique.
+	# 		UNIQUE (server_id, name)
+	# 	)
+	# """)
 
 	# cursor.execute("""
 	# 	CREATE TABLE IF NOT EXISTS faction_unlocks (

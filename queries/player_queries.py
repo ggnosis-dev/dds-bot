@@ -88,7 +88,7 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 	if response is None:
 		return None
 
-	player_id, server_id, selected_demon_id, mag, p_size, p_cap, p_av, d_timer, e_timer, faction_id = response
+	player_id, server_id, selected_demon_id, mag, p_size, p_cap, p_av, d_timer, e_timer = response
 
 	return PlayerData(
 		player_id=player_id,
@@ -98,7 +98,6 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 		party_stats=PartyStats(size=p_size, cap=p_cap, average=p_av),
 		daily_timer=d_timer,
 		encounter_timer=e_timer,
-		faction_id=faction_id,
 	)
 
 
