@@ -106,7 +106,11 @@ class Encounters(commands.Cog):
 		view.message = sent
 
 	async def _start_tutorial_encounter(
-		self, send_to_channel: discord.TextChannel, player_id: int, server_id: int, player_name: str
+		self,
+		send_to_channel: discord.TextChannel,
+		player_id: int,
+		server_id: int,
+		player_name: str,
 	) -> None:
 		"""Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial."""
 

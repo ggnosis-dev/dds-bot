@@ -23,7 +23,6 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			party_average_rank	INTEGER DEFAULT 0,
 			daily_timer			INTEGER DEFAULT 0,
 			encounter_timer		INTEGER DEFAULT 0,
-			faction_id			INTEGER,
 			PRIMARY KEY (player_id, server_id),
 			FOREIGN KEY (selected_demon_id) REFERENCES demons(id),
 			UNIQUE (player_id, server_id)

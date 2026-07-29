@@ -2,9 +2,12 @@ from entities.server_data import LEVEL_REWARDS, LevelReward, LevelUpData, Server
 from helpers.db import query_one, query_write
 from shared_enums import LevelRewardType
 
-XP_START = 5
-XP_END = 150
-MAX_LEVEL = 10
+# XP_START = 5
+# XP_END = 150
+# MAX_LEVEL = 10
+
+XP_END = 10000
+MAX_LEVEL = 120
 
 
 # https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
@@ -118,7 +121,9 @@ async def _do_server_level_update(server_id: int, old_level: int, new_level: int
 	for level in levels_to_update:
 		# Use level 2 as default. This will do a standard rank cap increase.
 		reward = LEVEL_REWARDS.get(level, LEVEL_REWARDS[2])
+
 		# print(f"DEBUG: Applying rank ({level}) reward to server: {server_id} | Reward is: {reward.r_type}.")
+
 		await _apply_reward(server_id, reward, leveled_up)
 		new_rewards.append(reward)
 
