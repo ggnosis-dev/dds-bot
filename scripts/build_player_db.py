@@ -40,6 +40,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 				DEFAULT 0
 				CHECK (on_loan IN (0, 1)),
 			gem_meter		INTEGER DEFAULT 0,
+			-- The same player ID could be on a different server ID with the same demon ID.
 			PRIMARY KEY (player_id, server_id, demon_id)
 			FOREIGN KEY (demon_id) REFERENCES demons (id)
 		)
