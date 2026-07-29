@@ -14,8 +14,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS players (
-			player_id 			INTEGER,
-			server_id 			INTEGER,
+			player_id 			INTEGER NOT NULL,
+			server_id 			INTEGER NOT NULL,
 			selected_demon_id	INTEGER DEFAULT 1,
 			mag 				INTEGER DEFAULT 0,
 			party_size			INTEGER DEFAULT 0,
@@ -23,6 +23,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			party_average_rank	INTEGER DEFAULT 0,
 			daily_timer			INTEGER DEFAULT 0,
 			encounter_timer		INTEGER DEFAULT 0,
+			faction_id			INTEGER,
 			PRIMARY KEY (player_id, server_id),
 			FOREIGN KEY (selected_demon_id) REFERENCES demons(id),
 			UNIQUE (player_id, server_id)
@@ -31,14 +32,12 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS player_demons (
-			player_id 		INTEGER,
-			server_id 		INTEGER,
-			demon_id		INTEGER,
-			stored_rank		INTEGER,
-			in_party		INTEGER CHECK (in_party IN (0, 1)),
-			on_loan			INTEGER
-				DEFAULT 0
-				CHECK (on_loan IN (0, 1)),
+			player_id 		INTEGER NOT NULL,
+			server_id 		INTEGER NOT NULL,
+			demon_id		INTEGER NOT NULL,
+			stored_rank		INTEGER NOT NULL,
+			in_party		INTEGER CHECK (in_party IN (0, 1)) 	NOT NULL,
+			on_loan			INTEGER CHECK (on_loan IN (0, 1)) 	DEFAULT 0,
 			gem_meter		INTEGER DEFAULT 0,
 			-- The same player ID could be on a different server ID with the same demon ID.
 			PRIMARY KEY (player_id, server_id, demon_id)
