@@ -20,3 +20,4 @@ class PlayerData:
 	party_stats: PartyStats
 	daily_timer: int
 	encounter_timer: int
+	faction_id: int
