@@ -24,12 +24,12 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		)
 	""")
 
-	cursor.execute("""
-		CREATE TABLE IF NOT EXISTS faction_unlocks (
-			-- Small relational table to keep track of what has been unlocked.
-			server_id		INTEGER NOT NULL,
-			faction_id		INTEGER NOT NULL,
-			unlock_key		TEXT NOT NULL,
-			PRIMARY KEY (server_id, faction_id, unlock_key)
-		)
-	""")
+	# cursor.execute("""
+	# 	CREATE TABLE IF NOT EXISTS faction_unlocks (
+	# 		-- Small relational table to keep track of what has been unlocked.
+	# 		server_id		INTEGER NOT NULL,
+	# 		faction_id		INTEGER NOT NULL,
+	# 		unlock_key		TEXT NOT NULL,
+	# 		PRIMARY KEY (server_id, faction_id, unlock_key)
+	# 	)
+	# """)
