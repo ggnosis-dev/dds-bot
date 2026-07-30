@@ -33,5 +33,6 @@ LEVEL_REWARDS: dict[int, LevelReward] = {
 	5: LevelReward(LevelRewardType.SP_FUSION_KEY, "sp_high_pixie", "Special Fusion for Fairy High Pixie Unlocked"),
 	8: LevelReward(LevelRewardType.SP_FUSION_KEY, "sp_king_frost", "Special Fusion for Tyrant King Frost Unlocked"),
 	# 10: LevelReward(LevelRewardType.KEY, "faction_unlock", "Alignments and Factions Unlocked"),
-	45: LevelReward(LevelRewardType.SP_FUSION_KEY, "sp_morrigan", "Special Fusion for Flight Morrigan Unlocked"),
+	75: LevelReward(LevelRewardType.SP_FUSION_KEY, "sp_old_one", "Special Fusion for Foul Old One Unlocked"),
+	80: LevelReward(LevelRewardType.SP_FUSION_KEY, "sp_loki", "Special Fusion for Tyrant Loki Unlocked"),
 }

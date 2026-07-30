@@ -89,3 +89,4 @@ class Tone(Enum):
 	POMPOUS = 9
 	OLD = 10
 	BEAST = 11
+	WISE = 12
