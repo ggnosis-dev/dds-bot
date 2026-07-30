@@ -40,13 +40,20 @@ def load_questions_answers():
 			all_answers.append((talk_id, label))
 
 			for r in a["reactions"]:
-				new_reaction = (
-					answer_id_counter,
-					Personality[r["personality"]].value,
-					ResponseType[r["type"]].value,
-					r["response"],
-				)
-				all_reactions.append(new_reaction)
+				# Let's us do an array if we ever want questions to have the same responses.
+				personalities = r["personality"]
+
+				if isinstance(personalities, str):
+					personalities = [personalities]
+
+				for p in personalities:
+					new_reaction = (
+						answer_id_counter,
+						Personality[p].value,
+						ResponseType[r["type"]].value,
+						r["response"],
+					)
+					all_reactions.append(new_reaction)
 
 	return all_questions, all_answers, all_reactions, all_question_tones
 
