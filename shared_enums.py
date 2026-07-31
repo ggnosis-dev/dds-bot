@@ -90,3 +90,4 @@ class Tone(Enum):
 	OLD = 10
 	BEAST = 11
 	WISE = 12
+	DIVINE = 13
