@@ -9,6 +9,9 @@ from queries import talk_queries
 from shared_enums import DemonRegistration, Emotes, ResponseType
 from views.common_view import MessageView
 
+# 5 minute timeout.
+ENCOUNTER_TIMEOUT = 5 * 60
+
 
 class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	"""
@@ -34,7 +37,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			tutorial (bool, optional): Whether this encounter is a tutorial encounter, which has
 				different flee logic. Defaults to False.
 		"""
-		super().__init__()
+		super().__init__(timeout=ENCOUNTER_TIMEOUT)
 
 		self.demon = demon
 		self.consecutive_bad_interactions = consecutive_bad_interactions
