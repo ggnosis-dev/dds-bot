@@ -1,10 +1,10 @@
-from random import random
+import random
 
 import discord
 
 from entities.demon_data import DemonData
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
-from queries import player_demons_queries
+from queries import player_demons_queries, server_queries
 from queries.currency_queries import update_mag
 from queries.gem_queries import add_gem
 from shared_enums import DemonRegistration
@@ -106,7 +106,18 @@ def _gems_for_rank(rank: int) -> int:
 	probability = 0.5
 
 	for _ in range(max_extra_gems):
-		if random() < probability:
+		if random.random() < probability:
 			total += 1
 
 	return total
+
+
+async def get_count_for_encounters(server_id: int) -> int:
+	player_count = await server_queries.get_player_count(server_id)
+
+	if player_count > 10:
+		demon_count = random.randint(2, 5)
+	else:
+		demon_count = random.randint(1, max(3, player_count // 2))
+
+	return demon_count

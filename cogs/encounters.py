@@ -1,5 +1,4 @@
 import asyncio
-import random
 import time
 
 from typing import cast
@@ -76,9 +75,12 @@ class Encounters(commands.Cog):
 
 		# If encounter is available, calculate rank of demon then select a random one from it.
 		average_rank = player_data.party_stats.average
-		server_cap = await server_level_queries.get_rank_cap(server_id)
+
+		count, server_cap = await asyncio.gather(
+			encounter_utils.get_count_for_encounters(server_id),
+			server_level_queries.get_rank_cap(server_id),
+		)
 		demon = await demon_queries.get_demon_by_distribution(average_rank, server_cap)
-		count = random.randint(1, 3)
 
 		# Start the encounter.
 		await asyncio.gather(
