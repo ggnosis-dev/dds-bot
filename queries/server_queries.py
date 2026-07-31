@@ -25,3 +25,15 @@ async def get_dedicated_channel(server_id: int) -> int | None:
 	)
 
 	return channel_id[0] if channel_id else None
+
+
+async def get_player_count(server_id: int) -> int:
+	response = query_one(
+		"""
+			SELECT player_count FROM servers
+			WHERE server_id = ?
+		""",
+		(server_id,),
+	)
+
+	return response[0] if response else 0
