@@ -139,6 +139,7 @@ class GemCommands(commands.Cog):
 		except Exception as e:
 			print(f"ERROR: gems.py | on_message | {e}")
 
+	@checks.has_profile()
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gem_collection_command(self, ctx: commands.Context) -> None:
 		"""View player's current gem collection."""
