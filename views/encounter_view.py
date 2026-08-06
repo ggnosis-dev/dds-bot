@@ -4,7 +4,7 @@ import discord
 
 from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
-from helpers.encounter_utils import join_player_party
+from helpers.encounter_utils import format_dialogue, join_player_party
 from queries import talk_queries
 from shared_enums import DemonRegistration, Emotes, ResponseType
 from views.common_view import MessageView
@@ -50,7 +50,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		self.parent_view: EncounterViewTemplate | None = None
 
 	@abstractmethod
-	def _build_layout(self, message: str, dialogue_options: tuple[AnswerData, ...]) -> None:
+	def _build_layout(self, question: str, dialogue_options: tuple[AnswerData, ...]) -> None:
 		"""Override in subclasses to build the layout of the encounter."""
 		pass
 
@@ -248,11 +248,10 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			await interaction.response.edit_message(view=parent_view)
 
 		# Send a final message to the user.
-		race = self.demon.race.upper()
-		name = self.demon.name.upper()
+		response = format_dialogue(response, self.demon)
 
 		msg = MessageView(
-			f"-# **{race} {name}**:\n-# {response}\n\n`{status_message}`",
+			f"{response}\n\n`{status_message}`",
 			self.demon.design_data.image_url,
 			self.demon.design_data.colour,
 		)
@@ -294,7 +293,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 		self._build_layout(self.talk_data.question, self.talk_data.answers)
 
-	def _build_layout(self, message: str, dialogue_options: tuple[AnswerData, ...]) -> None:
+	def _build_layout(self, question: str, dialogue_options: tuple[AnswerData, ...]) -> None:
 		"""
 		Function to build the view layout for the initial encounter. Creates icons, status display, and dialogue option
 		buttons.
@@ -308,8 +307,11 @@ class EncounterViewInitial(EncounterViewTemplate):
 			ui = discord.ui
 			container = ui.Container(accent_color=self.demon.design_data.colour)
 
+			# Format text.
+			question = format_dialogue(question, self.demon)
+
 			container.add_item(self.icon_display)
-			container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n-# {message}\n"))
+			container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n{question}\n"))
 			container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 			self._build_option_buttons(container, dialogue_options)
@@ -415,7 +417,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 
 		self._build_layout(self.talk_data.question, self.talk_data.answers)
 
-	def _build_layout(self, message: str, dialogue_options: tuple[AnswerData, ...]) -> None:
+	def _build_layout(self, question: str, dialogue_options: tuple[AnswerData, ...]) -> None:
 		"""
 		Function to build the view layout for the followup encounter.
 
@@ -427,11 +429,11 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		ui = discord.ui
 		container = ui.Container(accent_color=self.demon.design_data.colour)
 
-		race = self.demon.race.upper()
-		name = self.demon.name.upper()
+		question = format_dialogue(question, self.demon)
+		response = format_dialogue(self.response, self.demon)
 
 		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.design_data.image_url))
-		section.add_item(ui.TextDisplay(f"-# **{race} {name}:**\n-# {self.response}\n\n-# {message}"))
+		section.add_item(ui.TextDisplay(f"{response}\n\n{question}"))
 
 		container.add_item(section)
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
