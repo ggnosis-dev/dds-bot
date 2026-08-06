@@ -84,10 +84,9 @@ class Tone(Enum):
 	BRUTE = 4
 	FATALE = 5
 	PEPPY = 6
-	NOBLE = 7
-	MONSTER = 8
-	POMPOUS = 9
-	OLD = 10
-	BEAST = 11
-	WISE = 12
-	DIVINE = 13
+	MONSTER = 7
+	POMPOUS = 8
+	OLD = 9
+	BEAST = 10
+	WISE = 11
+	DIVINE = 12
