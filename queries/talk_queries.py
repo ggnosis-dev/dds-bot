@@ -5,7 +5,7 @@ from helpers.db import query_all, query_one
 from shared_enums import Personality, ResponseType
 
 
-def get_talk_dialogue(tone_index: int, personality_index: int):
+def get_talk_dialogue(tone_index: int, personality_index: int) -> TalkData:
 	"""Get a randomly selected question, answers and reactions based on the demon's tone and personality."""
 
 	# Get a randomly selected question.
