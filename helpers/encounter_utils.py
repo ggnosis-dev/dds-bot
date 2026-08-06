@@ -121,3 +121,17 @@ async def get_count_for_encounters(server_id: int) -> int:
 		demon_count = random.randint(1, max(3, player_count // 2))
 
 	return demon_count
+
+
+def format_dialogue(message: str, demon_data: DemonData):
+	if not message.startswith("[p]"):
+		message = "-# **[name]**:\n-# " + message
+	else:
+		message.replace("[p]", "", 1)
+
+	message = message.replace("[p]", "\n\n")
+	message = message.replace("[d]", "\n\n-# **[name]**:\n-# ")
+	message = message.replace("[race]", f"{demon_data.race.upper()}")
+	message = message.replace("[name]", f"{demon_data.name.upper()}")
+
+	return message
