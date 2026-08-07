@@ -135,14 +135,36 @@ class Fusion(commands.Cog):
 
 		# If the demon doesn't exist at all.
 		if not demon_1 or not demon_2:
-			view = MessageView("The name(s) entered for fusion could not be found. Check their spellings again.")
+			view = MessageView(
+				"The demons entered for fusion could not be found. You may be yet to register them to your Compendium."
+			)
 			await ctx.send(view=view)
 			return
 
 		# Check if in party.
-		for i in demon_1.id, demon_2.id:
-			if await player_demons_queries.check_demon_registration(player.id, server.id, i) != DemonRegistration.IN_PARTY:
-				await ctx.send(f"{i} not in party")
+		for d in demon_1, demon_2:
+			registration_status = await player_demons_queries.check_demon_registration(player.id, server.id, d.id)
+
+			if registration_status == DemonRegistration.UNREGISTERED:
+				view = MessageView(
+					"The demons entered for fusion could not be found. You may be yet to register them to your Compendium."
+				)
+				await ctx.send(view=view)
+				return
+
+			elif registration_status != DemonRegistration.IN_PARTY:
+				view = MessageView(f"The demon {d.name} is not in your party.")
+				await ctx.send(view=view)
+				return
+
+			leader_id = await player_demons_queries.get_selected_demon_id(player.id, server.id)
+
+			if d.id == leader_id:
+				view = MessageView(
+					f"The demon {d.name} is currently set as leader."
+					" Use `>select {{demon}}` to change your leader before fusing."
+				)
+				await ctx.send(view=view)
 				return
 
 		# Do a different process if fusing with an Element demon.
