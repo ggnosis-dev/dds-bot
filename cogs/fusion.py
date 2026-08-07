@@ -123,7 +123,8 @@ class Fusion(commands.Cog):
 		parts: list[str] | None = None,
 	):
 		if not parts or len(parts) <= 1:
-			await ctx.send("Select the demons you wish to fuse by using `>fuse {demon 1}; {demon 2}`.")
+			view = MessageView("Select the demons you wish to fuse by using `>fuse {demon 1}; {demon 2}`.")
+			await ctx.send(view=view)
 			return
 
 		name_1 = parts[0].strip().title()
@@ -132,8 +133,10 @@ class Fusion(commands.Cog):
 		demon_1 = demon_queries.get_demon_by_name(name_1)
 		demon_2 = demon_queries.get_demon_by_name(name_2)
 
+		# If the demon doesn't exist at all.
 		if not demon_1 or not demon_2:
-			await ctx.send("Bad name")
+			view = MessageView("The name(s) entered for fusion could not be found. Check their spellings again.")
+			await ctx.send(view=view)
 			return
 
 		# Check if in party.

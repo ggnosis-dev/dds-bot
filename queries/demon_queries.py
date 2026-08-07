@@ -33,9 +33,9 @@ def get_demon_id_by_name(demon_name: str) -> int | None:
 			WHERE LOWER(name) = LOWER(?)
 		""",
 		(demon_name,),
-	)[0]
+	)
 
-	return response if response else None
+	return response[0] if response else None
 
 
 def get_demon_by_name(demon_name: str) -> DemonData | None:
