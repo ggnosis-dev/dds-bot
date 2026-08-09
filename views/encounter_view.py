@@ -21,6 +21,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	def __init__(
 		self,
 		demon: DemonData,
+		count: int = 1,
 		consecutive_bad_interactions: int = 0,
 		message: discord.Message | None = None,
 		tutorial: bool = False,
@@ -43,6 +44,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		self.consecutive_bad_interactions = consecutive_bad_interactions
 		self.message = message
 		self.tutorial = tutorial
+		self.count = count
 
 		self.talk_data = talk_queries.get_talk_dialogue(demon.tone_type.value, demon.personality_type.value)
 
@@ -127,17 +129,17 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction, r_text)
 				case ResponseType.NEUTRAL:
-					bad_count = self.consecutive_bad_interactions + 1
+					self.consecutive_bad_interactions += 1
 
-					if bad_count >= 3 and not self.tutorial:
+					if self.consecutive_bad_interactions >= 3 and not self.tutorial:
 						await self._encounter_flee(interaction, r_text)
 					else:
 						await self._encounter_followup(interaction, r_text)
 				case ResponseType.BAD:
 					# Send followup message with new options.
-					bad_count = self.consecutive_bad_interactions + 2
+					self.consecutive_bad_interactions += 2
 
-					if bad_count >= 3 and not self.tutorial:
+					if self.consecutive_bad_interactions >= 3 and not self.tutorial:
 						await self._encounter_flee(interaction, r_text)
 					else:
 						await self._encounter_followup(interaction, r_text)
@@ -190,21 +192,31 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 	async def _encounter_followup(self, interaction: discord.Interaction, response: str) -> None:
 		"""
-		Handler for when encounter needs a followup. This happens on neutral responses, and on bad
-		responses that haven't hit the flee threshold. Creates a new ephemeral message with new
-		dialogue options.
+		Handler for when encounter needs a followup. This happens on neutral and on bad responses that haven't hit the flee
+		threshold. Creates a new ephemeral message with new dialogue options.
 
 		Args:
 		    interaction (discord.Interaction): The Discord interaction object from the button press.
+			response (str): The final outcome message of the previous interaction to send to the player.
 		"""
+
 		# For followup encounters, keep track of the parent view.
 		parent_view = self._root_view
+
+		# All demons available have been interacted with.
+		if self.count == 0:
+			missed_encounter_view = MessageView(
+				"All of the available demons have left...",
+				colour=self.demon.design_data.colour,
+			)
+			await interaction.followup.send(view=missed_encounter_view, ephemeral=True)
+			return
 
 		followup_view = EncounterViewFollowup(
 			self.demon,
 			parent_view,
 			response,
-			consecutive_bad=self.consecutive_bad_interactions + 1,
+			consecutive_bad=self.consecutive_bad_interactions,
 			tutorial=self.tutorial,
 		)
 
@@ -281,9 +293,8 @@ class EncounterViewInitial(EncounterViewTemplate):
 		    user_exclusive_to (int | None, optional): If set, only this user ID can interact with the encounter.
 		    tutorial (bool, optional): If set to True, the encounter can't be failed. Defaults to False.
 		"""
-		super().__init__(demon, tutorial=tutorial)
+		super().__init__(demon, count, tutorial=tutorial)
 
-		self.count = count
 		self.user_exclusive_to = user_exclusive_to
 		self.parent_view = self
 
@@ -303,28 +314,26 @@ class EncounterViewInitial(EncounterViewTemplate):
 		    dialogue_options (list[dict]): List of dialogue options, where key is the button 'label' and value is
 				'response' that maps Personality types to ResponseType.
 		"""
-		try:
-			ui = discord.ui
-			container = ui.Container(accent_color=self.demon.design_data.colour)
 
-			# Format text.
-			question = format_dialogue(question, self.demon)
+		ui = discord.ui
+		container = ui.Container(accent_color=self.demon.design_data.colour)
 
-			container.add_item(self.icon_display)
-			container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n{question}\n"))
-			container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+		# Format text.
+		question = format_dialogue(question, self.demon)
 
-			self._build_option_buttons(container, dialogue_options)
+		container.add_item(self.icon_display)
+		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n{question}\n"))
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-			container.add_item(ui.MediaGallery().add_item(media=self.demon.design_data.image_url))
+		self._build_option_buttons(container, dialogue_options)
 
-			container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
-			self.status_display = ui.TextDisplay("-# *What will you do?*")
-			container.add_item(self.status_display)
+		container.add_item(ui.MediaGallery().add_item(media=self.demon.design_data.image_url))
 
-			self.add_item(container)
-		except Exception as e:
-			print(e)
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
+		self.status_display = ui.TextDisplay("-# *What will you do?*")
+		container.add_item(self.status_display)
+
+		self.add_item(container)
 
 	# TODO: Shouldn't this just be the default?
 	def _make_dialogue_callback(self, reaction_data: ReactionData):
@@ -394,7 +403,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		demon: DemonData,
 		parent_view: EncounterViewTemplate,
 		response: str,
-		consecutive_bad: int = 0,
+		consecutive_bad: int,
 		tutorial=False,
 	):
 		"""
@@ -404,12 +413,12 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		    demon (DemonData): The encounter's demon information.
 		    parent_view (EncounterViewTemplate): Parent view that spawned this followup, used for updating status and
 				icon count on the original message.
-		    consecutive_bad (int, optional): Number of consecutive bad interactions that have occurred in the encounter
+		    consecutive_bad (int): Number of consecutive bad interactions that have occurred in the encounter
 				so far, used for flee logic. Defaults to 0.
 		    tutorial (bool, optional): Whether this encounter is a tutorial encounter, which prevents encounter from
 				fleeing. Defaults to False.
 		"""
-		super().__init__(demon, consecutive_bad, tutorial=tutorial)
+		super().__init__(demon, consecutive_bad_interactions=consecutive_bad, tutorial=tutorial)
 
 		self.response = response
 		self.parent_view = parent_view
