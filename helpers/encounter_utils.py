@@ -6,7 +6,7 @@ from entities.demon_data import DemonData
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from queries import player_demons_queries, server_queries
 from queries.currency_queries import update_mag
-from queries.gem_queries import add_gem
+from queries.gem_queries import add_gem, get_possible_gems
 from shared_enums import DemonRegistration
 
 
@@ -133,5 +133,9 @@ def format_dialogue(message: str, demon_data: DemonData) -> str:
 	message = message.replace("[d]", "\n\n-# **[name]**:\n-# ")
 	message = message.replace("[race]", f"{demon_data.race.upper()}")
 	message = message.replace("[name]", f"{demon_data.name.upper()}")
+
+	if "[gem]" in message:
+		gems = get_possible_gems(demon_data.race)
+		message = message.replace("[gem]", f"{gems[0]}")
 
 	return message
