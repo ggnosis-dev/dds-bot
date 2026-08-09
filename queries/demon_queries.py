@@ -3,6 +3,8 @@ from numpy.random import triangular
 from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
 
+FUSION_DIFF_CAP = 5
+
 
 def get_demon_by_id(demon_id: int) -> DemonData | None:
 	"""
@@ -21,7 +23,6 @@ def get_demon_by_id(demon_id: int) -> DemonData | None:
 		""",
 		(demon_id,),
 	)
-	print(row)
 
 	return convert_row_to_demon_data(row) if row else None
 
@@ -164,7 +165,10 @@ def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
 	d_id = query_one(
 		"""
 			SELECT id FROM demons
-			WHERE race = ? AND prevent_spawn IS NOT TRUE
+			WHERE race = ?
+				AND prevent_spawn IS NOT TRUE
+				-- Prevent fusing a demon that is considerably higher.
+				AND rank <= ? + ?
 			ORDER BY
 				-- Order by absolute rank minus the passed in rank.
 				ABS(rank - ?),
@@ -172,7 +176,7 @@ def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
 				rank
 			LIMIT 1
 		""",
-		(race, rank),
+		(race, rank, FUSION_DIFF_CAP, rank),
 	)
 
 	return get_demon_by_id(d_id[0]) if d_id else None
