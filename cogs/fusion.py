@@ -188,9 +188,10 @@ class Fusion(commands.Cog):
 		):
 			view = MessageView(
 				(
-					f"**{demon_1.race} {name_1}** + **{demon_2.race} {name_2}** = "
-					f"**{demon_result.race} {demon_result.name}**"
-					f"\n\n{demon_result.name} can already be found in your party..."
+					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
+					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank})"
+					f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
+					f"\n\nBut {demon_result.name} can already be found in your party..."
 				),
 				demon_result.design_data.profile_url,
 				demon_result.design_data.colour,
@@ -201,7 +202,11 @@ class Fusion(commands.Cog):
 		cost = costs.fusion_cost(demon_result.rank)
 
 		view = MessageView(
-			f"**{demon_1.race} {name_1}** + **{demon_2.race} {name_2}** = **{demon_result.race} {demon_result.name}**",
+			(
+				f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
+				f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank})"
+				f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
+			),
 			demon_result.design_data.profile_url,
 			demon_result.design_data.colour,
 		)
