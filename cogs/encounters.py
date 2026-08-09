@@ -40,9 +40,9 @@ class Encounters(commands.Cog):
 				print(f"WARN: Demon {name} was None.")
 				return
 
-			await self._start_encounter(ctx.channel, d, 3)
+			await self._start_encounter(ctx.channel, d, 1)
 		except Exception as e:
-			print(f"ERROR: test_encounter_command | {e}")
+			raise RuntimeError(f"ERROR: encounters.py | test_encounter_command | {e}")
 
 	@checks.in_set_channel()
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "encounter"))
@@ -129,14 +129,16 @@ class Encounters(commands.Cog):
 				demon = demon_queries.get_demon_by_name(tut_demon)
 
 				if demon is None:
-					raise RuntimeError(f"ERROR: start_tutorial_encounter | Demon {tut_demon} was not found in the database.")
+					raise RuntimeError(
+						f"ERROR: _start_tutorial_encounter | Demon {tut_demon} was not found in the database."
+					)
 
 				now = int(time.time())
 				await player_queries.set_encounter_timer(player_id, server_id, now)
 				view = EncounterViewInitial(demon, user_exclusive_to=player_id, tutorial=True)
 				await send_to_channel.send(view=view)
 		except Exception as e:
-			print(e)
+			raise RuntimeError(f"ERROR: encounters.py | _start_tutorial_encounter | {e}")
 
 
 async def setup(bot: commands.Bot) -> None:

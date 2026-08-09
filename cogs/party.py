@@ -53,7 +53,7 @@ class PartyCommands(commands.Cog):
 			await ctx.send(view=view)
 		except Exception as e:
 			print(e)
-			raise RuntimeError(e)
+			raise RuntimeError(f"ERROR: party.py | party_command | {e}")
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "release"))
@@ -110,7 +110,7 @@ class PartyCommands(commands.Cog):
 
 			await self._increase_party_slots_check(ctx, player_data, number)
 		except Exception as e:
-			print(f"party.py | increase_party_command | {e}")
+			raise RuntimeError(f"ERROR: party.py | increase_party_command | {e}")
 
 	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
 		party_cap = p.party_stats.cap
