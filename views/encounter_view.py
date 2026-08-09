@@ -11,6 +11,8 @@ from views.common_view import MessageView
 
 # 5 minute timeout.
 ENCOUNTER_TIMEOUT = 5 * 60
+BAD_COUNT_INCREMENT = {ResponseType.NEUTRAL: 1, ResponseType.BAD: 2}
+FLEE_THRESHOLD = 3
 
 
 class EncounterViewTemplate(discord.ui.LayoutView, ABC):
@@ -128,18 +130,10 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 				case ResponseType.GOOD:
 					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction, r_text)
-				case ResponseType.NEUTRAL:
-					self.consecutive_bad_interactions += 1
+				case ResponseType.NEUTRAL | ResponseType.BAD:
+					self.consecutive_bad_interactions += BAD_COUNT_INCREMENT[r_type]
 
-					if self.consecutive_bad_interactions >= 3 and not self.tutorial:
-						await self._encounter_flee(interaction, r_text)
-					else:
-						await self._encounter_followup(interaction, r_text)
-				case ResponseType.BAD:
-					# Send followup message with new options.
-					self.consecutive_bad_interactions += 2
-
-					if self.consecutive_bad_interactions >= 3 and not self.tutorial:
+					if self.consecutive_bad_interactions >= FLEE_THRESHOLD and not self.tutorial:
 						await self._encounter_flee(interaction, r_text)
 					else:
 						await self._encounter_followup(interaction, r_text)
@@ -335,7 +329,6 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 		self.add_item(container)
 
-	# TODO: Shouldn't this just be the default?
 	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
 		Extension of _make_dialogue_callback from the base view and adds a layer of logic to handle user exclusivity and
