@@ -21,6 +21,7 @@ def get_demon_by_id(demon_id: int) -> DemonData | None:
 		""",
 		(demon_id,),
 	)
+	print(row)
 
 	return convert_row_to_demon_data(row) if row else None
 
@@ -163,7 +164,7 @@ def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
 	d_id = query_one(
 		"""
 			SELECT id FROM demons
-			WHERE race = ?
+			WHERE race = ? AND prevent_spawn IS NOT TRUE
 			ORDER BY
 				-- Order by absolute rank minus the passed in rank.
 				ABS(rank - ?),
@@ -172,9 +173,9 @@ def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
 			LIMIT 1
 		""",
 		(race, rank),
-	)[0]
+	)
 
-	return get_demon_by_id(d_id)
+	return get_demon_by_id(d_id[0]) if d_id else None
 
 
 def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | None:
