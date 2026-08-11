@@ -23,7 +23,7 @@ class Unicode(Enum):
 class Personality(Enum):
 	NONE = 0
 	CHEERFUL = 1
-	SHY = 2
+	CALM = 2
 	AGGRESSIVE = 3
 
 
