@@ -6,8 +6,9 @@ authors = ["ggnosis-dev <ggnosis.var@pm.me>"]
 license = "GPL-3.0"
 
 [tool.poetry.dependencies]
-python = "^3.14"
 discord-py = "^2.7.1"
+python = "^3.14"
+numpy = "^2.5.2"
 python-dotenv = "^1.2.2"
 
 [tool.ruff]
