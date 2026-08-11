@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "dds-bot"
+version = "0.8.0"
+description = ""
+authors = ["ggnosis-dev <ggnosis.var@pm.me>"]
+license = "GPL-3.0"
+
+[tool.poetry.dependencies]
+python = "^3.14"
+discord-py = "^2.7.1"
+python-dotenv = "^1.2.2"
+
+[tool.ruff]
+line-length = 125
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "C4", "UP"]
+ignore = ["E101", "W191"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = false
+lines-between-types = 1
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
