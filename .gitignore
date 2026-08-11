@@ -208,7 +208,6 @@ __marimo__/
 
 # Added
 *.db
-*.toml
 *.DS_Store
 
 databases/
