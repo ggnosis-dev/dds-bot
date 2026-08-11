@@ -5,7 +5,7 @@ WORKDIR /app
 # Install jemalloc and assign it as our memory allocator. Clear the apt cache afterwards.
 RUN apt-get update && apt-get install -y --no-install-recommends libjemalloc2 \
     && rm -rf /var/lib/apt/lists/*
-ENV LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+ENV LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libjemalloc.so.2
 
 # Do not need virtual env as it is already isolated.
 RUN pip install poetry
@@ -15,7 +15,7 @@ RUN poetry config virtualenvs.create false
 COPY pyproject.toml poetry.lock ./
 
 # Do not include dev dependencies like tools or linters.
-RUN poetry install --without dev --no-root 
+RUN poetry install --no-root
 
 # Copy application code into /app.
 COPY . .
