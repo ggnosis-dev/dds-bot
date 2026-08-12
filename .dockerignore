@@ -3,3 +3,8 @@ Dockerfile
 *.log
 .vscode/
 .github/
+
+# These stay local. Primarily for building and assets that we don't want to upload.
+sprites/
+data/
+scripts/
