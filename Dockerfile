@@ -15,7 +15,7 @@ RUN poetry config virtualenvs.create false
 COPY pyproject.toml poetry.lock ./
 
 # Do not include dev dependencies like tools or linters.
-RUN poetry install --no-root
+RUN poetry install --no-root --without dev
 
 # Copy application code into /app.
 COPY . .
