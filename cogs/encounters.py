@@ -54,6 +54,7 @@ class Encounters(commands.Cog):
 		set_channel = await server_queries.get_dedicated_channel(server_id)
 		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(set_channel) if set_channel else ctx.channel)
 
+		# If its the player's first encounter, send the tutorial one instead.
 		if player_data is None:
 			await self._start_tutorial_encounter(send_to_channel, player_id, server_id, ctx.author.name)
 			return
@@ -120,8 +121,9 @@ class Encounters(commands.Cog):
 			if await player_queries.setup_player(player_id, server_id):
 				view = MessageView(
 					f"-# `> {player_name} has been registered to the DDS-Net! Welcome and enjoy your stay!`"
-					"\n\n-# Once you're done with your next encounter, explore the `>party` and `>comp` commands. "
-					"Your first encounter will begin now..."
+					"\n\nOnce you're done with your first encounter, you can try another straight away."
+					" Explore the `>party` and `>comp` commands too."
+					"\n\nYour first encounter will begin now..."
 				)
 				await send_to_channel.send(view=view)
 
@@ -133,8 +135,6 @@ class Encounters(commands.Cog):
 						f"ERROR: _start_tutorial_encounter | Demon {tut_demon} was not found in the database."
 					)
 
-				now = int(time.time())
-				await player_queries.set_encounter_timer(player_id, server_id, now)
 				view = EncounterViewInitial(demon, user_exclusive_to=player_id, tutorial=True)
 				await send_to_channel.send(view=view)
 		except Exception as e:
