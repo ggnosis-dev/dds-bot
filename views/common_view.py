@@ -12,12 +12,12 @@ class MessageView(discord.ui.LayoutView):
 	def __init__(
 		self,
 		message: str,
-		image: str | None = None,
+		thumbnail: str | None = None,
 		colour: int = 0xE93700,
 	):
 		super().__init__()
 		self.message = message
-		self.image = image
+		self.thumbnail = thumbnail
 		self.colour = colour
 		self._build_layout()
 
@@ -25,8 +25,8 @@ class MessageView(discord.ui.LayoutView):
 		ui = discord.ui
 		container = ui.Container(accent_color=self.colour)
 
-		if self.image is not None:
-			section = ui.Section(accessory=ui.Thumbnail(media=self.image))
+		if self.thumbnail is not None:
+			section = ui.Section(accessory=ui.Thumbnail(media=self.thumbnail))
 			section.add_item(ui.TextDisplay(self.message))
 			container.add_item(section)
 		else:
@@ -43,7 +43,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		denyLabel: str = "Deny",
 		confirmColour: discord.ButtonStyle = discord.ButtonStyle.success,
 		denyColour: discord.ButtonStyle = discord.ButtonStyle.danger,
-		image: str | None = None,
+		thumbnail: str | None = None,
 		colour: int = 0xE93700,
 		timeout: float = 20.0,
 	):
@@ -54,7 +54,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		self.denyLabel = denyLabel
 		self.confirmColour = confirmColour
 		self.denyColour = denyColour
-		self.image = image
+		self.thumbnail = thumbnail
 		self.colour = colour
 		self.timedOut: bool = False
 		self.confirmed: bool | None = None
@@ -68,8 +68,8 @@ class ConfirmationView(discord.ui.LayoutView):
 		ui = discord.ui
 		container = ui.Container(accent_color=self.colour)
 
-		if self.image is not None:
-			section = ui.Section(accessory=ui.Thumbnail(media=self.image))
+		if self.thumbnail is not None:
+			section = ui.Section(accessory=ui.Thumbnail(media=self.thumbnail))
 			section.add_item(ui.TextDisplay(self.message))
 			container.add_item(section)
 		else:

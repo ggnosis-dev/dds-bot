@@ -95,7 +95,7 @@ class Fusion(commands.Cog):
 			f"\n\nComplete the ritual?",
 			confirmLabel="Summon",
 			confirmColour=discord.ButtonStyle.primary,
-			image=demon.design_data.profile_url,
+			thumbnail=demon.design_data.profile_url,
 		)
 		result = await ConfirmationView.send_message(view, interaction)
 
@@ -111,7 +111,7 @@ class Fusion(commands.Cog):
 
 		# Needs to be a followup.
 		msg = MessageView(
-			f"You have successfully summoned **{demon.race} {demon.name}**!", image=demon.design_data.profile_url
+			f"You have successfully summoned **{demon.race} {demon.name}**!", thumbnail=demon.design_data.profile_url
 		)
 		await interaction.followup.send(view=msg)
 

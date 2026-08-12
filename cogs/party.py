@@ -181,7 +181,9 @@ class LeaderCommands(commands.Cog):
 		player_demons_queries.set_selected_demon(player_id, server_id, demon_id)
 
 		dd = await demon_queries.get_design_data(demon_id)
-		msg = MessageView(f"**{demon_name}** has been selected to lead your party!", image=dd.profile_url, colour=dd.colour)
+		msg = MessageView(
+			f"**{demon_name}** has been selected to lead your party!", thumbnail=dd.profile_url, colour=dd.colour
+		)
 		await ctx.send(view=msg)
 		return
 

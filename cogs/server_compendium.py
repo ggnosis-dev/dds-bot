@@ -87,7 +87,7 @@ class ServerCompendium(commands.Cog):
 			f"-# You will not be able to use the demon again until they are retrieved.",
 			confirmLabel="Yes",
 			denyLabel="No",
-			image=design_data.profile_url,
+			thumbnail=design_data.profile_url,
 			colour=design_data.colour,
 		)
 		result = await ConfirmationView.send_message(view, ctx)
@@ -107,7 +107,7 @@ class ServerCompendium(commands.Cog):
 				msg = MessageView(
 					f"**{stored_owner}**'s **{demon_name}** (Rank {stored_demon.stored_rank}) "
 					f"is already in {server.name}'s Compendium.",
-					image=design_data.profile_url,
+					thumbnail=design_data.profile_url,
 					colour=design_data.colour,
 				)
 				await ctx.send(view=msg)
@@ -121,7 +121,7 @@ class ServerCompendium(commands.Cog):
 				f"\n\n-# You will not be able to use the demon again until they are retrieved.",
 				confirmLabel="Replace",
 				denyLabel="Cancel",
-				image=design_data.profile_url,
+				thumbnail=design_data.profile_url,
 				colour=design_data.colour,
 			)
 			result = await ConfirmationView.send_message(view, ctx)
@@ -180,7 +180,7 @@ class ServerCompendium(commands.Cog):
 				f"Your **{player_demon.race} {player_demon.name}** (Rank {player_demon.stored_rank})"
 				f" has been sacrificed to **{server.name}'s Compendium** for the time being."
 				f"\n\n>`{stored_owner.mention}'s {player_demon.name} has been returned to its owner's COMP`",
-				image=design_data.profile_url,
+				thumbnail=design_data.profile_url,
 				colour=design_data.colour,
 			)
 			await ctx.send(view=msg)
@@ -189,7 +189,7 @@ class ServerCompendium(commands.Cog):
 		msg = MessageView(
 			f"Your **{player_demon.race} {player_demon.name}** (Rank {player_demon.stored_rank})"
 			f" has been sacrificed to **{server.name}'s Compendium** for the time being.",
-			image=design_data.profile_url,
+			thumbnail=design_data.profile_url,
 			colour=design_data.colour,
 		)
 		await ctx.send(view=msg)
@@ -262,7 +262,7 @@ class ServerCompendium(commands.Cog):
 			f"\n\nTotal Experience: **{stats.total_xp}**"
 			f"\n\nExperience to Next Level: **{stats.current_level_xp}** / **{stats.xp_required}**"
 			f"\n{progress_bar}",
-			image=image,
+			thumbnail=image,
 		)
 		await ctx.send(view=msg)
 
