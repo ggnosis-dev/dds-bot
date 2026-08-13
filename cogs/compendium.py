@@ -26,7 +26,7 @@ class Compendium(commands.Cog):
 			mentioned (discord.Member | None): Optional user to check compendium for.
 		"""
 		player, server = gets.get_player_server(ctx)
-		columns = list(Columns.PLAYER_DEFAULT)
+		columns = list(Columns.COMP_DEFAULT)
 		mentioned = None
 
 		if args:
@@ -34,7 +34,7 @@ class Compendium(commands.Cog):
 
 		player = mentioned if mentioned is not None else player
 
-		comp_list = await player_demons_queries.check_compendium(player.id, server.id)
+		comp_list = await player_demons_queries.check_compendium(player.id, server.id, columns)
 		view = CompendiumView(player.name, comp_list, columns)
 		await ctx.send(view=view)
 

@@ -108,6 +108,7 @@ async def return_server_comp_demon(server_id: int, demon_id: int) -> bool:
 
 # --------- CHECKS --------- #
 async def get_single_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendiumDemon:
+	"""Check for a single loaned demon. This is used for comparison checks such as overwriting an existing loaned demon."""
 	response = query_one(
 		"""
 			SELECT sd.*, pd.stored_rank FROM server_demons sd

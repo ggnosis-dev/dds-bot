@@ -21,13 +21,15 @@ class Columns:
 	REGISTRY = ColumnConfig(key="in_party", label=Emotes.BLANK.value)
 	RACE = ColumnConfig(key="race", label="Race", width=12, header_tabs=3)
 	NAME = ColumnConfig(key="name", label="Name", width=18, header_tabs=6)
-	RANK = ColumnConfig(key="stored_rank", label="Rank", width=3, header_tabs=4, align=">")
+	EXP = ColumnConfig(key="initial_rank", label="Exp", width=3, header_tabs=2, align=">")
+	STORED_RANK = ColumnConfig(key="stored_rank", label="Rank", width=3, header_tabs=4, align=">")
 	OWNER = ColumnConfig(key="owner", label="Owner", width=12, header_tabs=3)
-	GEM = ColumnConfig(key="gem", label="Gemstone", width=12, header_tabs=3)
-	PERSONALITY = ColumnConfig(key="personality", label="Personality", width=12, header_tabs=3)
+	GEMS = ColumnConfig(key="gems", label="Gemstone", width=12, header_tabs=3)
+	TONE = ColumnConfig(key="tone_name", label="Tone", width=12, header_tabs=3)
 
-	PLAYER_DEFAULT = [REGISTRY, RACE, NAME, RANK]
-	SERVER_DEFAULT = PLAYER_DEFAULT + [OWNER]
+	PLAYER_DEFAULT = [REGISTRY, RACE, NAME, STORED_RANK]
+	COMP_DEFAULT = PLAYER_DEFAULT
+	SERVER_DEFAULT = COMP_DEFAULT + [EXP, OWNER]
 
 	# Item/Gem Collection Exclusive.
 	EMOTE = ColumnConfig(key="emote", label=Emotes.BLANK.value)
@@ -39,8 +41,9 @@ class Columns:
 
 def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
 	mentioned = None
+	sorted_args = sorted(args)
 
-	for arg in args:
+	for arg in sorted_args:
 		arg = arg.lower()
 
 		# arg is a mention like <@111122223333>, extract numeric id.
@@ -48,12 +51,16 @@ def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
 			digits = "".join(ch for ch in arg if ch.isdigit())
 			mentioned = server.get_member(int(digits)) if digits else None
 
-		elif "gemstone".startswith(arg):
-			if Columns.GEM not in column_layout:
-				column_layout.append(Columns.GEM)
+		elif "experience".startswith(arg):
+			if Columns.EXP not in column_layout:
+				column_layout.append(Columns.EXP)
 
-		elif "personality".startswith(arg):
-			if Columns.PERSONALITY not in column_layout:
-				column_layout.append(Columns.PERSONALITY)
+		elif "gemstones".startswith(arg):
+			if Columns.GEMS not in column_layout:
+				column_layout.append(Columns.GEMS)
+
+		elif "tone".startswith(arg):
+			if Columns.TONE not in column_layout:
+				column_layout.append(Columns.TONE)
 
 	return column_layout, mentioned

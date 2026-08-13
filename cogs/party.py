@@ -44,7 +44,7 @@ class PartyCommands(commands.Cog):
 			player = mentioned if mentioned is not None else player
 
 			party_list, party_stats, sd_id = await asyncio.gather(
-				player_demons_queries.check_party(player.id, server.id),
+				player_demons_queries.check_party(player.id, server.id, columns),
 				player_demons_queries.get_party_stats(player.id, server.id),
 				player_demons_queries.get_selected_demon_id(player.id, server.id),
 			)

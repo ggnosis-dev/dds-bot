@@ -20,10 +20,8 @@ class DemonData:
 		name (str): Demon name.
 		race (str): Demon race.
 		rank (int): Demon's Rank signifies its strength and base rarity.
-		colour (int): Colour is used for styling and various embeds.
 		personality_type (Personality): Personality type, stored as a string in DB but converted to a Personality enum.
-		image_url (str): Image URL for demon's encounter art.
-		profile_url (str): Image URL for the profile art.
+		design_data (DesignData): Design data class
 		tone_type (Tone): The category the demon falls into for dialogue. Dialogue altered based on it.
 	"""
 

@@ -150,6 +150,9 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 					new_row += Emotes.BLANK.value
 				continue
 
+			if type(value) is tuple:
+				value = ", ".join(str(val)[:4] for val in value)
+
 			# When in_party is none, the player hasn't seen the demon before so show hint for it.
 			if entry.is_unseen:
 				# If column align is right, it's a value. Show less question marks.

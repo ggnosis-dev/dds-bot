@@ -18,8 +18,11 @@ class DemonEntry:
 	demon_id: int
 	name: str
 	race: str
-	on_loan: bool = False
+	initial_rank: int = 0
 	stored_rank: int = 0
+	gems: tuple | None = None
+	tone_name: str | None = None
+	on_loan: bool = False
 	# For player demon only.
 	in_party: bool | None = None
 	# For server demon only.
