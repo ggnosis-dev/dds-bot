@@ -53,4 +53,4 @@ bot = DDSBot()
 if bot.token is not None:
 	bot.run(bot.token)
 else:
-	print("ERROR: DISCORD TOKEN NOT SET")
+	raise RuntimeError("ERROR: DISCORD TOKEN NOT SET")
