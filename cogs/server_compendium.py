@@ -31,9 +31,10 @@ class ServerCompendium(commands.Cog):
 			columns = list(Columns.SERVER_DEFAULT)
 			columns, mentioned = get_args(args, server, columns) if args else (columns, None)
 			mentioned = mentioned.id if mentioned else None
+			need_gems = Columns.GEMS in columns
 
 			comp_list, stats = await asyncio.gather(
-				server_demons_queries.check_server_compendium(server.id, mentioned),
+				server_demons_queries.check_server_compendium(server.id, mentioned, need_gems),
 				server_level_queries.get_server_status(server.id),
 			)
 
