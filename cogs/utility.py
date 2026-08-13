@@ -9,7 +9,7 @@ from entities.command_data import UTILITY_COMMANDS, command_kwargs
 from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW_HOURS
 from helpers import checks, gets
 from helpers.costs import daily_mag
-from helpers.encounter_utils import get_current_encounter_window
+from helpers.encounter_utils import TOO_WEAK_LEEWAY, get_current_encounter_window
 from queries import currency_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
 
@@ -18,6 +18,7 @@ class Utility(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
+	@checks.has_profile()
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "stuff"))
 	async def stuff_command(self, ctx: commands.Context):
 		"""Command to view MAG, daily timer, all that jazz."""
@@ -36,12 +37,17 @@ class Utility(commands.Cog):
 
 		if player_data and server_data:
 			mag = player_data.mag
-			rank_average = player_data.party_stats.average
+			party_stats = player_data.party_stats
+			rank_strongest = (
+				party_stats.strongest + TOO_WEAK_LEEWAY if party_stats.strongest + TOO_WEAK_LEEWAY < 100 else 100
+			)
 			rank_cap = server_data.rank_cap
 
 			encounter_string = (
-				f"Encounters can spawn up to **Rank {rank_cap}** (Server Cap)."
-				f"\nEncounters are weighted to **Rank {rank_average}** (Your Party Average)."
+				f"- Encounters can spawn up to **Rank {rank_cap}** (Server Cap)."
+				f"\n- Encounters are weighted to **Rank {party_stats.average}** (Your Party Average)."
+				f"\n- Encounters under **Rank {rank_strongest}** can be recruited"
+				f" (Your Strongest Demon + {str(TOO_WEAK_LEEWAY)})."
 			)
 
 			# Get current time and subtract it from when the player's timer was set.
@@ -68,7 +74,7 @@ class Utility(commands.Cog):
 
 				encounter_time_up = f"Encounter available in **{hours}h**, **{minutes}m** and **{seconds}s**."
 
-		view = MessageView(f"{encounter_time_up}\n\n{daily_string}\n\nMAG: **{mag}**\n\n{encounter_string}")
+		view = MessageView(f"MAG: **{mag}**\n\n{encounter_time_up}\n\n{daily_string}\n\n{encounter_string}")
 		await ctx.send(view=view)
 
 	@checks.has_profile()
