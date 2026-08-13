@@ -56,7 +56,7 @@ async def join_player_party(
 	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
 
 	# Check if party's strongest member is TOO_WEAK.
-	if party_stats.strongest > demon.rank + 3:
+	if party_stats.strongest < demon.rank + 3:
 		new_entry = DemonRegistration.TOO_WEAK
 
 	# Check if party has space after the TOO_WEAK check. If it doesn't, assign PARTY_FULL.
@@ -126,12 +126,12 @@ def _get_status_message(new_entry, demon, user_name, mag_received, gems_added, g
 
 		case DemonRegistration.PARTY_FULL:
 			status = (
-				f"> {demon.race} {demon.name} could not join {user_name} as party was full."
-				f" {gems_added} {gem_name.title()}! +{mag_received} MAG"
+				f"> {demon.race} {demon.name} could not join {user_name}. Party was full!"
+				f" +{gems_added} {gem_name.title()}! +{mag_received} MAG"
 			)
 
 		case DemonRegistration.TOO_WEAK | _:
-			status = f"> {demon.race} {demon.name} did not join {user_name} as they were too weak. +{mag_received} MAG"
+			status = f"> {demon.race} {demon.name} did not join {user_name}. They were too weak! +{mag_received} MAG"
 
 	return status
 
@@ -173,7 +173,7 @@ def format_dialogue(message: str, demon_data: DemonData) -> str:
 		message.replace("[p]", "", 1)
 
 	message = message.replace("[p]", "\n\n")
-	message = message.replace("[d]", "\n\n-# **[name]**:\n-# ")
+	message = message.replace("[d]", "\n\n-# ")
 	message = message.replace("[race]", f"{demon_data.race.upper()}")
 	message = message.replace("[name]", f"{demon_data.name.upper()}")
 
