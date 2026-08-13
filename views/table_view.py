@@ -245,8 +245,8 @@ class PartyView(BaseCompendiumView):
 		# Party stat information.
 		container.add_item(
 			discord.ui.TextDisplay(
-				f"-# Number in Party: **{self.party_stats.size}** / **{self.party_stats.cap}** "
-				f"• Average Rank: **{self.party_stats.average}**"
+				f"-# Number in Party: **{self.party_stats.size}** / **{self.party_stats.cap}**"
+				f" • Average Rank: **{self.party_stats.average}**"
 			)
 		)
 
