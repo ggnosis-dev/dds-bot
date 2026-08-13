@@ -168,7 +168,7 @@ async def get_count_for_encounters(server_id: int) -> int:
 
 def format_dialogue(message: str, demon_data: DemonData) -> str:
 	if not message.startswith("[p]"):
-		message = "-# **[name]**:\n-# " + message
+		message = f"-# {message}"
 	else:
 		message.replace("[p]", "", 1)
 

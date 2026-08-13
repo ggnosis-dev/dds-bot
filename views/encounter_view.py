@@ -307,7 +307,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		question = format_dialogue(question, self.demon)
 
 		container.add_item(self.icon_display)
-		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name}!\n{question}\n"))
+		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name} ({self.demon.rank})!\n{question}"))
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		self._build_option_buttons(container, dialogue_options)
