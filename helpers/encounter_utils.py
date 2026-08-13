@@ -11,6 +11,8 @@ from queries.currency_queries import update_mag
 from queries.gem_queries import add_gem, get_possible_gems
 from shared_enums import DemonRegistration
 
+TOO_WEAK_LEEWAY = 3
+
 
 def get_current_encounter_window(now: int) -> int:
 	"""Get the current encounter window in seconds. Man, this took me way too long."""
@@ -41,8 +43,7 @@ async def join_player_party(
 	    server (discord.Guild | None): Server the player is in.
 	    demon (DemonData): Demon's data to be added.
 	Returns:
-	    tuple[DemonRegistration, int, int]: Returns registration state the demon is in
-			(IN_PARTY, IN_COMP, UNREGISTERED), amount of mag received and number of gems.
+	    JoinData: Data to be passed on related to joining.
 	"""
 	server_id = server.id if server else None
 
@@ -56,7 +57,7 @@ async def join_player_party(
 	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
 
 	# Check if party's strongest member is TOO_WEAK.
-	if party_stats.strongest < demon.rank + 3:
+	if party_stats.strongest < demon.rank + TOO_WEAK_LEEWAY:
 		new_entry = DemonRegistration.TOO_WEAK
 
 	# Check if party has space after the TOO_WEAK check. If it doesn't, assign PARTY_FULL.
@@ -107,7 +108,6 @@ async def join_player_party(
 	status_message = _get_status_message(new_entry, demon, player.name, mag_to_add, gems_to_add, gem_name)
 
 	return JoinData(
-		new_entry,
 		status_message,
 		extra_response,
 	)

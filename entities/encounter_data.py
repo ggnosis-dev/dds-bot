@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from shared_enums import DemonRegistration, Personality, ResponseType, Tone
+from shared_enums import Personality, ResponseType, Tone
 
 
 @dataclass
@@ -24,7 +24,7 @@ class TalkData:
 
 @dataclass
 class JoinData:
-	registration: DemonRegistration
+	# registration: DemonRegistration
 	status_message: str
 	extra_response: str | None
 
