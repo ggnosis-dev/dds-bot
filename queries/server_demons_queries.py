@@ -1,4 +1,4 @@
-from entities.comp_data import DemonEntry, ServerCompendiumDemon
+from entities.comp_data import DemonEntry, ServerCompendiumDemon, convert_row_to_demon_entry
 from helpers.db import query_all, query_one, query_write
 
 
@@ -130,7 +130,7 @@ async def get_single_serv_comp_demon(server_id: int, demon_id: int) -> ServerCom
 	)
 
 
-async def check_server_compendium(server_id: int, owner_id: int | None = None) -> list[DemonEntry]:
+async def check_server_compendium(server_id: int, owner_id: int | None = None, need_gems: bool = False) -> list[DemonEntry]:
 	"""Retrieve list of the demons currently in the server COMP."""
 	# If an owner_id is provided, we will only check WHERE that player's ID is found.
 	params = (server_id, owner_id) if owner_id else (server_id,)
@@ -138,7 +138,7 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None) -
 
 	rows = query_all(
 		f"""
-			SELECT d.id, d.name, d.race, d.personality, pd.player_id, pd.stored_rank
+			SELECT d.id, d.name, d.race, d.rank, d.tone, pd.stored_rank, pd.player_id as owner_id
 			FROM demons d
 			LEFT JOIN server_demons sd
 				ON sd.demon_id = d.id
@@ -153,17 +153,4 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None) -
 		params,
 	)
 
-	entries = []
-	for row in rows:
-		did, name, race, pers, oid, rank = row
-
-		entries.append(
-			DemonEntry(
-				demon_id=did,
-				owner_id=oid,
-				name=name,
-				race=race,
-				stored_rank=rank,
-			)
-		)
-	return entries
+	return convert_row_to_demon_entry(rows, need_gems)

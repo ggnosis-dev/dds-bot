@@ -161,7 +161,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 
 			else:
 				# Only use title case if it's not a player's name.
-				text = str(value).title() if not entry.owner else value
+				text = str(value).title() if not entry.owner_name else value
 				new_row += f"{tab}`{text:{col.align}{col.width}}`"
 
 		container.add_item(discord.ui.TextDisplay(new_row))

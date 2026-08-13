@@ -1,9 +1,7 @@
-from entities.comp_data import DemonEntry
+from entities.comp_data import DemonEntry, convert_row_to_demon_entry
 from entities.player_data import PartyStats
-from entities.view_data import Columns
 from helpers.db import query_all, query_one, query_write
-from queries.gem_queries import get_possible_gems
-from shared_enums import DemonRegistration, Tone
+from shared_enums import DemonRegistration
 
 
 async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonEntry | None:
@@ -138,14 +136,13 @@ async def check_demon_on_loan(player_id: int, server_id: int, demon_id: int) -> 
 	return True if response[0] else False
 
 
-async def check_party(user_id: int, server_id: int, column_list: list | None = None) -> list[DemonEntry]:
+async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonEntry]:
 	"""
 	Query the database for the player's current party. Joins the player_demons table with the demon database.
 
 	Returns:
 		list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
 	"""
-	# print("DEBUG: check_party")
 	rows = query_all(
 		"""
 			SELECT d.id, d.name, d.race, d.rank, d.tone, pd.on_loan, pd.stored_rank, pd.in_party
@@ -158,34 +155,7 @@ async def check_party(user_id: int, server_id: int, column_list: list | None = N
 		(user_id, server_id),
 	)
 
-	# If there's other things like GEMS we need from the column_list.
-	need_gems = True if column_list is not None and Columns.GEMS in column_list else False
-	gem_cache: dict[str, tuple] = {}
-
-	entries = []
-	for row in rows:
-		demon_id, name, race, rank, tone, on_loan, st_rank, in_party = row
-
-		gems = None
-		if need_gems:
-			if race not in gem_cache:
-				gem_cache[race] = get_possible_gems(race)
-			gems = gem_cache[race]
-
-		entries.append(
-			DemonEntry(
-				demon_id=demon_id,
-				name=name,
-				race=race,
-				gems=gems,
-				tone_name=Tone(tone).name,
-				on_loan=on_loan,
-				initial_rank=rank,
-				stored_rank=st_rank,
-				in_party=in_party,
-			)
-		)
-	return entries
+	return convert_row_to_demon_entry(rows, need_gems)
 
 
 async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -> int:
@@ -200,14 +170,13 @@ async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -
 	return response[0] if response else -1
 
 
-async def check_compendium(user_id: int, server_id: int, column_list: list | None = None) -> list[DemonEntry]:
+async def check_compendium(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonEntry]:
 	"""
 	Query the database for the player's encountered demons. Joins the player_demons table with the demon database.
 
 	Returns:
 		list[DemonEntry]: List of demons in the player's compendium.
 	"""
-
 	# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 	rows = query_all(
 		"""
@@ -220,34 +189,7 @@ async def check_compendium(user_id: int, server_id: int, column_list: list | Non
 		(user_id, server_id),
 	)
 
-	# If there's other things like GEMS we need from the column_list.
-	need_gems = True if column_list is not None and Columns.GEMS in column_list else False
-	gem_cache: dict[str, tuple] = {}
-
-	entries = []
-	for row in rows:
-		demon_id, name, race, rank, tone, on_loan, st_rank, in_party = row
-
-		gems = None
-		if need_gems:
-			if race not in gem_cache:
-				gem_cache[race] = get_possible_gems(race)
-			gems = gem_cache[race]
-
-		entries.append(
-			DemonEntry(
-				demon_id=demon_id,
-				name=name,
-				race=race,
-				gems=gems,
-				tone_name=Tone(tone).name,
-				on_loan=on_loan,
-				initial_rank=rank,
-				stored_rank=st_rank,
-				in_party=in_party,
-			)
-		)
-	return entries
+	return convert_row_to_demon_entry(rows, need_gems)
 
 
 def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:

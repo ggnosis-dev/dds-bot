@@ -7,7 +7,7 @@ from shared_enums import Emotes
 
 @dataclass
 class ColumnConfig:
-	# Key should match the database column's name.
+	# Key should match the class names.
 	key: str
 	label: str
 	width: int = 0
@@ -17,13 +17,13 @@ class ColumnConfig:
 
 @dataclass
 class Columns:
-	# Comp Exclusive.
+	# Compendium-style Exclusive.
 	REGISTRY = ColumnConfig(key="in_party", label=Emotes.BLANK.value)
 	RACE = ColumnConfig(key="race", label="Race", width=12, header_tabs=3)
 	NAME = ColumnConfig(key="name", label="Name", width=18, header_tabs=6)
 	EXP = ColumnConfig(key="initial_rank", label="Exp", width=3, header_tabs=2, align=">")
 	STORED_RANK = ColumnConfig(key="stored_rank", label="Rank", width=3, header_tabs=4, align=">")
-	OWNER = ColumnConfig(key="owner", label="Owner", width=12, header_tabs=3)
+	OWNER = ColumnConfig(key="owner_name", label="Owner", width=12, header_tabs=3)
 	GEMS = ColumnConfig(key="gems", label="Gemstone", width=12, header_tabs=3)
 	TONE = ColumnConfig(key="tone_name", label="Tone", width=12, header_tabs=3)
 
@@ -39,7 +39,7 @@ class Columns:
 	ITEM_DEFAULT = [EMOTE, ITEM_NAME, QUANTITY]
 
 
-def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
+def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) -> tuple:
 	mentioned = None
 	sorted_args = sorted(args)
 
@@ -50,6 +50,7 @@ def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list):
 		if arg.startswith("<@") and arg.endswith(">"):
 			digits = "".join(ch for ch in arg if ch.isdigit())
 			mentioned = server.get_member(int(digits)) if digits else None
+			print(mentioned)
 
 		elif "experience".startswith(arg):
 			if Columns.EXP not in column_layout:

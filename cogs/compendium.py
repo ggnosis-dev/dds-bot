@@ -34,7 +34,9 @@ class Compendium(commands.Cog):
 
 		player = mentioned if mentioned is not None else player
 
-		comp_list = await player_demons_queries.check_compendium(player.id, server.id, columns)
+		need_gems = Columns.GEMS in columns
+
+		comp_list = await player_demons_queries.check_compendium(player.id, server.id, need_gems)
 		view = CompendiumView(player.name, comp_list, columns)
 		await ctx.send(view=view)
 

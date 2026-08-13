@@ -37,11 +37,11 @@ class ServerCompendium(commands.Cog):
 				server_level_queries.get_server_status(server.id),
 			)
 
-			# Because the server COMP only stores user IDs, we need to retrieve their names.
+			# Because the server COMP only stores user IDs, we need to retrieve their names through a cache lookup.
 			for entry in comp_list:
 				if entry.owner_id is not None:
 					player = server.get_member(entry.owner_id)
-					entry.owner = player.display_name if player else "Unknown"
+					entry.owner_name = player.display_name if player else "Unknown"
 
 			view = ServerCompendiumView(server.name, comp_list, columns, server_stats=stats)
 			await ctx.send(view=view)
