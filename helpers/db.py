@@ -6,6 +6,7 @@ from database_paths import PLAYERS_DB_PATH
 def _get_db_connection() -> sqlite3.Connection:
 	"""Helper method to get a connection to the players database."""
 	conn = sqlite3.connect(PLAYERS_DB_PATH)
+	conn.row_factory = sqlite3.Row
 
 	# Enforce foreign key constraints for the connection.
 	conn.execute("PRAGMA foreign_keys = ON")
