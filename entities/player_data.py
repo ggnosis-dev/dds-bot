@@ -9,6 +9,7 @@ class PartyStats:
 	size: int
 	cap: int
 	average: int
+	strongest: int
 
 
 @dataclass

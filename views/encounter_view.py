@@ -6,7 +6,7 @@ from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
 from helpers.encounter_utils import format_dialogue, join_player_party
 from queries import talk_queries
-from shared_enums import DemonRegistration, Emotes, ResponseType
+from shared_enums import Emotes, ResponseType
 from views.common_view import MessageView
 
 # 5 minute timeout.
@@ -149,28 +149,9 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		    interaction (discord.Interaction): The Discord interaction object from the button press.
 		"""
 		user = interaction.user
-		d_name = self.demon.name
-		d_race = self.demon.race
+		join_outcome = await join_player_party(user, interaction.guild, self.demon)
 
-		new_entry, mag_received, gems_added, gem_name = await join_player_party(user, interaction.guild, self.demon)
-
-		match new_entry:
-			case DemonRegistration.UNREGISTERED:
-				status = f"> {d_race} {d_name} was registered to {user.name}'s compendium! +{mag_received} MAG"
-
-			case DemonRegistration.IN_COMP:
-				status = f"> {d_race} {d_name} has joined {user.name}'s party! +{mag_received} MAG"
-
-			case DemonRegistration.IN_PARTY:
-				status = f"> {d_race} {d_name} gifted {user.name} {gems_added} {gem_name.title()}! +{mag_received} MAG"
-
-			case DemonRegistration.CANT_JOIN:
-				status = (
-					f"> {d_race} {d_name} could not join {user.name}. Party was full. {gems_added} {gem_name.title()}! "
-					f"+{mag_received} MAG"
-				)
-
-		await self._handle_demon_interacted(interaction, status, response)
+		await self._handle_demon_interacted(interaction, response, join_outcome.status_message, join_outcome.extra_response)
 
 	async def _encounter_flee(self, interaction: discord.Interaction, response: str) -> None:
 		"""
@@ -181,7 +162,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		    interaction (discord.Interaction): The Discord interaction object from the button press.
 		"""
 		await self._handle_demon_interacted(
-			interaction, f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}...", response
+			interaction, response, f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}..."
 		)
 
 	async def _encounter_followup(self, interaction: discord.Interaction, response: str) -> None:
@@ -223,7 +204,13 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			# This is the initial view, which we don't want to edit in case someone else interacts with it.
 			await interaction.response.send_message(view=followup_view, ephemeral=True)
 
-	async def _handle_demon_interacted(self, interaction: discord.Interaction, status_message: str, response: str) -> None:
+	async def _handle_demon_interacted(
+		self,
+		interaction: discord.Interaction,
+		response: str,
+		status_message: str,
+		extra_response: str | None = None,
+	) -> None:
 		"""
 		Handler for when an encounter has finished. Updates the status message and icon count, then
 		edits the original parent view message to reflect the outcome.
@@ -256,8 +243,12 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		# Send a final message to the user.
 		response = format_dialogue(response, self.demon)
 
+		# Added on PARTY_FULL and TOO_WEAK.
+		if extra_response:
+			response += f"\n\n-# {extra_response}"
+
 		msg = MessageView(
-			f"{response}\n\n`{status_message}`",
+			f"{response}\n\n-# `{status_message}`",
 			self.demon.design_data.image_url,
 			self.demon.design_data.colour,
 		)

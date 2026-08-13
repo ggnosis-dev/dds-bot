@@ -1,8 +1,10 @@
+import asyncio
 import random
 
 import discord
 
 from entities.demon_data import DemonData
+from entities.encounter_data import JoinData, party_full_extra_responses
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from queries import player_demons_queries, server_queries
 from queries.currency_queries import update_mag
@@ -29,7 +31,7 @@ async def join_player_party(
 	player: discord.User | discord.Member,
 	server: discord.Guild | None,
 	demon: DemonData,
-) -> tuple[DemonRegistration, int, int, str]:
+) -> JoinData:
 	"""
 	Organises a demon to either be added to COMP, party or if it should give the player a gift
 	instead.
@@ -50,22 +52,28 @@ async def join_player_party(
 	mag_multiplier = 0
 	gems_to_add = 0
 	gem_name = ""
+	extra_response = None
 	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
-	party_has_space = party_stats.size < party_stats.cap
 
-	# Check if party has space before anything. If it doesn't, assign CANT_JOIN.
-	if party_has_space:
+	# Check if party's strongest member is TOO_WEAK.
+	if party_stats.strongest > demon.rank + 3:
+		new_entry = DemonRegistration.TOO_WEAK
+
+	# Check if party has space after the TOO_WEAK check. If it doesn't, assign PARTY_FULL.
+	elif party_stats.size < party_stats.cap:
 		new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
 	else:
-		new_entry = DemonRegistration.CANT_JOIN
+		new_entry = DemonRegistration.PARTY_FULL
 
 	match new_entry:
 		case DemonRegistration.UNREGISTERED:
 			# Added demon to COMP with a little bonus MAG.
 			mag_multiplier = 0.6
-			await player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank)
-			await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
-			await player_demons_queries.update_party_average(player.id, server_id)
+			asyncio.gather(
+				player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank),
+				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
+				player_demons_queries.update_party_average(player.id, server_id),
+			)
 
 			if party_stats.size < 1:
 				player_demons_queries.set_selected_demon(player.id, server_id, demon.id)
@@ -73,8 +81,10 @@ async def join_player_party(
 		case DemonRegistration.IN_COMP:
 			# Only add demon to player's party, has been obtained before.
 			mag_multiplier = 0.3
-			await player_demons_queries.set_demon_in_party(player.id, server_id, demon.id)
-			await player_demons_queries.update_party_average(player.id, server_id)
+			asyncio.gather(
+				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
+				player_demons_queries.update_party_average(player.id, server_id),
+			)
 
 		case DemonRegistration.IN_PARTY:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
@@ -82,15 +92,48 @@ async def join_player_party(
 			mag_multiplier = 0.9
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
-		case DemonRegistration.CANT_JOIN:
+		case DemonRegistration.PARTY_FULL:
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.3
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
+			extra_response = party_full_extra_responses[demon.tone_type]
+
+		case DemonRegistration.TOO_WEAK:
+			mag_multiplier = 0.1
+			extra_response = "TOO WEAK"
 
 	mag_to_add = int((demon.rank * 10) / mag_multiplier)
 	update_mag(player.id, server_id, mag_to_add)
+	status_message = _get_status_message(new_entry, demon, player.name, mag_to_add, gems_to_add, gem_name)
 
-	return new_entry, mag_to_add, gems_to_add, gem_name
+	return JoinData(
+		new_entry,
+		status_message,
+		extra_response,
+	)
+
+
+def _get_status_message(new_entry, demon, user_name, mag_received, gems_added, gem_name) -> str:
+	match new_entry:
+		case DemonRegistration.UNREGISTERED:
+			status = f"> {demon.race} {demon.name} was registered to {user_name}'s compendium! +{mag_received} MAG"
+
+		case DemonRegistration.IN_COMP:
+			status = f"> {demon.race} {demon.name} has joined {user_name}'s party! +{mag_received} MAG"
+
+		case DemonRegistration.IN_PARTY:
+			status = f"> {demon.race} {demon.name} gifted {user_name} {gems_added} {gem_name.title()}! +{mag_received} MAG"
+
+		case DemonRegistration.PARTY_FULL:
+			status = (
+				f"> {demon.race} {demon.name} could not join {user_name} as party was full."
+				f" {gems_added} {gem_name.title()}! +{mag_received} MAG"
+			)
+
+		case DemonRegistration.TOO_WEAK | _:
+			status = f"> {demon.race} {demon.name} did not join {user_name} as they were too weak. +{mag_received} MAG"
+
+	return status
 
 
 def _gems_for_rank(rank: int) -> int:

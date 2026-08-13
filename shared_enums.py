@@ -31,7 +31,8 @@ class DemonRegistration(Enum):
 	IN_PARTY = 0
 	IN_COMP = 1
 	UNREGISTERED = 2
-	CANT_JOIN = 3
+	PARTY_FULL = 3
+	TOO_WEAK = 4
 
 
 class ResponseType(Enum):

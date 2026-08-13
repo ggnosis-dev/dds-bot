@@ -333,4 +333,18 @@ async def get_party_stats(player_id: int, server_id: int) -> PartyStats:
 		(player_id, server_id),
 	)
 
-	return PartyStats(size=size, cap=cap, average=average)
+	strongest = await get_strongest_party_demon_rank(player_id, server_id)
+
+	return PartyStats(size=size, cap=cap, average=average, strongest=strongest)
+
+
+async def get_strongest_party_demon_rank(player_id: int, server_id: int) -> int:
+	response = query_one(
+		"""
+			SELECT MAX(stored_rank) FROM player_demons
+			WHERE player_id = ? AND server_id = ? AND in_party = 1
+		""",
+		(player_id, server_id),
+	)
+
+	return response[0] if response else 1

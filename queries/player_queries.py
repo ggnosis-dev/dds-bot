@@ -1,5 +1,6 @@
 from entities.player_data import PartyStats, PlayerData
 from helpers.db import query_one, query_write
+from queries.player_demons_queries import get_strongest_party_demon_rank
 
 
 # TODO: Really don't need to do this setup procedure.
@@ -89,13 +90,14 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 		return None
 
 	player_id, server_id, selected_demon_id, mag, p_size, p_cap, p_av, d_timer, e_timer = response
+	strongest = await get_strongest_party_demon_rank(player_id, server_id)
 
 	return PlayerData(
 		player_id=player_id,
 		server_id=server_id,
 		selected_demon_id=selected_demon_id,
 		mag=mag,
-		party_stats=PartyStats(size=p_size, cap=p_cap, average=p_av),
+		party_stats=PartyStats(size=p_size, cap=p_cap, average=p_av, strongest=strongest),
 		daily_timer=d_timer,
 		encounter_timer=e_timer,
 	)
