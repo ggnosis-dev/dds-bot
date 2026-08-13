@@ -136,7 +136,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 		new_row = ""
 
 		for col in self.columns:
-			value = getattr(entry, col.key)
+			entry_value = getattr(entry, col.key)
 
 			# This will be an emote column if width is 0.
 			if col.width == 0:
@@ -150,8 +150,8 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 					new_row += Emotes.BLANK.value
 				continue
 
-			if type(value) is tuple:
-				value = ", ".join(str(val)[:4] for val in value)
+			if type(entry_value) is tuple:
+				entry_value = ", ".join(str(val)[:4] for val in entry_value)
 
 			# When in_party is none, the player hasn't seen the demon before so show hint for it.
 			if entry.is_unseen:
@@ -161,7 +161,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 
 			else:
 				# Only use title case if it's not a player's name.
-				text = str(value).title() if not entry.owner_name else value
+				text = str(entry_value).title() if entry_value != entry.owner_name else entry_value
 				new_row += f"{tab}`{text:{col.align}{col.width}}`"
 
 		container.add_item(discord.ui.TextDisplay(new_row))
