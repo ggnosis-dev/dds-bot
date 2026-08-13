@@ -50,7 +50,6 @@ def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) 
 		if arg.startswith("<@") and arg.endswith(">"):
 			digits = "".join(ch for ch in arg if ch.isdigit())
 			mentioned = server.get_member(int(digits)) if digits else None
-			print(mentioned)
 
 		elif "experience".startswith(arg):
 			if Columns.EXP not in column_layout:
