@@ -79,10 +79,12 @@ ENCOUNTERS_COMMANDS = {
 		aliases=["e"],
 		help=(
 			"-# Starts an encounter with a demon."
-			"\n\n-# The demon's rank is determined using a random distribution; up to the *Server's Maximum Rank Capacity*"
-			" and weighted at your own *Party's Average Rank*."
-			"The *Server's Maximum Rank Capacity* can be increased by adding to the Server's Compendium"
-			" (see **Server Compendium** for more details)."
+			"\n-# - Each demon has their own **Personality**, so tailor your response to make them happy."
+			"\n-# - A demon won't join your party if the strongest demon in your party is significantly lower in rank to it."
+			"\n-# - Demon's can appear in groups (up to 5 at a time), with more appearing as the playerbase grows."
+			"\n-# - The demon's rank is determined using a random distribution;"
+			" up to the **Server's Maximum Rank Capacity** (see **__Server Compendium__** for more details)"
+			" and weighted at your own **Party's Average Rank**."
 		),
 		usage=">encounter | e",
 	),
@@ -180,11 +182,11 @@ SERVER_COMPENDIUM_COMMANDS = {
 		name="loan",
 		aliases=["ln"],
 		help=(
-			"-# Loan a demon to the server's Demonic Compendium."
-			" The demon's rank will help contribute to the overall Server Level's experience."
-			"\n\n-# A demon can be retrieved again at anytime using the `>return` command."
-			"\n\n-# If an existing demon is already in the Server's Compendium,"
-			" a prompt to replace it will appear given the new demon is stronger than it."
+			"-# Loan a demon to the Server's Demonic Compendium."
+			"\n-# - The demon's rank will help contribute to the overall **Server Level**'s experience."
+			"\n-# - A demon can be retrieved again at anytime using the `>return` command."
+			"\n-# - If an existing demon is already in the Server's Compendium,"
+			" a prompt to replace it will appear given your demon is stronger than it in personal rank."
 		),
 		usage=">loan | ln {demon}",
 	),
@@ -192,8 +194,8 @@ SERVER_COMPENDIUM_COMMANDS = {
 		name="return",
 		aliases=["ret"],
 		help=(
-			"-# Retrieve a demon that has been loaned to the server's Demonic Compendium."
-			" The demon's rank will be subtracted from the overall Server Level's experience."
+			"-# Retrieve a demon that has been loaned to the Server's Demonic Compendium."
+			" The demon's initial rank will be subtracted from the overall Server Level's experience."
 		),
 		usage=">return | ret {demon}",
 	),
@@ -201,8 +203,9 @@ SERVER_COMPENDIUM_COMMANDS = {
 		name="server_compendium",
 		aliases=["servcomp", "sc"],
 		help=(
-			"-# Displays the Server's Demonic Compendium, letting you see every demon the server's members have loaned."
-			" You can view specific player's loaned demons by mentioning them."
+			"-# Displays the **Server's Demonic Compendium**, letting you see every demon the server's members have loaned"
+			" (see `>loan` command)."
+			"\n-# - You can view specific player's loaned demons by mentioning them."
 		),
 		usage=">server_compendium | servcomp | sc {opt: @player}",
 	),
@@ -211,7 +214,8 @@ SERVER_COMPENDIUM_COMMANDS = {
 		aliases=["ss"],
 		help=(
 			"-# View statistics about the server."
-			" This includes its Server Level, encounter's maximum rank, experience and what is required for the next level."
+			" This includes its **Server Level**, **Server's Maximum Rank Capacity**, **Server Experience**"
+			" and how much is required for the next level."
 		),
 		usage=">server_stats | ss",
 	),
