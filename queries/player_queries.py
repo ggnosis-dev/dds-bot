@@ -1,9 +1,9 @@
 from entities.player_data import PartyStats, PlayerData
 from helpers.db import query_one, query_write
 from queries.player_demons_queries import get_strongest_party_demon_rank
+from queries.server_queries import update_server_in_db
 
 
-# TODO: Really don't need to do this setup procedure.
 async def setup_player(player_id, server_id) -> bool:
 	"""
 	Set up a new player in the database if they don't already have a profile.
@@ -30,20 +30,6 @@ def save_player_to_db(player_id: int, server_id: int) -> bool:
 		(player_id, server_id),
 	)
 	print(f"INFO: New player added: {player_id} | Server {server_id}.")
-	return rows_affected > 0
-
-
-def update_server_in_db(server_id: int) -> bool:
-	"""Update a server's data in the database."""
-	rows_affected = query_write(
-		"""
-			INSERT INTO servers (server_id, player_count)
-			VALUES (?, 1)
-			ON CONFLICT (server_id) DO
-				UPDATE SET player_count = player_count + 1
-		""",
-		(server_id,),
-	)
 	return rows_affected > 0
 
 

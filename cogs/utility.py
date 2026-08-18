@@ -119,8 +119,9 @@ class Utility(commands.Cog):
 		await ctx.send(view=view)
 
 	@checks.is_admin()
+	@checks.has_server_profile()
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "set_channel"))
-	async def set_channel_command(self, ctx: commands.Context, channel: discord.TextChannel | int | None):
+	async def set_channel_command(self, ctx: commands.Context, channel: discord.TextChannel | None):
 		"""Set the dedicated channel for encounters."""
 
 		server_id = gets.get_server(ctx).id

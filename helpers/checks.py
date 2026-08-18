@@ -39,16 +39,6 @@ def is_admin():
 	return commands.check_any(commands.is_owner(), commands.has_permissions(administrator=True))
 
 
-def in_server():
-	def predicate(ctx: commands.Context):
-		if ctx.guild is None:
-			raise NotInServerCheck("Now how exactly did the bot get here?")
-
-		return True
-
-	return commands.check(predicate)
-
-
 def in_set_channel():
 	async def predicate(ctx: commands.Context):
 		s_id = gets.get_server(ctx).id
@@ -73,6 +63,21 @@ def has_profile():
 		has_profile = player_queries.check_player_exists(ctx.author.id, ctx.guild.id)
 		if not has_profile:
 			raise ProfileSetupCheck("You don't have a profile set up yet! Use `>encounter` to get you set up!")
+
+		return True
+
+	return commands.check(predicate)
+
+
+def has_server_profile():
+	async def predicate(ctx: commands.Context):
+		if ctx.guild is None:
+			raise RuntimeError("ERROR: Server ID could not be determined.")
+
+		has_serv_profile = server_queries.check_server_exists(ctx.guild.id)
+
+		if not has_serv_profile:
+			server_queries.update_server_in_db(ctx.guild.id)
 
 		return True
 
