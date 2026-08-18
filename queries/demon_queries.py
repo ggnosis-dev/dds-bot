@@ -81,6 +81,7 @@ def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> Demon
 	"""
 	Retrieve a random demon's data that is not currently in the player's party, from the database.
 	Range is between 1 and rank + 10.
+	Used exclusively for fusion accidents.
 	"""
 	rank += 10
 
@@ -120,12 +121,13 @@ async def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonD
 		"""
 			SELECT * FROM demons
 			WHERE prevent_spawn = 0
+				AND rank <= ?
 			-- Order by proximity to rank. Then if a tie exists, order by random.
 			ORDER BY ABS(rank - ?), RANDOM()
 			-- Retrieve the top result.
 			LIMIT 1
 		""",
-		(rank,),
+		(max_rank, rank),
 	)
 
 	if not row:
