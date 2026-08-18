@@ -1,10 +1,10 @@
 services:
   instance:
-    build: 
+    build:
       .
     env_file:
       - .env
     volumes:
-      - ./data:/app/data
+      - ./databases:/app/databases
     restart:
       unless-stopped
