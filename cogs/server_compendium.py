@@ -87,8 +87,8 @@ class ServerCompendium(commands.Cog):
 			f" to **{server.name}'s Compendium**?\n\n"
 			f"-# You will not be able to use the demon again until they are retrieved.",
 			exclusive_to=player.id,
-			confirmLabel="Yes",
-			denyLabel="No",
+			confirm_label="Yes",
+			deny_label="No",
 			thumbnail=design_data.profile_url,
 			colour=design_data.colour,
 		)
@@ -122,8 +122,8 @@ class ServerCompendium(commands.Cog):
 				"\n-# Do you wish to replace it? The demon will be returned to its owner."
 				f"\n\n-# You will not be able to use the demon again until they are retrieved.",
 				exclusive_to=player.id,
-				confirmLabel="Replace",
-				denyLabel="Cancel",
+				confirm_label="Replace",
+				deny_label="Cancel",
 				thumbnail=design_data.profile_url,
 				colour=design_data.colour,
 			)
@@ -222,8 +222,8 @@ class ServerCompendium(commands.Cog):
 				f"Are you sure you want to retrieve **{demon.race} {demon.name}** (Rank {stored_demon.stored_rank}) "
 				f"from **{server.name}'s Compendium**?",
 				exclusive_to=player.id,
-				confirmLabel="Yes",
-				denyLabel="No",
+				confirm_label="Yes",
+				deny_label="No",
 				colour=demon.design_data.colour,
 			)
 			result = await ConfirmationView.send_message(view, ctx)

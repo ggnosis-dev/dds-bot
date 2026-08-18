@@ -88,8 +88,8 @@ class PartyCommands(commands.Cog):
 		view = ConfirmationView(
 			f"Are you sure you want to release **{demon_name}**?",
 			exclusive_to=player_id,
-			confirmLabel="Yes",
-			denyLabel="No",
+			confirm_label="Yes",
+			deny_label="No",
 		)
 		result = await ConfirmationView.send_message(view, ctx)
 
@@ -135,8 +135,8 @@ class PartyCommands(commands.Cog):
 				"\n-# Cost increases by **500 MAG** per slot."
 			),
 			exclusive_to=p.player_id,
-			confirmLabel="Yes",
-			denyLabel="No",
+			confirm_label="Yes",
+			deny_label="No",
 		)
 		result = await ConfirmationView.send_message(view, ctx)
 		if result is False or result is None:

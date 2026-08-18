@@ -40,10 +40,10 @@ class ConfirmationView(discord.ui.LayoutView):
 		self,
 		message: str,
 		exclusive_to: int,
-		confirmLabel: str = "Confirm",
-		denyLabel: str = "Deny",
-		confirmColour: discord.ButtonStyle = discord.ButtonStyle.success,
-		denyColour: discord.ButtonStyle = discord.ButtonStyle.danger,
+		confirm_label: str = "Confirm",
+		deny_label: str = "Deny",
+		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
+		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
 		thumbnail: str | None = None,
 		colour: int = 0xE93700,
 		timeout: float = 20.0,
@@ -52,13 +52,13 @@ class ConfirmationView(discord.ui.LayoutView):
 
 		self.message = message
 		self.exclusive_to = exclusive_to
-		self.confirmLabel = confirmLabel
-		self.denyLabel = denyLabel
-		self.confirmColour = confirmColour
-		self.denyColour = denyColour
+		self.confirm_label = confirm_label
+		self.deny_label = deny_label
+		self.confirm_colour = confirm_colour
+		self.deny_colour = deny_colour
 		self.thumbnail = thumbnail
 		self.colour = colour
-		self.timedOut: bool = False
+		self.timed_out: bool = False
 		self.confirmed: bool | None = None
 		self.msg = None
 
@@ -80,13 +80,13 @@ class ConfirmationView(discord.ui.LayoutView):
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		action_row = ui.ActionRow(
-			self.ConfirmButton(self.confirmLabel, True, self.confirmColour),
-			self.ConfirmButton(self.denyLabel, False, self.denyColour),
+			self.ConfirmButton(self.confirm_label, True, self.confirm_colour),
+			self.ConfirmButton(self.deny_label, False, self.deny_colour),
 		)
 
 		container.add_item(action_row)
 
-		if self.timedOut:
+		if self.timed_out:
 			container.add_item(ui.TextDisplay("-# Timed Out"))
 
 		self.add_item(container)
@@ -97,7 +97,7 @@ class ConfirmationView(discord.ui.LayoutView):
 
 	async def on_timeout(self) -> None:
 		self.confirmed = None
-		self.timedOut = True
+		self.timed_out = True
 		self._event.set()
 
 		self.clear_items()

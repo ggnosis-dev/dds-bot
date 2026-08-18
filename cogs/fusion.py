@@ -94,8 +94,8 @@ class Fusion(commands.Cog):
 			f"{ing_text}"
 			f"\n\nComplete the ritual?",
 			exclusive_to=player_id,
-			confirmLabel="Summon",
-			confirmColour=discord.ButtonStyle.primary,
+			confirm_label="Summon",
+			confirm_colour=discord.ButtonStyle.primary,
 			thumbnail=demon.design_data.profile_url,
 		)
 		result = await ConfirmationView.send_message(view, interaction)
