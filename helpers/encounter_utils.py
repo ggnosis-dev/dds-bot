@@ -57,7 +57,7 @@ async def join_player_party(
 	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
 
 	# Check if party's strongest member is TOO_WEAK.
-	if party_stats.strongest < demon.rank + TOO_WEAK_LEEWAY:
+	if party_stats.strongest < demon.rank - TOO_WEAK_LEEWAY:
 		new_entry = DemonRegistration.TOO_WEAK
 
 	# Check if party has space after the TOO_WEAK check. If it doesn't, assign PARTY_FULL.

@@ -339,12 +339,13 @@ async def get_party_stats(player_id: int, server_id: int) -> PartyStats:
 
 
 async def get_strongest_party_demon_rank(player_id: int, server_id: int) -> int:
+	# Because we're doing MAX, we will always get a valid response object.
 	response = query_one(
 		"""
 			SELECT MAX(stored_rank) FROM player_demons
 			WHERE player_id = ? AND server_id = ? AND in_party = 1
 		""",
 		(player_id, server_id),
-	)
+	)[0]
 
-	return response[0] if response else 1
+	return response if response is not None else 1
