@@ -84,7 +84,10 @@ class Compendium(commands.Cog):
 			return
 
 		# Send a confirmation view with the cost.
-		view = ConfirmationView(f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?")
+		view = ConfirmationView(
+			f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?",
+			player_id,
+		)
 		result = await ConfirmationView.send_message(view, ctx)
 
 		if result is False or result is None:

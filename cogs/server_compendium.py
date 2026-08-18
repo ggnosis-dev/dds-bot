@@ -86,6 +86,7 @@ class ServerCompendium(commands.Cog):
 			f"Do you wish to loan your **{player_demon.race} {player_demon.name}** (Rank **{player_demon.stored_rank}**)"
 			f" to **{server.name}'s Compendium**?\n\n"
 			f"-# You will not be able to use the demon again until they are retrieved.",
+			exclusive_to=player.id,
 			confirmLabel="Yes",
 			denyLabel="No",
 			thumbnail=design_data.profile_url,
@@ -120,6 +121,7 @@ class ServerCompendium(commands.Cog):
 				f"\nYour {player_demon.name} is stronger ({player_demon.stored_rank} to {stored_demon.stored_rank})."
 				"\n-# Do you wish to replace it? The demon will be returned to its owner."
 				f"\n\n-# You will not be able to use the demon again until they are retrieved.",
+				exclusive_to=player.id,
 				confirmLabel="Replace",
 				denyLabel="Cancel",
 				thumbnail=design_data.profile_url,
@@ -219,6 +221,7 @@ class ServerCompendium(commands.Cog):
 			view = ConfirmationView(
 				f"Are you sure you want to retrieve **{demon.race} {demon.name}** (Rank {stored_demon.stored_rank}) "
 				f"from **{server.name}'s Compendium**?",
+				exclusive_to=player.id,
 				confirmLabel="Yes",
 				denyLabel="No",
 				colour=demon.design_data.colour,

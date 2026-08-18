@@ -93,6 +93,7 @@ class Fusion(commands.Cog):
 			f"In order to summon **{demon.race} {demon.name}**, the following must be sacrificed:"
 			f"{ing_text}"
 			f"\n\nComplete the ritual?",
+			exclusive_to=player_id,
 			confirmLabel="Summon",
 			confirmColour=discord.ButtonStyle.primary,
 			thumbnail=demon.design_data.profile_url,
@@ -223,7 +224,10 @@ class Fusion(commands.Cog):
 			return
 
 		# Send a confirmation view.
-		view = ConfirmationView(f"Fusing these demons together will cost **{cost}** MAG. Do you wish to continue?")
+		view = ConfirmationView(
+			f"Fusing these demons together will cost **{cost}** MAG. Do you wish to continue?",
+			player.id,
+		)
 		result = await ConfirmationView.send_message(view, ctx)
 
 		if result is False or result is None:

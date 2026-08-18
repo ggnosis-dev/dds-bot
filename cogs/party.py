@@ -44,7 +44,7 @@ class PartyCommands(commands.Cog):
 			player = mentioned if mentioned is not None else player
 
 			party_list, party_stats, sd_id = await asyncio.gather(
-				player_demons_queries.check_party(player.id, server.id, columns),
+				player_demons_queries.check_party(player.id, server.id),
 				player_demons_queries.get_party_stats(player.id, server.id),
 				player_demons_queries.get_selected_demon_id(player.id, server.id),
 			)
@@ -85,7 +85,12 @@ class PartyCommands(commands.Cog):
 			return
 
 		# Send a confirmation view.
-		view = ConfirmationView(f"Are you sure you want to release **{demon_name}**?", confirmLabel="Yes", denyLabel="No")
+		view = ConfirmationView(
+			f"Are you sure you want to release **{demon_name}**?",
+			exclusive_to=player_id,
+			confirmLabel="Yes",
+			denyLabel="No",
+		)
 		result = await ConfirmationView.send_message(view, ctx)
 
 		if result is False or result is None:
@@ -129,6 +134,7 @@ class PartyCommands(commands.Cog):
 				f"\n\nCost: **{cost} MAG**"
 				"\n-# Cost increases by **500 MAG** per slot."
 			),
+			exclusive_to=p.player_id,
 			confirmLabel="Yes",
 			denyLabel="No",
 		)

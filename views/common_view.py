@@ -39,6 +39,7 @@ class ConfirmationView(discord.ui.LayoutView):
 	def __init__(
 		self,
 		message: str,
+		exclusive_to: int,
 		confirmLabel: str = "Confirm",
 		denyLabel: str = "Deny",
 		confirmColour: discord.ButtonStyle = discord.ButtonStyle.success,
@@ -50,6 +51,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		super().__init__(timeout=timeout)
 
 		self.message = message
+		self.exclusive_to = exclusive_to
 		self.confirmLabel = confirmLabel
 		self.denyLabel = denyLabel
 		self.confirmColour = confirmColour
@@ -106,6 +108,7 @@ class ConfirmationView(discord.ui.LayoutView):
 			await self.msg.edit(view=self)
 
 	async def send_message(self, ctx: commands.Context | discord.Interaction) -> bool | None:
+		"""Send the message and begin a wait for response timer."""
 		if type(ctx) is commands.Context:
 			msg = await ctx.send(view=self)
 		elif type(ctx) is discord.Interaction:
@@ -135,6 +138,10 @@ class ConfirmationView(discord.ui.LayoutView):
 
 		async def callback(self, interaction: discord.Interaction) -> None:
 			view = cast(ConfirmationView, self.view)
+
+			if view.exclusive_to is not interaction.user.id:
+				return
+
 			view.confirmed = self.value
 			view._event.set()
 			view.stop()
