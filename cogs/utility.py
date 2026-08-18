@@ -129,16 +129,16 @@ class Utility(commands.Cog):
 		if channel is None:
 			channel_id = await server_queries.get_dedicated_channel(server_id)
 
-			view = (
-				MessageView(
+			if channel_id:
+				view = MessageView(
 					f"Encounters will only appear in <#{channel_id}>."
 					" You can update this by using `>set_channel {channel_name}`."
 				)
-				if channel_id
-				else MessageView(
+			else:
+				view = MessageView(
 					"Encounters can appear anywhere. Use `>set_channel {channel_name}` to set a dedicated channel."
 				)
-			)
+
 			await ctx.send(view=view)
 			return
 
