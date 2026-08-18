@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 DAILY_COOLDOWN = 43200 * 2
-ENCOUNTER_WINDOW_HOURS = 3
+ENCOUNTER_WINDOW_HOURS = 1
 
 
 @dataclass
