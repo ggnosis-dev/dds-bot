@@ -7,8 +7,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# TESTS:
-	cursor.execute("DROP TABLE IF EXISTS players")
-	cursor.execute("DROP TABLE IF EXISTS player_demons")
+	# cursor.execute("DROP TABLE IF EXISTS players")
+	# cursor.execute("DROP TABLE IF EXISTS player_demons")
 	# cursor.execute("DROP TABLE IF EXISTS player_gems")
 	# cursor.execute("DROP TABLE IF EXISTS player_items")
 
@@ -19,7 +19,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			selected_demon_id	INTEGER DEFAULT 1,
 			mag 				INTEGER DEFAULT 0,
 			party_size			INTEGER DEFAULT 0,
-			party_cap			INTEGER DEFAULT 10,
+			party_cap			INTEGER DEFAULT 5,
 			party_average_rank	INTEGER DEFAULT 0,
 			daily_timer			INTEGER DEFAULT 0,
 			encounter_timer		INTEGER DEFAULT 0,
