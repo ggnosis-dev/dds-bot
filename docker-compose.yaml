@@ -1,5 +1,5 @@
 services:
-  bot:
+  instance:
     build: 
       .
     env_file:
