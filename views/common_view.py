@@ -139,7 +139,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		async def callback(self, interaction: discord.Interaction) -> None:
 			view = cast(ConfirmationView, self.view)
 
-			if view.exclusive_to is not interaction.user.id:
+			if view.exclusive_to != interaction.user.id:
 				return
 
 			view.confirmed = self.value

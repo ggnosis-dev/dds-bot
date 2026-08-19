@@ -117,7 +117,8 @@ class PartyCommands(commands.Cog):
 		except Exception as e:
 			raise RuntimeError(f"ERROR: party.py | increase_party_command | {e}")
 
-	async def _increase_party_slots_check(self, ctx, p: PlayerData, number: int) -> None:
+	async def _increase_party_slots_check(self, ctx: commands.Context, p: PlayerData, number: int) -> None:
+
 		party_cap = p.party_stats.cap
 		cost = party_slot_cost(party_cap, number)
 
@@ -134,7 +135,7 @@ class PartyCommands(commands.Cog):
 				f"\n\nCost: **{cost} MAG**"
 				"\n-# Cost increases by **500 MAG** per slot."
 			),
-			exclusive_to=p.player_id,
+			p.player_id,
 			confirm_label="Yes",
 			deny_label="No",
 		)
