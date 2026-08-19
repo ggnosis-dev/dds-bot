@@ -16,7 +16,7 @@ def daily_mag() -> int:
 def party_slot_cost(current_cap: int, number: int) -> int:
 	unit = 500
 	example = range(current_cap, current_cap + number)
-	cost = unit * (current_cap - 10)
+	cost = unit * (current_cap - 5)
 
 	for _ in example:
 		cost += unit
