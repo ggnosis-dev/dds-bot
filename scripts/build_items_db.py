@@ -31,7 +31,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
 	# Delete existing item table in case changes to general structure.
-	cursor.execute("DROP TABLE IF EXISTS items")
+	# cursor.execute("DROP TABLE IF EXISTS items")
 
 	# Create item table.
 	cursor.execute("""
@@ -49,7 +49,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# Insert item data.
 	cursor.executemany(
 		"""
-			INSERT INTO items (name, type, description, emote, exclusive_to, cost)
+			INSERT OR IGNORE INTO items (name, type, description, emote, exclusive_to, cost)
 			VALUES (?, ?, ?, ?, ?, ?)
 		""",
 		item_data,

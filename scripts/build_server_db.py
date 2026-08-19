@@ -5,9 +5,9 @@ from database_paths import PLAYERS_DB_PATH
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
-	cursor.execute("DROP TABLE IF EXISTS servers")
-	cursor.execute("DROP TABLE IF EXISTS server_demons")
-	cursor.execute("DROP TABLE IF EXISTS server_unlocks")
+	# cursor.execute("DROP TABLE IF EXISTS servers")
+	# cursor.execute("DROP TABLE IF EXISTS server_demons")
+	# cursor.execute("DROP TABLE IF EXISTS server_unlocks")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS servers (

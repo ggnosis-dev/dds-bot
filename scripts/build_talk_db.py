@@ -62,10 +62,10 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	conn.execute("PRAGMA foreign_keys = ON")
 	cursor = conn.cursor()
 
-	cursor.execute("DROP TABLE IF EXISTS talk_reactions")
-	cursor.execute("DROP TABLE IF EXISTS talk_answers")
-	cursor.execute("DROP TABLE IF EXISTS talk_question_tones")
-	cursor.execute("DROP TABLE IF EXISTS talk_questions")
+	# cursor.execute("DROP TABLE IF EXISTS talk_reactions")
+	# cursor.execute("DROP TABLE IF EXISTS talk_answers")
+	# cursor.execute("DROP TABLE IF EXISTS talk_question_tones")
+	# cursor.execute("DROP TABLE IF EXISTS talk_questions")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS talk_questions (

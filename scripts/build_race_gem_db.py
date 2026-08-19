@@ -18,7 +18,7 @@ for entry in data:
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
-	cursor.execute("DROP TABLE IF EXISTS race_gems")
+	# cursor.execute("DROP TABLE IF EXISTS race_gems")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS race_gems (
