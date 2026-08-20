@@ -50,9 +50,9 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | 
 	query_write(
 		"""
 			UPDATE player_demons SET gem_meter = gem_meter + ?
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
-		(increment, player_id, server_id),
+		(increment, player_id, server_id, demon_id),
 	)
 
 	meter_val = get_gem_progress(player_id, server_id, demon_id)
@@ -73,8 +73,9 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | 
 		query_write(
 			"""
 				UPDATE player_demons SET gem_meter = gem_meter - ?
+				WHERE player_id = ? AND server_id = ? AND demon_id = ?
 			""",
-			(GEM_METER_FULL,),
+			(GEM_METER_FULL, player_id, server_id, demon_id),
 		)
 
 		return gem_name
