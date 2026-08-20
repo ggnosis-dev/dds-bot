@@ -51,6 +51,13 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		"""
 			INSERT OR IGNORE INTO items (name, type, description, emote, exclusive_to, cost)
 			VALUES (?, ?, ?, ?, ?, ?)
+			ON CONFLICT(race, name) DO UPDATE SET
+				name = excluded.name,
+				type = excluded.type,
+				description = excluded.description,
+				emote = excluded.emote,
+				exclusive_to = excluded.exclusive_to,
+				cost = excluded.cost
 		""",
 		item_data,
 	)
