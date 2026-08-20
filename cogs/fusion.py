@@ -62,7 +62,7 @@ class Fusion(commands.Cog):
 		# Check if demon already exists in party.
 		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 
-		if in_party == DemonRegistration.IN_PARTY:
+		if in_party == DemonRegistration.IN_PARTY or in_party == DemonRegistration.ON_LOAN:
 			msg = MessageView(f"You already have **{demon.name}** in your party...")
 			await interaction.response.send_message(view=msg)
 			return
@@ -79,10 +79,17 @@ class Fusion(commands.Cog):
 
 		# CHeck if demon ingredients are in party.
 		for i in ingredients:
-			in_party = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
+			ing_in_party = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
 
-			if in_party != DemonRegistration.IN_PARTY:
-				msg = MessageView(f"You do not have a **{i.name}** in your party...")
+			if ing_in_party == DemonRegistration.ON_LOAN:
+				msg = MessageView(
+					f"**{i.race} {i.name}** is currently being loaned to the Server Compendium and can't be fused..."
+				)
+				await interaction.response.send_message(view=msg)
+				return
+
+			if ing_in_party != DemonRegistration.IN_PARTY:
+				msg = MessageView(f"You do not have a **{i.race} {i.name}** in your party...")
 				await interaction.response.send_message(view=msg)
 				return
 

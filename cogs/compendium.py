@@ -78,7 +78,7 @@ class Compendium(commands.Cog):
 			await ctx.send(view=msg)
 			return
 
-		if in_comp == DemonRegistration.IN_PARTY:
+		if in_comp == DemonRegistration.IN_PARTY or in_comp == DemonRegistration.ON_LOAN:
 			msg = MessageView(f"You already have **{demon_name}** in your party...")
 			await ctx.send(view=msg)
 			return

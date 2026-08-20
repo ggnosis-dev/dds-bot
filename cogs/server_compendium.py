@@ -70,13 +70,18 @@ class ServerCompendium(commands.Cog):
 			return
 
 		# Check if demon is in party.
-		player_demon, in_party, design_data = await asyncio.gather(
+		player_demon, registration_status, design_data = await asyncio.gather(
 			player_demons_queries.get_player_demon_by_id(player.id, server.id, demon_id),
 			player_demons_queries.check_demon_registration(player.id, server.id, demon_id),
 			demon_queries.get_design_data(demon_id),
 		)
 
-		if player_demon is None or in_party != DemonRegistration.IN_PARTY:
+		if registration_status == DemonRegistration.ON_LOAN:
+			msg = MessageView(f"**{demon_name}** is already being loaned...")
+			await ctx.send(view=msg)
+			return
+
+		if player_demon is None or registration_status != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"**{demon_name}** was not found in your party...")
 			await ctx.send(view=msg)
 			return

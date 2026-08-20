@@ -87,7 +87,7 @@ async def join_player_party(
 				player_demons_queries.update_party_average(player.id, server_id),
 			)
 
-		case DemonRegistration.IN_PARTY:
+		case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.9
@@ -115,21 +115,26 @@ async def join_player_party(
 
 def _get_status_message(new_entry, demon, user_name, mag_received, gems_added, gem_name) -> str:
 	match new_entry:
+		# Brand new demon.
 		case DemonRegistration.UNREGISTERED:
 			status = f"> {demon.race} {demon.name} was registered to {user_name}'s compendium! +{mag_received} MAG"
 
+		# Demon will join the party but has already been registered before.
 		case DemonRegistration.IN_COMP:
 			status = f"> {demon.race} {demon.name} has joined {user_name}'s party! +{mag_received} MAG"
 
-		case DemonRegistration.IN_PARTY:
+		# Demon already in the party.
+		case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
 			status = f"> {demon.race} {demon.name} gifted {user_name} {gems_added} {gem_name.title()}! +{mag_received} MAG"
 
+		# Party had too many demons already.
 		case DemonRegistration.PARTY_FULL:
 			status = (
 				f"> {demon.race} {demon.name} could not join {user_name}. Party was full!"
 				f" +{gems_added} {gem_name.title()}! +{mag_received} MAG"
 			)
 
+		# Player was too weak to control the demon.
 		case DemonRegistration.TOO_WEAK | _:
 			status = f"> {demon.race} {demon.name} did not join {user_name}. They were too weak! +{mag_received} MAG"
 

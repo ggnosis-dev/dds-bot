@@ -61,11 +61,13 @@ class InventoryCommands(commands.Cog):
 				await ctx.send("You don't have a demon selected. Use `>select` to choose a demon first.")
 				return
 
-		# Check if in player's party.
-		if (
-			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
-			!= DemonRegistration.IN_PARTY
-		):
+		registration_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+
+		if registration_status == DemonRegistration.ON_LOAN:
+			await ctx.send(f"**{demon_name}** is currently being loaned to the Server Compendium and can't use items...")
+			return
+
+		if registration_status != DemonRegistration.IN_PARTY:
 			await ctx.send(f"A **{demon_name}** was not found in your party...")
 			return
 

@@ -79,6 +79,13 @@ class PartyCommands(commands.Cog):
 		# Check if demon is in party.
 		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 
+		if in_party != DemonRegistration.ON_LOAN:
+			msg = MessageView(
+				f"**{demon_name}** is currently being loaned to the Server Compendium and can't be released..."
+			)
+			await ctx.send(view=msg)
+			return
+
 		if in_party != DemonRegistration.IN_PARTY:
 			msg = MessageView(f"A **{demon_name}** was not found in your party...")
 			await ctx.send(view=msg)
