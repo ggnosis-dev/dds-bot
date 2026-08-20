@@ -126,6 +126,16 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			r_type = reaction_data.response_type
 			r_text = reaction_data.response
 
+			# Check the root's count.
+			if self._root_view.count <= 0:
+				await interaction.response.defer()
+				missed_encounter_view = MessageView(
+					"All of the available demons have left...",
+					colour=self.demon.design_data.colour,
+				)
+				await interaction.followup.send(view=missed_encounter_view, ephemeral=True)
+				return
+
 			match r_type:
 				case ResponseType.GOOD:
 					# Send ephemeral message that demon will join, edit the footer.
@@ -177,15 +187,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		# For followup encounters, keep track of the parent view.
 		parent_view = self._root_view
-
-		# All demons available have been interacted with.
-		if self.count == 0:
-			missed_encounter_view = MessageView(
-				"All of the available demons have left...",
-				colour=self.demon.design_data.colour,
-			)
-			await interaction.followup.send(view=missed_encounter_view, ephemeral=True)
-			return
 
 		followup_view = EncounterViewFollowup(
 			self.demon,
