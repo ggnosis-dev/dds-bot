@@ -125,19 +125,6 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 	return DemonRegistration.IN_COMP
 
 
-async def check_demon_on_loan(player_id: int, server_id: int, demon_id: int) -> bool:
-	# on_loan returns either 0 or 1.
-	response = query_one(
-		"""
-			SELECT on_loan FROM player_demons
-			WHERE player_id = ? AND server_id = ? AND demon_id = ?
-		""",
-		(player_id, server_id, demon_id),
-	)
-
-	return True if response[0] else False
-
-
 async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonEntry]:
 	"""
 	Query the database for the player's current party. Joins the player_demons table with the demon database.
