@@ -170,28 +170,25 @@ class LeaderCommands(commands.Cog):
 			await ctx.send(f"A **{demon_name}** is not in your party...")
 			return
 
-		# Check if demon is loaned at the moment.
-		is_loaned = await player_demons_queries.check_demon_on_loan(player_id, server_id, demon_id)
+		registration_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 
-		if is_loaned:
-			msg = MessageView(f"**{demon_name}** is currently away and can't be loaned...")
-			await ctx.send(view=msg)
-			return
+		match registration_status:
+			case DemonRegistration.ON_LOAN:
+				view = MessageView(
+					f"**{demon_name}** is currently being loaned to the Server Compendium and can't be selected..."
+				)
 
-		# Check if in player's party.
-		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+			case DemonRegistration.IN_COMP | DemonRegistration.UNREGISTERED:
+				view = MessageView(f"**{demon_name}** is not in your party...")
 
-		if in_party != DemonRegistration.IN_PARTY:
-			await ctx.send(f"A **{demon_name}** is not in your party...")
-			return
+			case _:
+				dd = await demon_queries.get_design_data(demon_id)
+				view = MessageView(
+					f"**{demon_name}** has been selected to lead your party!", thumbnail=dd.profile_url, colour=dd.colour
+				)
 
 		player_demons_queries.set_selected_demon(player_id, server_id, demon_id)
-
-		dd = await demon_queries.get_design_data(demon_id)
-		msg = MessageView(
-			f"**{demon_name}** has been selected to lead your party!", thumbnail=dd.profile_url, colour=dd.colour
-		)
-		await ctx.send(view=msg)
+		await ctx.send(view=view)
 		return
 
 	@checks.has_profile()

@@ -101,11 +101,11 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 	Check a demon's current state of registration for a specific player.
 
 	Returns:
-		DemonRegistration: Enum indicating the demon's registration status. IN_PARTY, IN_COMP, UNREGISTERED.
+		DemonRegistration: Enum indicating the demon's registration status. IN_PARTY, IN_COMP, ON_LOAN, UNREGISTERED.
 	"""
 	response = query_one(
 		"""
-			SELECT in_party FROM player_demons
+			SELECT in_party, on_loan FROM player_demons
 			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
 		(user_id, server_id, demon_id),
@@ -114,13 +114,15 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 	if response is None:
 		return DemonRegistration.UNREGISTERED
 
-	match response[0]:
-		case 0:
-			return DemonRegistration.IN_COMP
-		case 1:
-			return DemonRegistration.IN_PARTY
-		case _:
-			return DemonRegistration.UNREGISTERED
+	in_party = response[0]
+	on_loan = response[1]
+
+	if on_loan:
+		return DemonRegistration.ON_LOAN
+
+	if in_party:
+		return DemonRegistration.IN_PARTY
+	return DemonRegistration.IN_COMP
 
 
 async def check_demon_on_loan(player_id: int, server_id: int, demon_id: int) -> bool:

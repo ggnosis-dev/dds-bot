@@ -123,6 +123,7 @@ class Fusion(commands.Cog):
 		server: discord.Guild,
 		parts: list[str] | None = None,
 	):
+		# Check parts are valid.
 		if not parts or len(parts) <= 1:
 			view = MessageView("Select the demons you wish to fuse by using `>fuse {demon 1}; {demon 2}`.")
 			await ctx.send(view=view)
@@ -145,16 +146,24 @@ class Fusion(commands.Cog):
 		# Check if in party.
 		for d in demon_1, demon_2:
 			registration_status = await player_demons_queries.check_demon_registration(player.id, server.id, d.id)
+			view = None
 
-			if registration_status == DemonRegistration.UNREGISTERED:
-				view = MessageView(
-					"The demons entered for fusion could not be found. You may be yet to register them to your Compendium."
-				)
-				await ctx.send(view=view)
-				return
+			match registration_status:
+				case DemonRegistration.UNREGISTERED:
+					view = MessageView(
+						"The demons entered for fusion could not be found."
+						" You may be yet to register them to your Compendium."
+					)
 
-			elif registration_status != DemonRegistration.IN_PARTY:
-				view = MessageView(f"The demon {d.name} is not in your party.")
+				case DemonRegistration.IN_COMP:
+					view = MessageView(f"**{d.race} {d.name}** is not in your party.")
+
+				case DemonRegistration.ON_LOAN:
+					view = MessageView(
+						f"**{d.race} {d.name}** is currently being loaned to the Server Compendium and can't be fused..."
+					)
+
+			if view is not None:
 				await ctx.send(view=view)
 				return
 
@@ -162,8 +171,8 @@ class Fusion(commands.Cog):
 
 			if d.id == leader_id:
 				view = MessageView(
-					f"The demon {d.name} is currently set as leader."
-					" Use `>select {{demon}}` to change your leader before fusing."
+					f"**{d.race} {d.name}** is currently set as your leader."
+					" Use `>select {demon}` to change your leader before fusing."
 				)
 				await ctx.send(view=view)
 				return

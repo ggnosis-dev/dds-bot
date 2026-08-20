@@ -30,9 +30,10 @@ class Personality(Enum):
 class DemonRegistration(Enum):
 	IN_PARTY = 0
 	IN_COMP = 1
-	UNREGISTERED = 2
-	PARTY_FULL = 3
-	TOO_WEAK = 4
+	ON_LOAN = 2
+	UNREGISTERED = 3
+	PARTY_FULL = 4
+	TOO_WEAK = 5
 
 
 class ResponseType(Enum):
