@@ -63,7 +63,7 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | 
 		query_write(
 			"""
 				UPDATE player_gems
-				quantity = quantity + 1
+				SET quantity = quantity + 1
 				WHERE player_id = ? AND server_id = ? AND gem_name = ?
 			""",
 			(player_id, server_id, gem_name),
