@@ -1,6 +1,6 @@
 from entities.item_data import ItemEntry
 from helpers.db import query_all, query_one, query_write
-from queries.player_demons_queries import get_player_demon_rank
+from queries import player_demons_queries
 from shared_enums import Emotes
 
 GEM_EXP_MULTIPLIER = 1
@@ -33,7 +33,7 @@ async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> b
 	"""
 
 	# Get player's stored rank for demon.
-	stored_rank = await get_player_demon_rank(player_id, server_id, demon_id)
+	stored_rank = await player_demons_queries.get_player_demon_rank(player_id, server_id, demon_id)
 	increment = stored_rank * GEM_EXP_MULTIPLIER
 
 	# Increase meter value.
