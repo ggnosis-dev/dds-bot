@@ -1,5 +1,6 @@
 from entities.item_data import ItemEntry
 from helpers.db import query_all, query_one, query_write
+from queries.player_demons_queries import get_player_demon_rank
 from shared_enums import Emotes
 
 GEM_EXP_MULTIPLIER = 1
@@ -19,37 +20,27 @@ def get_possible_gems(race: str) -> tuple:
 	return tuple(g[0] for g in gem_names)
 
 
-async def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | None:
+async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> bool:
 	"""
-	Add to player's gem meter and add a gem to their count if over a threshold.
-	Return whether a gem has been found.
+	Add to player's gem meter and if they're over the threshold for finding a new gem, then return True.
 
 	Args:
 		player_id (int): Player ID.
 		server_id (int): Server ID the player belongs to.
 		demon_id (int): Player's selected demon ID to determine which gem meter to increase.
 	Returns:
-		bool: True if gem was found, False otherwise.
+		bool: True if meter was full, False otherwise.
 	"""
 
-	# Get gem type and the player's stored rank for demon.
-	gem_name, stored_rank = query_one(
-		"""
-			SELECT rg.gem_name, pd.stored_rank FROM demons d
-			JOIN player_demons pd ON pd.demon_id = d.id
-			JOIN race_gems rg ON d.race = rg.race
-			WHERE d.id = ?
-			ORDER BY RANDOM() LIMIT 1
-		""",
-		(demon_id,),
-	)
-
+	# Get player's stored rank for demon.
+	stored_rank = await get_player_demon_rank(player_id, server_id, demon_id)
 	increment = stored_rank * GEM_EXP_MULTIPLIER
 
 	# Increase meter value.
 	query_write(
 		"""
-			UPDATE player_demons SET gem_meter = gem_meter + ?
+			UPDATE player_demons
+			SET gem_meter = gem_meter + ?
 			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
 		(increment, player_id, server_id, demon_id),
@@ -57,32 +48,23 @@ async def increase_gems(player_id: int, server_id: int, demon_id: int) -> str | 
 
 	meter_val = get_gem_progress(player_id, server_id, demon_id)
 
-	# Add gem to count and reset meter if gem found.
+	# Reset meter if gem found.
 	if meter_val >= GEM_METER_FULL:
-		# Add a gem to the player's count.
-		query_write(
-			"""
-				UPDATE player_gems
-				SET quantity = quantity + 1
-				WHERE player_id = ? AND server_id = ? AND gem_name = ?
-			""",
-			(player_id, server_id, gem_name),
-		)
-
 		# Remove a full meter worth of XP from the gem meter.
 		query_write(
 			"""
-				UPDATE player_demons SET gem_meter = gem_meter - ?
+				UPDATE player_demons
+				SET gem_meter = gem_meter - ?
 				WHERE player_id = ? AND server_id = ? AND demon_id = ?
 			""",
 			(GEM_METER_FULL, player_id, server_id, demon_id),
 		)
 
-		return gem_name
-	return None
+		return True
+	return False
 
 
-async def add_gem(player_id: int, server_id: int, race: str, number: int) -> str:
+async def add_gem(player_id: int, server_id: int, race: str, number: int = 1) -> str:
 	# Get gem type.
 	gem_name = query_one(
 		"""

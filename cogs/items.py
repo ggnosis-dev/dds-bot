@@ -1,3 +1,5 @@
+import asyncio
+
 from typing import cast
 
 import discord
@@ -124,22 +126,26 @@ class GemCommands(commands.Cog):
 				return
 
 			# Increase exp towards finding a gem.
-			gem_found = await gem_queries.increase_gems(player_id, server_id, selected_demon_id)
+			gem_found = await gem_queries.increase_gem_meter(player_id, server_id, selected_demon_id)
 
 			if gem_found:
 				d = cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
+
+				new_gem, set_channel = asyncio.gather(
+					gem_queries.add_gem(player_id, server_id, d.race),
+					server_queries.get_dedicated_channel(server_id),
+				)
+
+				send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
+
 				view = MessageView(
-					f"{message.author.mention}, your **{d.name}** has found a **{gem_found.title()}**!",
+					f"{message.author.mention}, your **{d.name}** has found a **{new_gem.title()}**!",
 					d.design_data.profile_url,
 					d.design_data.colour,
 				)
-
-				set_channel = await server_queries.get_dedicated_channel(server_id)
-				send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
-
 				await send_to_channel.send(view=view)
 		except Exception as e:
-			print(f"ERROR: gems.py | on_message | {e}")
+			raise RuntimeError(f"ERROR: gems.py | on_message | {e}")
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
