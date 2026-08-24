@@ -10,6 +10,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# cursor.execute("DROP TABLE IF EXISTS player_demons")
 	# cursor.execute("DROP TABLE IF EXISTS player_gems")
 	# cursor.execute("DROP TABLE IF EXISTS player_items")
+	# cursor.execute("DROP TABLE IF EXISTS player_race_stats")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS players (
@@ -37,9 +38,22 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			in_party		INTEGER CHECK (in_party IN (0, 1)) 	NOT NULL,
 			on_loan			INTEGER CHECK (on_loan IN (0, 1)) 	DEFAULT 0,
 			gem_meter		INTEGER DEFAULT 0,
+			dupes			INTEGER DEFAULT 0,
+			colour 			INTEGER DEFAULT NULL,
+			greeting		TEXT DEFAULT NULL,
 			-- The same player ID could be on a different server ID with the same demon ID.
 			PRIMARY KEY (player_id, server_id, demon_id)
 			FOREIGN KEY (demon_id) REFERENCES demons (id)
+		)
+	""")
+
+	cursor.execute("""
+		CREATE TABLE IF NOT EXISTS player_race_stats (
+			player_id 		INTEGER NOT NULL,
+			server_id 		INTEGER NOT NULL,
+			race_id			INTEGER NOT NULL,
+			mag_bonus		FLOAT NOT NULL,
+			UNIQUE (player_id, server_id, race_id)
 		)
 	""")
 
