@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 
 
 class Emotes(Enum):
@@ -92,3 +92,22 @@ class Tone(Enum):
 	BEAST = 10
 	WISE = 11
 	DIVINE = 12
+
+
+class Race(Enum):
+	AVIAN = auto()
+	BEAST = auto()
+	DIVINE = auto()
+	ELEMENT = auto()
+	FAIRY = auto()
+	FALLEN = auto()
+	FEMME = auto()
+	FLIGHT = auto()
+	FOUL = auto()
+	HAUNT = auto()
+	JAKI = auto()
+	JIRAE = auto()
+	SPIRIT = auto()
+	TYRANT = auto()
+	VILE = auto()
+	WILDER = auto()
