@@ -13,7 +13,7 @@ def _get_db_connection() -> sqlite3.Connection:
 	return conn
 
 
-def query_one(query: str, params: tuple = ()) -> tuple:
+def query_one(query: str, params: tuple = ()) -> sqlite3.Row:
 	"""Queries and returns one entry."""
 	try:
 		with _get_db_connection() as conn:
