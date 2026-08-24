@@ -27,7 +27,6 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			entry["name"],
 			race_id,
 			entry["rank"],
-			int(entry["color"], 16),
 			pers_id,
 			entry["profile_img"],
 			encounter_img,
@@ -56,7 +55,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			prevent_spawn INTEGER DEFAULT 0,
 			profile_img TEXT,
 			encounter_img TEXT,
-			UNIQUE (race_id, name)
+			UNIQUE (race_id, name),
 			FOREIGN KEY (race_id) REFERENCES races (id)
 		)
 	""")

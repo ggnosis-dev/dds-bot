@@ -16,7 +16,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			prevent_spawn INTEGER DEFAULT 0,
 			profile_img TEXT,
 			encounter_img TEXT,
-			UNIQUE (race_id, name)
+			UNIQUE (race_id, name),
 			FOREIGN KEY (race_id) REFERENCES races (id)
 		)
 	""")
@@ -28,8 +28,14 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		SELECT
 			d.id, d.name, r.id, d.rank, d.tone, d.personality, d.prevent_spawn, d.profile_url, d.image_url
 		FROM demons d
-		JOIN races r ON d.race = r.name
+		JOIN races r ON UPPER(d.race) = r.name
 	""")
 
-	cursor.execute("DROP TABLE demons")
-	cursor.execute("ALTER TABLE new_demons RENAME TO demons")
+	original_count = cursor.execute("SELECT COUNT(*) FROM demons").fetchone()[0]
+	new_count = cursor.execute("SELECT COUNT(*) FROM new_demons").fetchone()[0]
+
+	print(original_count, new_count)
+
+	if new_count == original_count:
+		cursor.execute("DROP TABLE demons")
+		cursor.execute("ALTER TABLE new_demons RENAME TO demons")
