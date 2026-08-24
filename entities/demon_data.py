@@ -6,8 +6,8 @@ from shared_enums import Personality, Tone
 @dataclass
 class DesignData:
 	colour: int
-	profile_url: str
-	image_url: str
+	profile_img: str
+	encounter_img: str
 
 
 @dataclass
@@ -80,8 +80,8 @@ def convert_row_to_demon_data(row: tuple) -> DemonData:
 			personality_type=Personality(pers_id),
 			design_data=DesignData(
 				colour=col,
-				profile_url=pr_url,
-				image_url=im_url,
+				profile_img=pr_url,
+				encounter_img=im_url,
 			),
 			prevent_spawn=prevent,
 			tone_type=Tone(tone_id),

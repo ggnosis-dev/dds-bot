@@ -103,7 +103,7 @@ class Fusion(commands.Cog):
 			exclusive_to=player_id,
 			confirm_label="Summon",
 			confirm_colour=discord.ButtonStyle.primary,
-			thumbnail=demon.design_data.profile_url,
+			thumbnail=demon.design_data.profile_img,
 		)
 		result = await ConfirmationView.send_message(view, interaction)
 
@@ -119,7 +119,7 @@ class Fusion(commands.Cog):
 
 		# Needs to be a followup.
 		msg = MessageView(
-			f"You have successfully summoned **{demon.race} {demon.name}**!", thumbnail=demon.design_data.profile_url
+			f"You have successfully summoned **{demon.race} {demon.name}**!", thumbnail=demon.design_data.profile_img
 		)
 		await interaction.followup.send(view=msg)
 
@@ -210,7 +210,7 @@ class Fusion(commands.Cog):
 					f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
 					f"\n\nBut {demon_result.name} can already be found in your party..."
 				),
-				demon_result.design_data.profile_url,
+				demon_result.design_data.profile_img,
 				demon_result.design_data.colour,
 			)
 			await ctx.send(view=view)
@@ -224,7 +224,7 @@ class Fusion(commands.Cog):
 				f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank})"
 				f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
 			),
-			demon_result.design_data.profile_url,
+			demon_result.design_data.profile_img,
 			demon_result.design_data.colour,
 		)
 		await ctx.send(view=view)
@@ -280,7 +280,7 @@ class Fusion(commands.Cog):
 
 		view = MessageView(
 			fuse_complete_text,
-			demon_result.design_data.profile_url,
+			demon_result.design_data.profile_img,
 			demon_result.design_data.colour,
 		)
 		await ctx.send(view=view)

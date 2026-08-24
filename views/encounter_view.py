@@ -250,7 +250,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		msg = MessageView(
 			f"{response}\n\n-# `{status_message}`",
-			self.demon.design_data.image_url,
+			self.demon.design_data.encounter_img,
 			self.demon.design_data.colour,
 		)
 		await interaction.followup.send(view=msg, ephemeral=True)
@@ -313,7 +313,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 		self._build_option_buttons(container, dialogue_options)
 
-		container.add_item(ui.MediaGallery().add_item(media=self.demon.design_data.image_url))
+		container.add_item(ui.MediaGallery().add_item(media=self.demon.design_data.encounter_img))
 
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
 		self.status_display = ui.TextDisplay("-# *What will you do?*")
@@ -426,7 +426,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		question = format_dialogue(question, self.demon)
 		response = format_dialogue(self.response, self.demon)
 
-		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.design_data.image_url))
+		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.design_data.encounter_img))
 		section.add_item(ui.TextDisplay(f"{response}\n\n{question}"))
 
 		container.add_item(section)

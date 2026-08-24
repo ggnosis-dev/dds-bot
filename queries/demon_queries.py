@@ -208,10 +208,10 @@ def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | 
 async def get_design_data(demon_id: int) -> DesignData:
 	col, p_url, im_url = query_one(
 		"""
-			SELECT colour, profile_url, image_url FROM demons
+			SELECT colour, profile_img, encounter_img FROM demons
 			WHERE id = ?
 		""",
 		(demon_id,),
 	)
 
-	return DesignData(colour=col, profile_url=p_url, image_url=im_url)
+	return DesignData(colour=col, profile_img=p_url, encounter_img=im_url)

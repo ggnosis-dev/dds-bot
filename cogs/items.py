@@ -140,7 +140,7 @@ class GemCommands(commands.Cog):
 
 				view = MessageView(
 					f"{message.author.mention}, your **{d.name}** has found a **{new_gem.title()}**!",
-					d.design_data.profile_url,
+					d.design_data.profile_img,
 					d.design_data.colour,
 				)
 				await send_to_channel.send(view=view)

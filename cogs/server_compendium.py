@@ -94,7 +94,7 @@ class ServerCompendium(commands.Cog):
 			exclusive_to=player.id,
 			confirm_label="Yes",
 			deny_label="No",
-			thumbnail=design_data.profile_url,
+			thumbnail=design_data.profile_img,
 			colour=design_data.colour,
 		)
 		result = await ConfirmationView.send_message(view, ctx)
@@ -114,7 +114,7 @@ class ServerCompendium(commands.Cog):
 				msg = MessageView(
 					f"**{stored_owner}**'s **{demon_name}** (Rank {stored_demon.stored_rank}) "
 					f"is already in {server.name}'s Compendium.",
-					thumbnail=design_data.profile_url,
+					thumbnail=design_data.profile_img,
 					colour=design_data.colour,
 				)
 				await ctx.send(view=msg)
@@ -129,7 +129,7 @@ class ServerCompendium(commands.Cog):
 				exclusive_to=player.id,
 				confirm_label="Replace",
 				deny_label="Cancel",
-				thumbnail=design_data.profile_url,
+				thumbnail=design_data.profile_img,
 				colour=design_data.colour,
 			)
 			result = await ConfirmationView.send_message(view, ctx)
@@ -188,7 +188,7 @@ class ServerCompendium(commands.Cog):
 				f"Your **{player_demon.race} {player_demon.name}** (Rank {player_demon.stored_rank})"
 				f" has been sacrificed to **{server.name}'s Compendium** for the time being."
 				f"\n\n>`{stored_owner.mention}'s {player_demon.name} has been returned to its owner's COMP`",
-				thumbnail=design_data.profile_url,
+				thumbnail=design_data.profile_img,
 				colour=design_data.colour,
 			)
 			await ctx.send(view=msg)
@@ -197,7 +197,7 @@ class ServerCompendium(commands.Cog):
 		msg = MessageView(
 			f"Your **{player_demon.race} {player_demon.name}** (Rank {player_demon.stored_rank})"
 			f" has been sacrificed to **{server.name}'s Compendium** for the time being.",
-			thumbnail=design_data.profile_url,
+			thumbnail=design_data.profile_img,
 			colour=design_data.colour,
 		)
 		await ctx.send(view=msg)
@@ -241,7 +241,7 @@ class ServerCompendium(commands.Cog):
 
 				msg = MessageView(
 					f"**{demon.race} {demon.name}** has been returned to you.",
-					demon.design_data.profile_url,
+					demon.design_data.profile_img,
 					demon.design_data.colour,
 				)
 				await ctx.send(view=msg)

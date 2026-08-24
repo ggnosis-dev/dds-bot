@@ -26,7 +26,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			id, name, race_id, rank, tone, personality, prevent_spawn, profile_img, encounter_img
 		)
 		SELECT
-			d.id, d.name, r.id, d.rank, d.tone, d.personality, d.prevent_spawn, d.profile_url, d.image_url
+			d.id, d.name, r.id, d.rank, d.tone, d.personality, d.prevent_spawn, d.profile_img, d.encounter_img
 		FROM demons d
 		JOIN races r ON d.race = r.name
 	""")

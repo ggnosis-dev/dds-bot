@@ -191,7 +191,7 @@ class LeaderCommands(commands.Cog):
 			case _:
 				dd = await demon_queries.get_design_data(demon_id)
 				view = MessageView(
-					f"**{demon_name}** has been selected to lead your party!", thumbnail=dd.profile_url, colour=dd.colour
+					f"**{demon_name}** has been selected to lead your party!", thumbnail=dd.profile_img, colour=dd.colour
 				)
 
 		player_demons_queries.set_selected_demon(player_id, server_id, demon_id)
@@ -230,7 +230,7 @@ class LeaderCommands(commands.Cog):
 				f"-# **Hunting:** {gem_text}\n"
 				f"-# **Progress:** {progress_bar}"
 			),
-			d.design_data.profile_url,
+			d.design_data.profile_img,
 			d.design_data.colour,
 		)
 		await ctx.send(view=view)
