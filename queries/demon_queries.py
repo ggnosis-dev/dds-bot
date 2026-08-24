@@ -20,19 +20,16 @@ def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData 
 	row = query_one(
 		"""
 			SELECT
-				d.*,
-				r.name AS race,
+				v.*,
 				pd.dupes,
 				pd.colour,
 				pd.greeting
-			FROM demons d
-			JOIN races r
-				ON d.race_id = r.id
+			FROM demon_data_VIEW v
 			LEFT JOIN player_demons pd
-				ON pd.demon_id = d.id
+				ON pd.demon_id = v.id
 				AND pd.player_id = ?
 				AND pd.server_id = ?
-			WHERE d.id = ?
+			WHERE v.id = ?
 		""",
 		(player_id, server_id, demon_id),
 	)
@@ -80,16 +77,13 @@ def get_random_demon() -> DemonData:
 	row = query_one(
 		"""
 			SELECT
-				d.*,
-				r.name AS race,
+				v.*,
 				pd.dupes,
 				pd.colour,
 				pd.greeting
-			FROM demons d
-			JOIN races r
-				ON d.race_id = r.id
+			FROM demon_data_VIEW v
 			LEFT JOIN player_demons pd
-				ON pd.demon_id = d.id
+				ON pd.demon_id = v.id
 				AND pd.player_id = 0
 				AND pd.server_id = 0
 			ORDER BY RANDOM()
@@ -134,7 +128,12 @@ def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> Demon
 	return convert_row_to_demon_data(row)
 
 
-async def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonData:
+async def get_demon_by_distribution(
+	player_id: int,
+	server_id: int,
+	weighted_rank: int,
+	max_rank: int,
+) -> DemonData:
 	try:
 		weighted_rank = min(weighted_rank, max_rank)
 		rank = round(triangular(left=0.5, mode=weighted_rank, right=max_rank + 0.5))
@@ -146,18 +145,15 @@ async def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonD
 	row = query_one(
 		"""
 			SELECT
-				d.*,
-				r.name AS race,
+				v.*,
 				pd.dupes,
 				pd.colour,
 				pd.greeting
-			FROM demons d
-			JOIN races r
-				ON d.race_id = r.id
+			FROM demon_data_VIEW v
 			LEFT JOIN player_demons pd
-				ON pd.demon_id = d.id
-				AND pd.player_id = 0
-				AND pd.server_id = 0
+				ON pd.demon_id = v.id
+				AND pd.player_id = ?
+				AND pd.server_id = ?
 			WHERE prevent_spawn = 0
 				AND rank <= ?
 			-- Order by proximity to rank. Then if a tie exists, order by random.
@@ -165,7 +161,7 @@ async def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonD
 			-- Retrieve the top result.
 			LIMIT 1
 		""",
-		(max_rank, rank),
+		(player_id, server_id, max_rank, rank),
 	)
 
 	if not row:
