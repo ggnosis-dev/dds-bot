@@ -36,21 +36,3 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		""",
 		race_list,
 	)
-
-	# cursor.execute("""
-	# 	CREATE TABLE IF NOT EXISTS race_gems (
-	# 		gem_name TEXT NOT NULL,
-	# 		race TEXT NOT NULL REFERENCES demons(race),
-	# 		PRIMARY KEY (gem_name, race)
-	# 	)
-	# """)
-
-	# cursor.executemany(
-	# 	"""
-	# 		INSERT OR IGNORE INTO race_gems
-	# 			(gem_name, race)
-	# 		VALUES
-	# 			(?, ?)
-	# 	""",
-	# 	gem_list,
-	# )
