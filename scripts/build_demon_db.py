@@ -18,7 +18,7 @@ for race_json in DEMONS_DIR.glob("*.json"):
 
 	for entry in data:
 		prevent_spawn = bool(entry.get("prevent_spawn", False))
-		image_url = entry.get("image_url", None)
+		encounter_img = entry.get("encounter_img", None)
 		race_id = Race[entry.get("race")].value
 		pers_id = Personality[entry.get("personality", "NONE")].value
 		tone_id = Tone[entry.get("tone", "NONE")].value
@@ -29,8 +29,8 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			entry["rank"],
 			int(entry["color"], 16),
 			pers_id,
-			entry["profile_url"],
-			image_url,
+			entry["profile_img"],
+			encounter_img,
 			prevent_spawn,
 			tone_id,
 		)
