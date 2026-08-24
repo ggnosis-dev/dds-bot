@@ -1,13 +1,15 @@
 from dataclasses import dataclass
+from sqlite3 import Row
 
-from shared_enums import Personality, Tone
+from shared_enums import EmbedColours, Personality, Tone
 
 
 @dataclass
 class DesignData:
-	colour: int
 	profile_img: str
 	encounter_img: str
+	colour: int
+	greeting: str | None
 
 
 @dataclass
@@ -29,10 +31,11 @@ class DemonData:
 	name: str
 	race: str
 	rank: int
+	dupes: int
+	tone_type: Tone
 	personality_type: Personality
 	design_data: DesignData
 	prevent_spawn: bool
-	tone_type: Tone
 
 
 ## FUSION RELATED.
@@ -50,6 +53,8 @@ class SpecialFusionData:
 	demon_data: DemonData
 
 
+# TODO: Fix this whole thing. Lowkey just make these their own races and
+# replace their race names with ELEMENT when using them.
 ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
 
 ELEMENT_PAIRS = {
@@ -60,32 +65,28 @@ ELEMENT_PAIRS = {
 }
 
 
-def convert_row_to_demon_data(row: tuple) -> DemonData:
-	"""
-	Convert retrieved DB row into a DemonData object.
-
-	Args:
-		row (tuple): A tuple containing demon data.
-	Returns:
-		DemonData: Normalised DemonData object created from values provided.
-	"""
+def convert_row_to_demon_data(row: Row) -> DemonData:
+	"""Convert retrieved DB row into a DemonData object."""
 	try:
-		d_id, name, race, rank, col, pers_id, pr_url, im_url, prevent, tone_id = row
-
-		return DemonData(
-			id=d_id,
-			name=name,
-			race=race,
-			rank=rank,
-			personality_type=Personality(pers_id),
+		new_demon = DemonData(
+			id=row["id"],
+			name=row["name"],
+			race=row["race"].title(),
+			rank=row["rank"],
+			dupes=row["dupes"] or 0,
+			tone_type=Tone(row["tone"]),
+			personality_type=Personality(row["personality"]),
 			design_data=DesignData(
-				colour=col,
-				profile_img=pr_url,
-				encounter_img=im_url,
+				profile_img=row["profile_img"],
+				encounter_img=row["encounter_img"],
+				colour=row["colour"] or EmbedColours.DEFAULT.value,
+				greeting=row["greeting"],
 			),
-			prevent_spawn=prevent,
-			tone_type=Tone(tone_id),
+			prevent_spawn=row["prevent_spawn"],
 		)
+		print(new_demon)
+
+		return new_demon
 	except Exception as e:
 		print(e)
 		raise KeyError(f"ERROR: Problem when creating DemonData | {e}")

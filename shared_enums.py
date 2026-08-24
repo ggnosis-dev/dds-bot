@@ -73,7 +73,8 @@ class Banners(Enum):
 	SP_FUSION = "https://cdn.discordapp.com/attachments/1521163871732371688/1521367712503435415/special_w_text.png?ex=6a449398&is=6a434218&hm=3065c982ca7f67afe5d50791be41e036b09c55a6603ce83072ff22e8fa8d8208&"
 
 
-class ShopColour(Enum):
+class EmbedColours(Enum):
+	DEFAULT = 0x324157
 	RAGS = 0x1B6340
 	SP_FUSION = 0x0000A7
 

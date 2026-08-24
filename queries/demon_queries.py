@@ -6,22 +6,35 @@ from helpers.db import query_all, query_one
 FUSION_DIFF_CAP = 5
 
 
-def get_demon_by_id(demon_id: int) -> DemonData | None:
+def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData | None:
 	"""
 	Retrieve a demon's data from the database using its unique ID.
 
 	Args:
+		player_id (int): Used to get certain custom design data.
+		server_id (int): Same as above.
 		demon_id (int): Identifier of the demon to retrieve data for.
 	Returns:
 		DemonData | None: Demon's data if found, otherwise None.
 	"""
 	row = query_one(
 		"""
-			SELECT *
-			FROM demons
-			WHERE id = ?
+			SELECT
+				d.*,
+				r.name AS race,
+				pd.dupes,
+				pd.colour,
+				pd.greeting
+			FROM demons d
+			JOIN races r
+				ON d.race_id = r.id
+			LEFT JOIN player_demons pd
+				ON pd.demon_id = d.id
+				AND pd.player_id = ?
+				AND pd.server_id = ?
+			WHERE d.id = ?
 		""",
-		(demon_id,),
+		(player_id, server_id, demon_id),
 	)
 
 	return convert_row_to_demon_data(row) if row else None
@@ -40,10 +53,10 @@ def get_demon_id_by_name(demon_name: str) -> int | None:
 	return response[0] if response else None
 
 
-def get_demon_by_name(demon_name: str) -> DemonData | None:
+def get_demon_by_name(player_id: int, server_id: int, demon_name: str) -> DemonData | None:
 	"""Helper to get demon by name."""
 	d_id = get_demon_id_by_name(demon_name)
-	return get_demon_by_id(d_id) if d_id else None
+	return get_demon_by_id(player_id, server_id, d_id) if d_id else None
 
 
 def get_demon_name_by_id(demon_id: int) -> str:
@@ -66,7 +79,19 @@ def get_random_demon() -> DemonData:
 	"""
 	row = query_one(
 		"""
-			SELECT * FROM demons
+			SELECT
+				d.*,
+				r.name AS race,
+				pd.dupes,
+				pd.colour,
+				pd.greeting
+			FROM demons d
+			JOIN races r
+				ON d.race_id = r.id
+			LEFT JOIN player_demons pd
+				ON pd.demon_id = d.id
+				AND pd.player_id = 0
+				AND pd.server_id = 0
 			ORDER BY RANDOM()
 			LIMIT 1
 		"""
@@ -74,6 +99,7 @@ def get_random_demon() -> DemonData:
 
 	if not row:
 		raise RuntimeError("ERROR: No demons could be found in the database.")
+
 	return convert_row_to_demon_data(row)
 
 
@@ -119,7 +145,19 @@ async def get_demon_by_distribution(weighted_rank: int, max_rank: int) -> DemonD
 
 	row = query_one(
 		"""
-			SELECT * FROM demons
+			SELECT
+				d.*,
+				r.name AS race,
+				pd.dupes,
+				pd.colour,
+				pd.greeting
+			FROM demons d
+			JOIN races r
+				ON d.race_id = r.id
+			LEFT JOIN player_demons pd
+				ON pd.demon_id = d.id
+				AND pd.player_id = 0
+				AND pd.server_id = 0
 			WHERE prevent_spawn = 0
 				AND rank <= ?
 			-- Order by proximity to rank. Then if a tie exists, order by random.
@@ -163,7 +201,7 @@ def get_demon_names_by_race(race: str) -> list[str]:
 	return [row[0] for row in rows]
 
 
-def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
+def get_closest_demon_in_race(player_id: int, server_id: int, race: str, rank: int) -> DemonData | None:
 	d_id = query_one(
 		"""
 			SELECT id FROM demons
@@ -181,10 +219,10 @@ def get_closest_demon_in_race(race: str, rank: int) -> DemonData | None:
 		(race, rank, FUSION_DIFF_CAP, rank),
 	)
 
-	return get_demon_by_id(d_id[0]) if d_id else None
+	return get_demon_by_id(player_id, server_id, d_id[0]) if d_id else None
 
 
-def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | None:
+def get_next_demon_in_race(player_id: int, server_id: int, race: str, rank: int, direction: int) -> DemonData | None:
 	query = f"""
 		SELECT id FROM demons
 		WHERE race = ? AND rank {">" if direction == 1 else "<"} ?
@@ -202,16 +240,26 @@ def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | 
 	if response is None:
 		return None
 
-	return get_demon_by_id(response[0])
+	return get_demon_by_id(player_id, server_id, response[0])
 
 
-async def get_design_data(demon_id: int) -> DesignData:
-	col, p_url, im_url = query_one(
+async def get_design_data(player_id: int, server_id: int, demon_id: int) -> DesignData:
+	p_url, en_url, col, greeting = query_one(
 		"""
-			SELECT colour, profile_img, encounter_img FROM demons
-			WHERE id = ?
+			SELECT d.profile_img, d.encounter_img, pd.colour, pd.greeting
+			FROM demons d
+			LEFT JOIN player_demons pd
+				ON d.id = pd.demon_id
+				AND pd.player_id = ?
+				AND pd.server_id = ?
+			WHERE d.id = ?
 		""",
-		(demon_id,),
+		(player_id, server_id, demon_id),
 	)
 
-	return DesignData(colour=col, profile_img=p_url, encounter_img=im_url)
+	return DesignData(
+		profile_img=p_url,
+		encounter_img=en_url,
+		colour=col,
+		greeting=greeting,
+	)
