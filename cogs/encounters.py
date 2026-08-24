@@ -34,7 +34,7 @@ class Encounters(commands.Cog):
 			if not isinstance(ctx.channel, discord.TextChannel):
 				raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
 
-			d = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(name)
+			d = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(0, 0, name)
 
 			if d is None:
 				print(f"WARN: Demon {name} was None.")
@@ -128,7 +128,7 @@ class Encounters(commands.Cog):
 				await send_to_channel.send(view=view)
 
 				tut_demon = "pixie"
-				demon = demon_queries.get_demon_by_name(tut_demon)
+				demon = demon_queries.get_demon_by_name(player_id, server_id, tut_demon)
 
 				if demon is None:
 					raise RuntimeError(

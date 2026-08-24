@@ -129,7 +129,7 @@ class GemCommands(commands.Cog):
 			gem_found = await gem_queries.increase_gem_meter(player_id, server_id, selected_demon_id)
 
 			if gem_found:
-				d = cast(DemonData, demon_queries.get_demon_by_id(selected_demon_id))
+				d = cast(DemonData, demon_queries.get_demon_by_id(player_id, server_id, selected_demon_id))
 
 				new_gem, set_channel = await asyncio.gather(
 					gem_queries.add_gem(player_id, server_id, d.race),

@@ -189,7 +189,7 @@ class LeaderCommands(commands.Cog):
 				view = MessageView(f"**{demon_name}** is not in your party...")
 
 			case _:
-				dd = await demon_queries.get_design_data(demon_id)
+				dd = await demon_queries.get_design_data(player_id, server_id, demon_id)
 				view = MessageView(
 					f"**{demon_name}** has been selected to lead your party!", thumbnail=dd.profile_img, colour=dd.colour
 				)
@@ -208,7 +208,7 @@ class LeaderCommands(commands.Cog):
 			await ctx.send("There is currently no demon leading your party. Select one using `>select {demon}`.")
 			return
 
-		d = demon_queries.get_demon_by_id(demon_id)
+		d = demon_queries.get_demon_by_id(player_id, server_id, demon_id)
 
 		if d is None:
 			raise RuntimeError("ERROR: leader_command | ID was found but DemonData was not.")

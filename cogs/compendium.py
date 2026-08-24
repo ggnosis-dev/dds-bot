@@ -53,7 +53,7 @@ class Compendium(commands.Cog):
 		"""
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
-		demon = demon_queries.get_demon_by_name(demon_name)
+		demon = demon_queries.get_demon_by_name(player_id, server_id, demon_name)
 
 		if demon is None:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
@@ -104,7 +104,9 @@ class Compendium(commands.Cog):
 		currency_queries.update_mag(player_id, server_id, -cost)
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id)
 		msg = MessageView(
-			f"You have summoned **{demon_name}** to your party!", demon.design_data.encounter_img, demon.design_data.colour
+			f"You have summoned **{demon_name}** to your party!",
+			thumbnail=demon.design_data.encounter_img,
+			colour=demon.design_data.colour,
 		)
 		await ctx.send(view=msg)
 

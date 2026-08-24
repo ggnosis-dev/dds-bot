@@ -8,7 +8,7 @@ from entities.command_data import FUSION_COMMANDS, command_kwargs
 from entities.demon_data import DemonData, SpecialFusionData
 from helpers import checks, costs, gets
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
-from shared_enums import DemonRegistration, ShopColour
+from shared_enums import DemonRegistration, EmbedColours
 from views.common_view import ConfirmationView, MessageView
 from views.shop_view import SpecialFusionView
 
@@ -47,7 +47,7 @@ class Fusion(commands.Cog):
 		server_id = gets.get_server(ctx).id
 
 		entries = await fusion_queries.get_special_fusion_list(server_id)
-		view = SpecialFusionView(entries, self._purchase_callback, colour=ShopColour.SP_FUSION.value)
+		view = SpecialFusionView(entries, self._purchase_callback, colour=EmbedColours.SP_FUSION.value)
 		await ctx.send(view=view)
 
 	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)

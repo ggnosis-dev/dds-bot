@@ -73,7 +73,7 @@ class ServerCompendium(commands.Cog):
 		player_demon, registration_status, design_data = await asyncio.gather(
 			player_demons_queries.get_player_demon_by_id(player.id, server.id, demon_id),
 			player_demons_queries.check_demon_registration(player.id, server.id, demon_id),
-			demon_queries.get_design_data(demon_id),
+			demon_queries.get_design_data(player.id, server.id, demon_id),
 		)
 
 		if registration_status == DemonRegistration.ON_LOAN:
@@ -213,7 +213,7 @@ class ServerCompendium(commands.Cog):
 	async def return_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		player, server = gets.get_player_server(ctx)
 		demon_name = demon_name.title()
-		demon = demon_queries.get_demon_by_name(demon_name)
+		demon = demon_queries.get_demon_by_name(player.id, server.id, demon_name)
 
 		if demon is None:
 			msg = MessageView(f"**{demon_name}** was not found on loan...")
