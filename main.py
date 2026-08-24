@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 
@@ -20,10 +21,6 @@ class DDSBot(commands.Bot):
 			intents=intents,
 		)
 
-		# Load the environment variables from the .env file.
-		load_dotenv()
-		self.token = os.getenv("DISCORD_TOKEN")
-
 		# Remove built-in help command.
 		self.remove_command("help")
 
@@ -34,10 +31,16 @@ class DDSBot(commands.Bot):
 		file_handler.setLevel(logging.ERROR)
 		logging.getLogger().addHandler(file_handler)
 
+	def get_token(self, build_mode: bool) -> str | None:
+		"""Load the environment variables from the .env file."""
+		load_dotenv()
+		return os.getenv("DISCORD_TOKEN") if build_mode else os.getenv("DEV_TOKEN")
+
 	async def setup_hook(self) -> None:
 		await self.load_cogs()
 
 	async def load_cogs(self):
+		"""Load every cog by dropping the .py in their path name."""
 		for file in os.listdir("./cogs"):
 			if file.endswith(".py"):
 				await self.load_extension(f"cogs.{file[:-3]}")
@@ -48,9 +51,17 @@ class DDSBot(commands.Bot):
 		print(f"INFO: {name} has connected to Discord.")
 
 
-bot = DDSBot()
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser()
+	parser.add_argument(
+		"-b", "--build", action="store_true", help="Build for the main 'DDS-Bot'. Without this, will start 'DDS-Bot Dev'."
+	)
+	args = parser.parse_args()
 
-if bot.token is not None:
-	bot.run(bot.token)
-else:
-	raise RuntimeError("ERROR: DISCORD TOKEN NOT SET")
+	bot = DDSBot()
+	token = bot.get_token(args.build)
+
+	if token is not None:
+		bot.run(token)
+	else:
+		raise RuntimeError("ERROR: DISCORD TOKEN NOT SET")
