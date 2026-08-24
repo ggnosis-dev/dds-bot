@@ -2,7 +2,6 @@ import json
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH, RACE_GEMS_JSON
-from queries.gem_queries import get_possible_gems
 
 race_list = []
 with open(RACE_GEMS_JSON) as f:
@@ -55,6 +54,3 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# 	""",
 	# 	gem_list,
 	# )
-
-
-print(get_possible_gems("Fairy"))
