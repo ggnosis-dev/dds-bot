@@ -3,8 +3,6 @@ from numpy.random import triangular
 from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
 
-FUSION_DIFF_CAP = 5
-
 
 def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData | None:
 	"""
@@ -97,37 +95,6 @@ def get_random_demon() -> DemonData:
 	return convert_row_to_demon_data(row)
 
 
-def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> DemonData:
-	"""
-	Retrieve a random demon's data that is not currently in the player's party, from the database.
-	Range is between 1 and rank + 10.
-	Used exclusively for fusion accidents.
-	"""
-	rank += 10
-
-	row = query_one(
-		"""
-			SELECT * FROM demons d
-			WHERE d.rank BETWEEN 1 AND ?
-				AND d.prevent_spawn = 0
-				AND NOT EXISTS (
-					SELECT 1 FROM player_demons pd
-					WHERE pd.demon_id = d.id
-						AND in_party = 1
-						AND pd.player_id = ?
-						AND pd.server_id = ?
-				)
-			ORDER BY RANDOM()
-			LIMIT 1
-		""",
-		(rank, player_id, server_id),
-	)
-
-	if not row:
-		raise RuntimeError("ERROR: No demons could be found in the database.")
-	return convert_row_to_demon_data(row)
-
-
 async def get_demon_by_distribution(
 	player_id: int,
 	server_id: int,
@@ -197,49 +164,8 @@ def get_demon_names_by_race(race: str) -> list[str]:
 	return [row[0] for row in rows]
 
 
-def get_closest_demon_in_race(player_id: int, server_id: int, race: str, rank: int) -> DemonData | None:
-	d_id = query_one(
-		"""
-			SELECT id FROM demons
-			WHERE race = ?
-				AND prevent_spawn IS NOT TRUE
-				-- Prevent fusing a demon that is considerably higher.
-				AND rank <= ? + ?
-			ORDER BY
-				-- Order by absolute rank minus the passed in rank.
-				ABS(rank - ?),
-				-- If there's a tie, prioritise the smaller one.
-				rank
-			LIMIT 1
-		""",
-		(race, rank, FUSION_DIFF_CAP, rank),
-	)
-
-	return get_demon_by_id(player_id, server_id, d_id[0]) if d_id else None
-
-
-def get_next_demon_in_race(player_id: int, server_id: int, race: str, rank: int, direction: int) -> DemonData | None:
-	query = f"""
-		SELECT id FROM demons
-		WHERE race = ? AND rank {">" if direction == 1 else "<"} ?
-		ORDER BY rank {"ASC" if direction == 1 else "DESC"}
-		LIMIT 1
-	"""
-
-	# print(f"DEBUG: Race: {race} | Rank: {rank} | Direction {direction} | Query: {query}")
-
-	response = query_one(
-		query,
-		(race, rank),
-	)
-
-	if response is None:
-		return None
-
-	return get_demon_by_id(player_id, server_id, response[0])
-
-
-async def get_design_data(player_id: int, server_id: int, demon_id: int) -> DesignData:
+async def get_design_data(demon_id: int, player_id: int = 0, server_id: int = 0) -> DesignData:
+	"""player_id and server_id are optional. Without them, default colour should be provided."""
 	p_url, en_url, col, greeting = query_one(
 		"""
 			SELECT d.profile_img, d.encounter_img, pd.colour, pd.greeting

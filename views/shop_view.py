@@ -3,7 +3,7 @@ from typing import Any, Generic
 
 import discord
 
-from entities.demon_data import SpecialFusionData
+from entities.fusion_data import SpecialFusionData
 from entities.item_data import ItemData
 from shared_enums import Banners, Emotes
 from views.common_view import BaseLayoutView, EntryT
@@ -167,7 +167,7 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 		entry: SpecialFusionData,
 	) -> discord.ui.Container:
 		ing = entry.ingredients
-		d_data = entry.demon_data
+		d_data = entry.fusion_demon_data
 		ingredient_list = []
 
 		for i in ing:

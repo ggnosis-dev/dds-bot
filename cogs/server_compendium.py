@@ -73,7 +73,7 @@ class ServerCompendium(commands.Cog):
 		player_demon, registration_status, design_data = await asyncio.gather(
 			player_demons_queries.get_player_demon_by_id(player.id, server.id, demon_id),
 			player_demons_queries.check_demon_registration(player.id, server.id, demon_id),
-			demon_queries.get_design_data(player.id, server.id, demon_id),
+			demon_queries.get_design_data(demon_id, player.id, server.id),
 		)
 
 		if registration_status == DemonRegistration.ON_LOAN:

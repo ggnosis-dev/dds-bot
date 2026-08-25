@@ -38,33 +38,6 @@ class DemonData:
 	prevent_spawn: bool
 
 
-## FUSION RELATED.
-@dataclass
-class IngredientData:
-	ing_id: int
-	race: str
-	name: str
-
-
-@dataclass
-class SpecialFusionData:
-	key: str
-	ingredients: tuple[IngredientData, ...]
-	demon_data: DemonData
-
-
-# TODO: Fix this whole thing. Lowkey just make these their own races and
-# replace their race names with ELEMENT when using them.
-ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
-
-ELEMENT_PAIRS = {
-	"Erthys": ["Beast", "Femme", "Jaki"],
-	"Aeros": ["Fairy", "Flight"],
-	"Aquans": ["Fairy", "Wilder"],
-	"Flaemis": ["Beast", "Femme", "Flight", "Jaki", "Wilder"],
-}
-
-
 def convert_row_to_demon_data(row: Row) -> DemonData:
 	"""Convert retrieved DB row into a DemonData object."""
 	try:

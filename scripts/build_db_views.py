@@ -30,3 +30,17 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			JOIN races r ON d.race_id = r.id
 		"""
 	)
+
+	cursor.execute(
+		"""
+			CREATE VIEW IF NOT EXISTS fusion_demon_data_VIEW AS
+			SELECT
+				d.id,
+				d.name,
+				r.name AS race,
+				d.rank,
+				d.prevent_spawn
+			FROM demons d
+			JOIN races r ON d.race_id = r.id
+		"""
+	)

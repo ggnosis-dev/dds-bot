@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from entities.command_data import FUSION_COMMANDS, command_kwargs
-from entities.demon_data import DemonData, SpecialFusionData
+from entities.fusion_data import FusionDemonData, SpecialFusionData
 from helpers import checks, costs, gets
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
 from shared_enums import DemonRegistration, EmbedColours
@@ -23,20 +23,20 @@ class Fusion(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(FUSION_COMMANDS, "fuse"))
 	async def fuse_command(self, ctx: commands.Context, *, input_str: str | None = None) -> None:
-		player, server = gets.get_player_server(ctx)
+		player_id, server_id = gets.get_player_server_ids(ctx)
 
-		if player.id in self.players_in_fusion:
+		if player_id in self.players_in_fusion:
 			await ctx.send("You're already in the process of fusing...")
 			return
 
-		self.players_in_fusion.add(player.id)
+		self.players_in_fusion.add(player_id)
 
 		# Using try, finally apparently runs finally even if an unhandled exception occurs.
 		try:
 			parts = input_str.split(";") if input_str else None
-			await self._fuse_demons(ctx, player, server, parts)
+			await self._fuse_demons(ctx, player_id, server_id, parts)
 		finally:
-			self.players_in_fusion.discard(player.id)
+			self.players_in_fusion.discard(player_id)
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(FUSION_COMMANDS, "special_fusion"))
@@ -56,7 +56,7 @@ class Fusion(commands.Cog):
 
 		player_id = interaction.user.id
 		server_id = interaction.guild.id
-		demon = fusion_result.demon_data
+		demon = fusion_result.fusion_demon_data
 		ingredients = fusion_result.ingredients
 
 		# Check if demon already exists in party.
@@ -95,6 +95,8 @@ class Fusion(commands.Cog):
 
 			ing_text += f"\n-# - {i.race} {i.name}"
 
+		dd = await demon_queries.get_design_data(demon.id)
+
 		# Send confirmation
 		view = ConfirmationView(
 			f"In order to summon **{demon.race} {demon.name}**, the following must be sacrificed:"
@@ -103,7 +105,7 @@ class Fusion(commands.Cog):
 			exclusive_to=player_id,
 			confirm_label="Summon",
 			confirm_colour=discord.ButtonStyle.primary,
-			thumbnail=demon.design_data.profile_img,
+			thumbnail=dd.profile_img,
 		)
 		result = await ConfirmationView.send_message(view, interaction)
 
@@ -118,16 +120,14 @@ class Fusion(commands.Cog):
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True)
 
 		# Needs to be a followup.
-		msg = MessageView(
-			f"You have successfully summoned **{demon.race} {demon.name}**!", thumbnail=demon.design_data.profile_img
-		)
+		msg = MessageView(f"You have successfully summoned **{demon.race} {demon.name}**!", thumbnail=dd.profile_img)
 		await interaction.followup.send(view=msg)
 
 	async def _fuse_demons(
 		self,
 		ctx: commands.Context,
-		player: discord.Member,
-		server: discord.Guild,
+		player_id: int,
+		server_id: int,
 		parts: list[str] | None = None,
 	):
 		# Check parts are valid.
@@ -139,8 +139,8 @@ class Fusion(commands.Cog):
 		name_1 = parts[0].strip().title()
 		name_2 = parts[1].strip().title()
 
-		demon_1 = demon_queries.get_demon_by_name(name_1)
-		demon_2 = demon_queries.get_demon_by_name(name_2)
+		demon_1 = demon_queries.get_demon_by_name(player_id, server_id, name_1)
+		demon_2 = demon_queries.get_demon_by_name(player_id, server_id, name_2)
 
 		# If the demon doesn't exist at all.
 		if not demon_1 or not demon_2:
@@ -152,7 +152,7 @@ class Fusion(commands.Cog):
 
 		# Check if in party.
 		for d in demon_1, demon_2:
-			registration_status = await player_demons_queries.check_demon_registration(player.id, server.id, d.id)
+			registration_status = await player_demons_queries.check_demon_registration(player_id, server_id, d.id)
 			view = None
 
 			match registration_status:
@@ -174,7 +174,7 @@ class Fusion(commands.Cog):
 				await ctx.send(view=view)
 				return
 
-			leader_id = await player_demons_queries.get_selected_demon_id(player.id, server.id)
+			leader_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 			if d.id == leader_id:
 				view = MessageView(
@@ -187,7 +187,11 @@ class Fusion(commands.Cog):
 		# Do a different process if fusing with an Element demon.
 		if demon_1.race == "Element" or demon_2.race == "Element":
 			element, demon = (demon_1, demon_2) if demon_1.race == "Element" else (demon_2, demon_1)
-			demon_result = fusion_queries.get_fuse_with_element(demon.race, element.name, original_rank=demon.rank)
+			demon_result = fusion_queries.get_fuse_with_element(
+				demon.race,
+				element.name,
+				original_rank=demon.rank,
+			)
 		else:
 			average_rank = demon_1.rank + demon_2.rank // 2
 			demon_result = fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
@@ -198,11 +202,11 @@ class Fusion(commands.Cog):
 			await ctx.send(view=view)
 			return
 
+		result_design_data = await demon_queries.get_design_data(demon_result.id)
+
 		# Check if the fused demon is already in the player's party.
-		if (
-			await player_demons_queries.check_demon_registration(player.id, server.id, demon_result.id)
-			== DemonRegistration.IN_PARTY
-		):
+		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_result.id)
+		if result_reg_status == DemonRegistration.IN_PARTY:
 			view = MessageView(
 				(
 					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
@@ -210,8 +214,8 @@ class Fusion(commands.Cog):
 					f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
 					f"\n\nBut {demon_result.name} can already be found in your party..."
 				),
-				demon_result.design_data.profile_img,
-				demon_result.design_data.colour,
+				result_design_data.profile_img,
+				EmbedColours.SP_FUSION.value,
 			)
 			await ctx.send(view=view)
 			return
@@ -224,13 +228,13 @@ class Fusion(commands.Cog):
 				f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank})"
 				f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
 			),
-			demon_result.design_data.profile_img,
-			demon_result.design_data.colour,
+			result_design_data.profile_img,
+			EmbedColours.SP_FUSION.value,
 		)
 		await ctx.send(view=view)
 
 		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
-		mag = currency_queries.get_mag(player.id, server.id)
+		mag = currency_queries.get_mag(player_id, server_id)
 
 		if mag < cost:
 			msg = MessageView(
@@ -242,7 +246,7 @@ class Fusion(commands.Cog):
 		# Send a confirmation view.
 		view = ConfirmationView(
 			f"Fusing these demons together will cost **{cost}** MAG. Do you wish to continue?",
-			player.id,
+			player_id,
 		)
 		result = await ConfirmationView.send_message(view, ctx)
 
@@ -252,17 +256,17 @@ class Fusion(commands.Cog):
 		# Fusion Accident code.
 		is_fusion_accident = random.random() < 0.01
 		if is_fusion_accident:
-			demon_result = await self._try_fusion_accident(player.id, server.id, demon_result)
+			demon_result = await self._try_fusion_accident(player_id, server_id, demon_result)
 
 		# Remove demons being fused from party.
-		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_1.id, set_in_party=False)
-		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_2.id, set_in_party=False)
-		currency_queries.update_mag(player.id, server.id, -cost)
+		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_1.id, set_in_party=False)
+		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_2.id, set_in_party=False)
+		currency_queries.update_mag(player_id, server_id, -cost)
 
 		new_demon = await player_demons_queries.add_demon_to_compendium(
-			player.id, server.id, demon_result.id, demon_result.rank
+			player_id, server_id, demon_result.id, demon_result.rank
 		)
-		await player_demons_queries.set_demon_in_party(player.id, server.id, demon_result.id, set_in_party=True)
+		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_result.id, set_in_party=True)
 
 		fuse_complete_text = ""
 
@@ -280,13 +284,13 @@ class Fusion(commands.Cog):
 
 		view = MessageView(
 			fuse_complete_text,
-			demon_result.design_data.profile_img,
-			demon_result.design_data.colour,
+			result_design_data.profile_img,
+			result_design_data.colour,
 		)
 		await ctx.send(view=view)
 
-	async def _try_fusion_accident(self, player_id: int, server_id: int, og_demon: DemonData) -> DemonData:
-		accident = demon_queries.get_random_unowned_demon(player_id, server_id, og_demon.rank)
+	async def _try_fusion_accident(self, player_id: int, server_id: int, og_demon: FusionDemonData) -> FusionDemonData:
+		accident = fusion_queries.get_random_unowned_demon(player_id, server_id, og_demon.rank)
 
 		# Check if demon_result is the same, very rare but don't treat it like an accident in that case.
 		return og_demon if og_demon.id == accident.id else accident
