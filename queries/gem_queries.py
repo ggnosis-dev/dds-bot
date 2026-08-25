@@ -1,3 +1,5 @@
+import random
+
 from entities.item_data import ItemEntry
 from helpers.db import query_all, query_one, query_write
 from queries import player_demons_queries
@@ -8,16 +10,15 @@ GEM_METER_FULL = 100
 
 
 def get_possible_gems(race: str) -> tuple:
-	gem_names = query_all(
+	response = query_all(
 		"""
-			SELECT gem_name FROM race_gems
-			WHERE LOWER(race) = LOWER(?)
-			ORDER BY gem_name ASC
+			SELECT gem_1, gem_2 FROM races
+			WHERE name = UPPER(?)
 		""",
 		(race,),
 	)
 
-	return tuple(g[0] for g in gem_names)
+	return tuple(response[0])
 
 
 async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> bool:
@@ -66,14 +67,8 @@ async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> b
 
 async def add_gem(player_id: int, server_id: int, race: str, number: int = 1) -> str:
 	# Get gem type.
-	gem_name = query_one(
-		"""
-			SELECT gem_name FROM race_gems
-			WHERE race = ?
-			ORDER BY RANDOM() LIMIT 1
-		""",
-		(race,),
-	)[0]
+	gems = get_possible_gems(race)
+	gem_name = random.choice(gems)
 
 	query_write(
 		"""
