@@ -93,6 +93,9 @@ async def join_player_party(
 			mag_multiplier = 0.9
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
+			await player_demons_queries.increase_dupe_level(player.id, server_id, demon.id)
+			await grant_dupe_reward(player.id, server_id, demon.id, demon.dupes + 1)
+
 		case DemonRegistration.PARTY_FULL:
 			gems_to_add = _gems_for_rank(demon.rank)
 			mag_multiplier = 0.3
@@ -187,3 +190,14 @@ def format_dialogue(message: str, demon_data: DemonData) -> str:
 		message = message.replace("[gem]", f"{gems[0]}")
 
 	return message
+
+
+async def grant_dupe_reward(player_id: int, server_id: int, demon_id: int, dupe_level: int):
+	match dupe_level:
+		case 1:
+			await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon_id)
+		# case 2:
+		# case 3:
+		# case 4:
+		# case 5:
+		# case _:

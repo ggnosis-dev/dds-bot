@@ -346,3 +346,34 @@ async def get_strongest_party_demon_rank(player_id: int, server_id: int) -> int:
 	)[0]
 
 	return response if response is not None else 1
+
+
+async def increase_dupe_level(player_id: int, server_id: int, demon_id: int) -> bool:
+	rows_affected = query_write(
+		"""
+			UPDATE player_demons
+			SET dupes = dupes + 1
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	return rows_affected > 0
+
+
+async def set_custom_colour_on_demon(player_id: int, server_id: int, demon_id: int, colour: int = 0) -> bool:
+	"""When setting colour to 0, it will still hit the OR check in demon_data, thus becoming DEFAULT again."""
+	rows_affected = query_write(
+		"""
+			UPDATE player_demons
+			SET colour = ?
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(colour, player_id, server_id, demon_id),
+	)
+
+	return rows_affected > 0
