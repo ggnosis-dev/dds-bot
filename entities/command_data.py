@@ -43,9 +43,9 @@ COMPENDIUM_COMMANDS = {
 		help=(
 			"-# View your Demonic Compendium, letting you see every demon you have ever recruited."
 			" You can view other player's Compendiums by mentioning them,"
-			' and can view hidden columns by typing part of "gemstone" or "tone".'
+			' and can view hidden columns by typing part of "experience", "gemstone" or "tone".'
 		),
-		usage=">compendium {opt: @player | gemstone | tone}",
+		usage=">compendium {opt: @player | experience | gemstone | tone}",
 	),
 	"summon": CommandData(
 		name="summon",
@@ -152,9 +152,9 @@ PARTY_COMMANDS = {
 		help=(
 			"-# Displays the player's current Party."
 			" You can view other player's Compendiums by mentioning them,"
-			' and can view hidden columns by typing part of "gemstone" or "tone".'
+			' and can view hidden columns by typing part of "experience", "gemstone" or "tone".'
 		),
-		usage=">party | p {opt: @player | gemstone | tone}",
+		usage=">party | p {opt: @player experience | gemstone | tone}",
 	),
 	"increase_party": CommandData(
 		name="increase_party",
