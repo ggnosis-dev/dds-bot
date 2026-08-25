@@ -28,6 +28,7 @@ class DemonData:
 	"""
 
 	id: int
+	race_id: int
 	name: str
 	race: str
 	rank: int
@@ -43,6 +44,7 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 	try:
 		new_demon = DemonData(
 			id=row["id"],
+			race_id=row["race_id"],
 			name=row["name"],
 			race=row["race"].title(),
 			rank=row["rank"],
