@@ -1,4 +1,4 @@
-from entities.player_data import PartyStats, PlayerData
+from entities.player_data import PlayerData, convert_row_to_player_data
 from helpers.db import query_one, query_write
 from queries.player_demons_queries import get_strongest_party_demon_rank
 from queries.server_queries import update_server_in_db
@@ -57,14 +57,11 @@ def check_player_exists(player_id, server_id) -> bool:
 async def get_player(player_id, server_id) -> PlayerData | None:
 	"""
 	Get the properties of the player.
-
-	Args:
-		player_id (int): Player ID.
-		server_id (int): Sever ID player belongs to.
 	Returns:
 		PlayerData | None: A data class of player properties or None if non-existent.
 	"""
-	response = query_one(
+
+	row = query_one(
 		"""
 			SELECT * FROM players
 			WHERE player_id = ? AND server_id = ?
@@ -72,21 +69,11 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 		(player_id, server_id),
 	)
 
-	if response is None:
+	if row is None:
 		return None
 
-	player_id, server_id, selected_demon_id, mag, p_size, p_cap, p_av, d_timer, e_timer = response
 	strongest = await get_strongest_party_demon_rank(player_id, server_id)
-
-	return PlayerData(
-		player_id=player_id,
-		server_id=server_id,
-		selected_demon_id=selected_demon_id,
-		mag=mag,
-		party_stats=PartyStats(size=p_size, cap=p_cap, average=p_av, strongest=strongest),
-		daily_timer=d_timer,
-		encounter_timer=e_timer,
-	)
+	return convert_row_to_player_data(row, strongest)
 
 
 async def set_daily_timer(player_id: int, server_id: int, time: int) -> bool:
@@ -135,6 +122,25 @@ async def increase_party_slots(player_id: int, server_id: int, number: int) -> b
 			WHERE player_id = ? AND server_id = ?
 		""",
 		(number, player_id, server_id),
+	)
+
+	return rows_affected > 0
+
+
+async def increase_race_mag_bonus(player_id: int, server_id: int, race_id: int) -> bool:
+	rows_affected = query_write(
+		"""
+			INSERT INTO player_race_stats (
+				player_id,
+				server_id,
+				race_id,
+				mag_bonus
+			)
+			VALUES (?, ?, ?, 1.1)
+			ON CONFLICT (player_id, server_id, race_id) DO
+				UPDATE SET mag_bonus = mag_bonus + 0.1
+		""",
+		(player_id, server_id, race_id),
 	)
 
 	return rows_affected > 0

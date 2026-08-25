@@ -53,6 +53,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			server_id 		INTEGER NOT NULL,
 			race_id			INTEGER NOT NULL,
 			mag_bonus		FLOAT NOT NULL,
+			FOREIGN KEY (race_id) REFERENCES races(id)
 			UNIQUE (player_id, server_id, race_id)
 		)
 	""")

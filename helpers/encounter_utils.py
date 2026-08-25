@@ -6,7 +6,7 @@ import discord
 from entities.demon_data import DemonData
 from entities.encounter_data import JoinData, party_full_extra_responses
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
-from queries import player_demons_queries, server_queries
+from queries import player_demons_queries, player_queries, server_queries
 from queries.currency_queries import update_mag
 from queries.gem_queries import add_gem, get_possible_gems
 from shared_enums import DemonRegistration
@@ -94,7 +94,7 @@ async def join_player_party(
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
 			await player_demons_queries.increase_dupe_level(player.id, server_id, demon.id)
-			await grant_dupe_reward(player.id, server_id, demon.id, demon.dupes + 1)
+			await grant_dupe_reward(player.id, server_id, demon, demon.dupes + 1)
 
 		case DemonRegistration.PARTY_FULL:
 			gems_to_add = _gems_for_rank(demon.rank)
@@ -192,11 +192,12 @@ def format_dialogue(message: str, demon_data: DemonData) -> str:
 	return message
 
 
-async def grant_dupe_reward(player_id: int, server_id: int, demon_id: int, dupe_level: int):
+async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, dupe_level: int):
 	match dupe_level:
 		case 1:
-			await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon_id)
-		# case 2:
+			await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon.id)
+		case 2:
+			await player_queries.increase_race_mag_bonus(player_id, server_id, demon.race_id)
 		# case 3:
 		# case 4:
 		# case 5:
