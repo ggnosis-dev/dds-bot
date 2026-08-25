@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 from discord.ext import commands
 
@@ -236,6 +237,46 @@ class LeaderCommands(commands.Cog):
 			d.design_data.colour,
 		)
 		await ctx.send(view=view)
+
+	@checks.has_profile()
+	@commands.command(**command_kwargs(DEMONS_COMMANDS, "demon_colour"))
+	async def set_colour_command(self, ctx: commands.Context, *, input_str: str) -> None:
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		parts = input_str.split(";")
+		demon_name = parts[0].strip().title()
+		demon_id = demon_queries.get_demon_id_by_name(demon_name)
+
+		# Check if demon is valid.
+		if demon_id is None:
+			msg = MessageView(f"A **{demon_name}** was not found in your party...")
+			await ctx.send(view=msg)
+			return
+
+		# Anything that returns implies the player has access to customising.
+		old_colour = await player_demons_queries.get_custom_colour_on_demon(player_id, server_id, demon_id)
+
+		if old_colour is None:
+			msg = MessageView(f"You do not have the ability to customise the embed colour for **{demon_name}** yet.")
+			await ctx.send(view=msg)
+			return
+
+		# Set to 0 (returns to DEFAULT) if no second part was provided.
+		hex_string = parts[1].strip() if len(parts) > 1 else None
+		new_colour = 0
+
+		if hex_string is not None:
+			match = re.search(r"^#?([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)", hex_string)
+			if match:
+				new_colour = int(match.group(1), 16)
+
+		await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon_id, new_colour)
+		updated_string = f"updated to **#{new_colour:06X}**" if new_colour != 0 else "reverted to its **DEFAULT**"
+		msg = MessageView(
+			f"**{demon_name}**'s embed colour has been {updated_string}.",
+			colour=new_colour,
+		)
+		await ctx.send(view=msg)
 
 
 class Party(PartyCommands, LeaderCommands):

@@ -59,6 +59,16 @@ COMPENDIUM_COMMANDS = {
 }
 
 DEMONS_COMMANDS = {
+	"demon_colour": CommandData(
+		name="demon_colour",
+		aliases=["demon_color", "dc"],
+		help=(
+			"-# If unlocked, change the embed colour for the specified demon."
+			" Colour must be provided as a HEX colour code."
+			" If no colour is provided, the demon will return to using its default colour."
+		),
+		usage=">demon_colour | demon_color | dc {demon}; {opt: hex_code}",
+	),
 	"select": CommandData(
 		name="select",
 		aliases=["sel"],

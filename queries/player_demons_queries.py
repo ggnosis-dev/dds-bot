@@ -377,3 +377,18 @@ async def set_custom_colour_on_demon(player_id: int, server_id: int, demon_id: i
 	)
 
 	return rows_affected > 0
+
+
+async def get_custom_colour_on_demon(player_id: int, server_id: int, demon_id: int) -> int | None:
+	"""When setting colour to 0, it will still hit the OR check in demon_data, thus becoming DEFAULT again."""
+	response = query_one(
+		"""
+			SELECT colour FROM player_demons
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	return response[0] if response else None

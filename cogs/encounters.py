@@ -34,7 +34,12 @@ class Encounters(commands.Cog):
 			if not isinstance(ctx.channel, discord.TextChannel):
 				raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
 
-			d = demon_queries.get_random_demon() if name is None else demon_queries.get_demon_by_name(0, 0, name)
+			player_id, server_id = gets.get_player_server_ids(ctx)
+			d = (
+				demon_queries.get_random_demon()
+				if name is None
+				else demon_queries.get_demon_by_name(player_id, server_id, name)
+			)
 
 			if d is None:
 				print(f"WARN: Demon {name} was None.")
