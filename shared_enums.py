@@ -18,6 +18,7 @@ class Emotes(Enum):
 class Unicode(Enum):
 	FILLED_CIRCLE = "\u2b24"
 	UNFILLED_CIRCLE = "\u25ef"
+	BULLET = "\u2022"
 
 
 class Personality(Enum):

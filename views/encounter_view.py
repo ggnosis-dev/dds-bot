@@ -6,7 +6,7 @@ from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
 from helpers.encounter_utils import format_dialogue, join_player_party
 from queries import talk_queries
-from shared_enums import Emotes, ResponseType
+from shared_enums import Emotes, ResponseType, Unicode
 from views.common_view import MessageView
 
 # 5 minute timeout.
@@ -268,7 +268,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		demon: DemonData,
 		count: int = 1,
 		user_exclusive_to: int | None = None,
-		tutorial=False,
+		tutorial: bool = False,
 	) -> None:
 		"""
 		Init for the initial encounter view.
@@ -305,18 +305,22 @@ class EncounterViewInitial(EncounterViewTemplate):
 		container = ui.Container(accent_color=self.demon.design_data.colour)
 
 		# Format text.
+		stars = f" ({self.demon.dupes}{Emotes.GEM_THIN.value})" if self.demon.dupes > 0 else ""
+		greeting = self.demon.design_data.greeting or f"{self.demon.race} {self.demon.name}{stars}!"
 		question = format_dialogue(question, self.demon)
+		details = f"Rank: {self.demon.rank}"
 
 		container.add_item(self.icon_display)
-		container.add_item(ui.TextDisplay(f"### {self.demon.race} {self.demon.name} ({self.demon.rank})!\n{question}"))
+		container.add_item(ui.TextDisplay(f"### {greeting}\n{question}"))
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
 		self._build_option_buttons(container, dialogue_options)
 
+		# Add encounter image.
 		container.add_item(ui.MediaGallery().add_item(media=self.demon.design_data.encounter_img))
 
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
-		self.status_display = ui.TextDisplay("-# *What will you do?*")
+		self.status_display = ui.TextDisplay(f"-# {details} {Unicode.BULLET.value} *What will you do?*")
 		container.add_item(self.status_display)
 
 		self.add_item(container)

@@ -7,7 +7,7 @@ from entities.item_data import ItemEntry
 from entities.player_data import PartyStats
 from entities.server_data import ServerStats
 from entities.view_data import ColumnConfig
-from shared_enums import EmbedColours, Emotes
+from shared_enums import EmbedColours, Emotes, Unicode
 from views.common_view import BaseLayoutView, EntryT
 
 
@@ -246,7 +246,7 @@ class PartyView(BaseCompendiumView):
 		container.add_item(
 			discord.ui.TextDisplay(
 				f"-# Number in Party: **{self.party_stats.size}** / **{self.party_stats.cap}**"
-				f" • Average Rank: **{self.party_stats.average}**"
+				f" {Unicode.BULLET.value} Average Rank: **{self.party_stats.average}**"
 			)
 		)
 
@@ -330,7 +330,8 @@ class ServerCompendiumView(BaseCompendiumView):
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
 		container.add_item(
 			discord.ui.TextDisplay(
-				f"-# Server Level: **{self.server_stats.level}** • Server Experience: **{self.server_stats.total_xp}**"
+				f"-# Server Level: **{self.server_stats.level}**"
+				f" {Unicode.BULLET.value} Server Experience: **{self.server_stats.total_xp}**"
 			)
 		)
 
