@@ -5,14 +5,12 @@ import discord
 
 from entities.fusion_data import SpecialFusionData
 from entities.item_data import ItemData
-from shared_enums import Banners, Emotes
+from entities.view_data import SHOP_PAGE_SIZE
+from shared_enums import Banners, EmbedColours, Emotes
 from views.common_view import BaseLayoutView, EntryT
 
 # Generic type.
 type PurchaseCallback[EntryT] = Callable[[discord.Interaction, EntryT], Coroutine[Any, Any, None]]
-
-PAGE_SIZE = 5
-SHOP_COLOUR = 0x1E452F
 
 
 class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
@@ -21,9 +19,9 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		entries: list[EntryT],
 		on_purchase: PurchaseCallback[EntryT],
 		page: int = 1,
-		colour: int = SHOP_COLOUR,
+		colour: int = EmbedColours.DEFAULT.value,
 	) -> None:
-		super().__init__(entries, page=page, page_size=PAGE_SIZE, colour=colour)
+		super().__init__(entries, page=page, page_size=SHOP_PAGE_SIZE, colour=colour)
 
 		self.items = entries
 		self.on_purchase = on_purchase

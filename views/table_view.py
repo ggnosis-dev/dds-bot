@@ -7,7 +7,7 @@ from entities.item_data import ItemEntry
 from entities.player_data import PartyStats
 from entities.server_data import ServerStats
 from entities.view_data import ColumnConfig
-from shared_enums import Emotes
+from shared_enums import EmbedColours, Emotes
 from views.common_view import BaseLayoutView, EntryT
 
 
@@ -20,7 +20,7 @@ class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		entries: list[EntryT],
 		columns: list[ColumnConfig],
 		page: int = 1,
-		colour: int = 0xE93700,
+		colour: int = EmbedColours.DEFAULT.value,
 		filtered_race: str = "all",
 	) -> None:
 		"""

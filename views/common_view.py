@@ -7,13 +7,16 @@ import discord
 
 from discord.ext import commands
 
+from entities.view_data import DEFAULT_PAGE_SIZE
+from shared_enums import EmbedColours
+
 
 class MessageView(discord.ui.LayoutView):
 	def __init__(
 		self,
 		message: str,
 		thumbnail: str | None = None,
-		colour: int = 0xE93700,
+		colour: int = EmbedColours.DEFAULT.value,
 	):
 		super().__init__()
 		self.message = message
@@ -45,7 +48,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
 		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
 		thumbnail: str | None = None,
-		colour: int = 0xE93700,
+		colour: int = EmbedColours.DEFAULT.value,
 		timeout: float = 20.0,
 	):
 		super().__init__(timeout=timeout)
@@ -150,8 +153,6 @@ class ConfirmationView(discord.ui.LayoutView):
 			await interaction.response.edit_message(view=view)
 
 
-DEFAULT_PAGE_SIZE = 10
-DEFAULT_COLOUR = 0x1E452F
 EntryT = TypeVar("EntryT")
 
 
@@ -163,7 +164,7 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		entries: list[EntryT],
 		page: int = 1,
 		page_size: int = DEFAULT_PAGE_SIZE,
-		colour: int = DEFAULT_COLOUR,
+		colour: int = EmbedColours.DEFAULT.value,
 	) -> None:
 		"""
 		Init for the base table view.

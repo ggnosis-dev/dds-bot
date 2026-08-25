@@ -4,6 +4,10 @@ import discord
 
 from shared_enums import Emotes
 
+DEFAULT_PAGE_SIZE = 10
+SHOP_PAGE_SIZE = 5
+HELP_PAGE_SIZE = 5
+
 
 @dataclass
 class ColumnConfig:

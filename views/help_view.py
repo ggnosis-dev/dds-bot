@@ -6,10 +6,9 @@ import discord
 
 from discord.ext import commands
 
-from shared_enums import Emotes
+from entities.view_data import HELP_PAGE_SIZE
+from shared_enums import EmbedColours, Emotes
 from views.common_view import BaseLayoutView
-
-PAGE_SIZE = 6
 
 
 class HelpView(BaseLayoutView[dict]):
@@ -19,9 +18,9 @@ class HelpView(BaseLayoutView[dict]):
 		self,
 		entries: list[dict],
 		bot: commands.Bot | commands.AutoShardedBot,
-		colour: int = 0xE93700,
+		colour: int = EmbedColours.DEFAULT.value,
 	):
-		super().__init__(entries, page_size=PAGE_SIZE, colour=colour)
+		super().__init__(entries, page_size=HELP_PAGE_SIZE, colour=colour)
 
 		self.entries = entries
 		self.bot = bot
