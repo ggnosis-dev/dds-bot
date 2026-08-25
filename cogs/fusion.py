@@ -63,14 +63,9 @@ class Fusion(commands.Cog):
 		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 
 		if in_party == DemonRegistration.IN_PARTY or in_party == DemonRegistration.ON_LOAN:
-			msg = MessageView(f"You already have **{demon.name}** in your party...")
-			await interaction.response.send_message(view=msg)
-			return
-
-		# Check if player has space.
-		if not player_demons_queries.get_party_has_space(player_id, server_id):
 			msg = MessageView(
-				f"Cannot summon **{demon.name}**. Party is full. You can increase capacity using `>increase_party`."
+				f"You already have **{demon.name}** in your party...",
+				colour=EmbedColours.SP_FUSION.value,
 			)
 			await interaction.response.send_message(view=msg)
 			return
@@ -83,13 +78,17 @@ class Fusion(commands.Cog):
 
 			if ing_in_party == DemonRegistration.ON_LOAN:
 				msg = MessageView(
-					f"**{i.race} {i.name}** is currently being loaned to the Server Compendium and can't be fused..."
+					f"**{i.race} {i.name}** is currently being loaned to the Server Compendium and can't be fused...",
+					colour=EmbedColours.SP_FUSION.value,
 				)
 				await interaction.response.send_message(view=msg)
 				return
 
 			if ing_in_party != DemonRegistration.IN_PARTY:
-				msg = MessageView(f"You do not have a **{i.race} {i.name}** in your party...")
+				msg = MessageView(
+					f"You do not have a **{i.race} {i.name}** in your party...",
+					colour=EmbedColours.SP_FUSION.value,
+				)
 				await interaction.response.send_message(view=msg)
 				return
 
@@ -106,6 +105,7 @@ class Fusion(commands.Cog):
 			confirm_label="Summon",
 			confirm_colour=discord.ButtonStyle.primary,
 			thumbnail=dd.profile_img,
+			colour=EmbedColours.SP_FUSION.value,
 		)
 		result = await ConfirmationView.send_message(view, interaction)
 
@@ -120,7 +120,11 @@ class Fusion(commands.Cog):
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True)
 
 		# Needs to be a followup.
-		msg = MessageView(f"You have successfully summoned **{demon.race} {demon.name}**!", thumbnail=dd.profile_img)
+		msg = MessageView(
+			f"You have successfully summoned **{demon.race} {demon.name}**!",
+			thumbnail=dd.profile_img,
+			colour=EmbedColours.SP_FUSION.value,
+		)
 		await interaction.followup.send(view=msg)
 
 	async def _fuse_demons(
@@ -132,7 +136,10 @@ class Fusion(commands.Cog):
 	):
 		# Check parts are valid.
 		if not parts or len(parts) <= 1:
-			view = MessageView("Select the demons you wish to fuse by using `>fuse {demon 1}; {demon 2}`.")
+			view = MessageView(
+				"Select the demons you wish to fuse by using `>fuse {demon 1}; {demon 2}`.",
+				colour=EmbedColours.SP_FUSION.value,
+			)
 			await ctx.send(view=view)
 			return
 
@@ -145,7 +152,8 @@ class Fusion(commands.Cog):
 		# If the demon doesn't exist at all.
 		if not demon_1 or not demon_2:
 			view = MessageView(
-				"The demons entered for fusion could not be found. You may be yet to register them to your Compendium."
+				"The demons entered for fusion could not be found. You may be yet to register them to your Compendium.",
+				colour=EmbedColours.SP_FUSION.value,
 			)
 			await ctx.send(view=view)
 			return
@@ -159,15 +167,20 @@ class Fusion(commands.Cog):
 				case DemonRegistration.UNREGISTERED:
 					view = MessageView(
 						"The demons entered for fusion could not be found."
-						" You may be yet to register them to your Compendium."
+						" You may be yet to register them to your Compendium.",
+						colour=EmbedColours.SP_FUSION.value,
 					)
 
 				case DemonRegistration.IN_COMP:
-					view = MessageView(f"**{d.race} {d.name}** is not in your party.")
+					view = MessageView(
+						f"**{d.race} {d.name}** is not in your party.",
+						colour=EmbedColours.SP_FUSION.value,
+					)
 
 				case DemonRegistration.ON_LOAN:
 					view = MessageView(
-						f"**{d.race} {d.name}** is currently being loaned to the Server Compendium and can't be fused..."
+						f"**{d.race} {d.name}** is currently being loaned to the Server Compendium and can't be fused...",
+						colour=EmbedColours.SP_FUSION.value,
 					)
 
 			if view is not None:
@@ -179,7 +192,8 @@ class Fusion(commands.Cog):
 			if d.id == leader_id:
 				view = MessageView(
 					f"**{d.race} {d.name}** is currently set as your leader."
-					" Use `>select {demon}` to change your leader before fusing."
+					" Use `>select {demon}` to change your leader before fusing.",
+					colour=EmbedColours.SP_FUSION.value,
 				)
 				await ctx.send(view=view)
 				return
@@ -198,7 +212,10 @@ class Fusion(commands.Cog):
 
 		# Unique message if no demon can be fused.
 		if not demon_result or demon_result.id in [demon_1.id, demon_2.id]:
-			view = MessageView(f"**{name_1}** + **{name_2}** = **Nothing! So sorry about that champ!**")
+			view = MessageView(
+				f"**{name_1}** + **{name_2}** = **Nothing! So sorry about that champ!**",
+				colour=EmbedColours.SP_FUSION.value,
+			)
 			await ctx.send(view=view)
 			return
 
@@ -238,7 +255,8 @@ class Fusion(commands.Cog):
 
 		if mag < cost:
 			msg = MessageView(
-				f"The cost to fuse these demons are **{cost}** MAG. You don't have enough Magnetite to fuse these demons!"
+				f"The cost to fuse these demons are **{cost}** MAG. You don't have enough Magnetite to fuse these demons!",
+				colour=EmbedColours.SP_FUSION.value,
 			)
 			await ctx.send(view=msg)
 			return
@@ -247,6 +265,7 @@ class Fusion(commands.Cog):
 		view = ConfirmationView(
 			f"Fusing these demons together will cost **{cost}** MAG. Do you wish to continue?",
 			player_id,
+			colour=EmbedColours.SP_FUSION.value,
 		)
 		result = await ConfirmationView.send_message(view, ctx)
 
@@ -285,7 +304,7 @@ class Fusion(commands.Cog):
 		view = MessageView(
 			fuse_complete_text,
 			result_design_data.profile_img,
-			result_design_data.colour,
+			EmbedColours.SP_FUSION.value,
 		)
 		await ctx.send(view=view)
 
