@@ -42,7 +42,7 @@ class DemonData:
 def convert_row_to_demon_data(row: Row) -> DemonData:
 	"""Convert retrieved DB row into a DemonData object."""
 	try:
-		new_demon = DemonData(
+		return DemonData(
 			id=row["id"],
 			race_id=row["race_id"],
 			name=row["name"],
@@ -59,9 +59,6 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			),
 			prevent_spawn=row["prevent_spawn"],
 		)
-		print(new_demon)
-
-		return new_demon
 	except Exception as e:
 		print(e)
 		raise KeyError(f"ERROR: Problem when creating DemonData | {e}")
