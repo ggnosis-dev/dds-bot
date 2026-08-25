@@ -134,12 +134,16 @@ async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> 
 	"""
 	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, d.rank, d.tone, pd.on_loan, pd.stored_rank, pd.in_party
-			FROM demons d
-			JOIN player_demons pd ON pd.demon_id = d.id
+			SELECT
+				v.*,
+				pd.on_loan,
+				pd.stored_rank,
+				pd.in_party
+			FROM demon_entry_VIEW v
+			JOIN player_demons pd ON pd.demon_id = v.id
 				AND pd.player_id = ? AND pd.server_id = ?
 			WHERE pd.in_party = 1
-			ORDER BY d.race ASC, d.id ASC
+			ORDER BY v.race ASC, v.id ASC
 		""",
 		(user_id, server_id),
 	)
@@ -169,11 +173,15 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 	# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 	rows = query_all(
 		"""
-			SELECT d.id, d.name, d.race, d.rank, d.tone, pd.on_loan, pd.stored_rank, pd.in_party
-			FROM demons d
-			LEFT JOIN player_demons pd ON pd.demon_id = d.id
+			SELECT
+				v.*,
+				pd.on_loan,
+				pd.stored_rank,
+				pd.in_party
+			FROM demon_entry_VIEW v
+			LEFT JOIN player_demons pd ON pd.demon_id = v.id
 				AND pd.player_id = ? AND pd.server_id = ?
-			ORDER BY d.race ASC, d.id ASC
+			ORDER BY v.race ASC, v.id ASC
 		""",
 		(user_id, server_id),
 	)
