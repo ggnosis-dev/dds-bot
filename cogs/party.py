@@ -266,6 +266,7 @@ class LeaderCommands(commands.Cog):
 		new_colour = 0
 
 		if hex_string is not None:
+			# Matches either 3 or 6 valid HEX values. Doesn't care about the #.
 			match = re.search(r"^#?([0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)", hex_string)
 			if match:
 				new_colour = int(match.group(1), 16)
