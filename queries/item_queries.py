@@ -15,7 +15,7 @@ async def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry
 
 	rows = query_all(
 		"""
-			SELECT name, emote, quantity
+			SELECT i.name, i.emote, pi.quantity, i.description
 			FROM player_items pi
 			JOIN items i ON pi.item_id = i.item_id
 			WHERE pi.player_id = ? AND pi.server_id = ?
@@ -24,12 +24,13 @@ async def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry
 	)
 
 	entries = []
-	for name, emote, qty in rows:
+	for name, emote, qty, desc in rows:
 		entries.append(
 			ItemEntry(
 				name=name,
 				quantity=qty,
 				emote=emote,
+				description=desc,
 			)
 		)
 
@@ -62,7 +63,7 @@ async def get_rags_item_list() -> list[ItemData]:
 	return entries
 
 
-def get_player_has_item(player_id: int, server_id: int, item_id: str) -> bool:
+def get_player_has_item(player_id: int, server_id: int, item_id: int) -> bool:
 	"""Check if a player has an item."""
 
 	response = query_one(
@@ -76,7 +77,7 @@ def get_player_has_item(player_id: int, server_id: int, item_id: str) -> bool:
 	return response[0] if response else False
 
 
-def get_item_id_by_name(item_name: str) -> str | None:
+def get_item_id_by_name(item_name: str) -> int | None:
 	"""Get an item's ID by its name."""
 
 	response = query_one(
@@ -86,10 +87,26 @@ def get_item_id_by_name(item_name: str) -> str | None:
 		""",
 		(item_name,),
 	)
+
 	return response[0] if response else None
 
 
-def use_incense(player_id: int, server_id: int, demon_id: int, item_id: str) -> bool:
+def give_player_item(player_id: int, server_id: int, item_id: int) -> bool:
+	"""Add item to inventory. If it doesn't exist already, set to 1."""
+	rows_affected = query_write(
+		"""
+			INSERT INTO player_items (player_id, server_id, item_id, quantity)
+			VALUES (?, ?, ?, 1)
+			ON CONFLICT (player_id, server_id, item_id) DO
+			UPDATE SET quantity = quantity + 1
+		""",
+		(player_id, server_id, item_id),
+	)
+
+	return rows_affected > 0
+
+
+def use_incense(player_id: int, server_id: int, demon_id: int, item_id: int) -> bool:
 	"""Use an incense item on a specified demon."""
 	exclusive_to = query_one(
 		"SELECT exclusive_to FROM items WHERE item_id = ?",
@@ -125,7 +142,7 @@ def use_incense(player_id: int, server_id: int, demon_id: int, item_id: str) -> 
 	return bool(q1 and q2)
 
 
-def attempt_purchase_item(player_id: int, server_id: int, item_id: str, cost: dict) -> bool:
+def attempt_purchase_item(player_id: int, server_id: int, item_id: int, cost: dict) -> bool:
 	"""
 	Attempt to purchase item for the player. Checks if the player has enough gems and deducts the cost if they do.
 
@@ -176,14 +193,6 @@ def attempt_purchase_item(player_id: int, server_id: int, item_id: str, cost: di
 		)
 
 	# Add item to inventory. If it doesn't exist already, set to 1.
-	query_write(
-		"""
-			INSERT INTO player_items (player_id, server_id, item_id, quantity)
-			VALUES (?, ?, ?, 1)
-			ON CONFLICT (player_id, server_id, item_id) DO
-			UPDATE SET quantity = quantity + 1
-		""",
-		(player_id, server_id, item_id),
-	)
+	give_player_item(player_id, server_id, item_id)
 
 	return True

@@ -37,10 +37,11 @@ class Columns:
 
 	# Item/Gem Collection Exclusive.
 	EMOTE = ColumnConfig(key="emote", label=Emotes.BLANK.value)
-	ITEM_NAME = ColumnConfig(key="name", label="Name", width=12, header_tabs=3)
-	QUANTITY = ColumnConfig(key="quantity", label="Quantity", width=3, header_tabs=3, align=">")
+	ITEM_NAME = ColumnConfig(key="name", label="Name", width=18, header_tabs=5)
+	QUANTITY = ColumnConfig(key="quantity", label="Qty", width=3, header_tabs=4, align=">")
+	DESC = ColumnConfig(key="description", label="Description", width=32, header_tabs=6, align="<")
 
-	ITEM_DEFAULT = [EMOTE, ITEM_NAME, QUANTITY]
+	ITEM_DEFAULT = [EMOTE, ITEM_NAME, QUANTITY, DESC]
 
 
 def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) -> tuple:

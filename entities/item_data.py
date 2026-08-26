@@ -8,11 +8,12 @@ class ItemEntry:
 	name: str
 	quantity: int
 	emote: Emotes
+	description: str
 
 
 @dataclass
 class ItemData:
-	item_id: str
+	item_id: int
 	name: str
 	i_type: str
 	cost: dict
