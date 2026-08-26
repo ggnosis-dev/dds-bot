@@ -38,6 +38,15 @@ COG_DESCRIPTIONS = {
 	"Utility": "Commands for miscellaneous checks and tools",
 }
 
+BADGE_COMMANDS = {
+	"badges": CommandData(
+		name="badges",
+		aliases=["b"],
+		help=("-# View the badges you have obtained."),
+		usage=">badges | b {opt: @player}",
+	)
+}
+
 COMPENDIUM_COMMANDS = {
 	"compendium": CommandData(
 		name="compendium",
@@ -80,7 +89,7 @@ DEMONS_COMMANDS = {
 			f" and be no longer than {GREETING_LENGTH} characters long."
 			" Optionally, you can include `[s]` for star level and `[k]` for rank."
 			" `[D]` and `[R]` for capitalisation options."
-			"\n\n>set_greeting Pixie; **[D]** ([s]) of the **[r]** race has appeared!"
+			"\n\n-# >set_greeting Pixie; **[D]** ([s]) of the **[r]** race has appeared!"
 		),
 		usage=">set_greeting | sg {demon}; {opt: text}",
 	),

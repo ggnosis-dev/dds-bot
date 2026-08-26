@@ -127,7 +127,7 @@ async def increase_party_slots(player_id: int, server_id: int, number: int) -> b
 	return rows_affected > 0
 
 
-async def increase_race_mag_bonus(player_id: int, server_id: int, race_id: int) -> bool:
+async def increase_race_mag_bonus(player_id: int, server_id: int, race_id: int, amount: float = 0.1) -> bool:
 	rows_affected = query_write(
 		"""
 			INSERT INTO player_race_stats (
@@ -138,9 +138,9 @@ async def increase_race_mag_bonus(player_id: int, server_id: int, race_id: int) 
 			)
 			VALUES (?, ?, ?, 1.1)
 			ON CONFLICT (player_id, server_id, race_id) DO
-				UPDATE SET mag_bonus = mag_bonus + 0.1
+				UPDATE SET mag_bonus = mag_bonus + ?
 		""",
-		(player_id, server_id, race_id),
+		(player_id, server_id, race_id, amount),
 	)
 
 	return rows_affected > 0

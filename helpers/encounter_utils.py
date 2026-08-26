@@ -6,7 +6,7 @@ import discord
 from entities.demon_data import DemonData
 from entities.encounter_data import JoinData, party_full_extra_responses
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
-from queries import item_queries, player_demons_queries, player_queries, server_queries
+from queries import badge_queries, item_queries, player_demons_queries, player_queries, server_queries
 from queries.currency_queries import update_mag
 from queries.gem_queries import add_gem
 from shared_enums import DemonRegistration
@@ -187,5 +187,10 @@ async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, du
 			if item_id is None:
 				raise RuntimeError("Grimoire item returned None.")
 			item_queries.give_player_item(player_id, server_id, item_id)
-		# case 5:
-		# case _:
+		case 5:
+			badge_id = badge_queries.get_demon_badge_id(demon.id)
+			if badge_id is None:
+				raise RuntimeError("Badge for demon not available.")
+			badge_queries.set_badge_on_player(player_id, badge_id)
+		case _:
+			await player_queries.increase_race_mag_bonus(player_id, server_id, demon.race_id, amount=0.05)
