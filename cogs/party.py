@@ -345,7 +345,7 @@ class LeaderCommands(commands.Cog):
 
 		# Format here so the player can view an example instantly.
 		demon = demon_queries.get_demon_by_id(player_id, server_id, demon_id)
-		formatted_greeting = format_greeting(greeting_string, demon, ctx.author.name)
+		formatted_greeting = format_greeting(greeting_string, demon)
 		msg = MessageView(
 			f'**{demon_name}**\'s greeting has been updated to "{formatted_greeting}".',
 			colour=demon.design_data.colour,

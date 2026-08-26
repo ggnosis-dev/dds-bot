@@ -5,7 +5,7 @@ import discord
 from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
 from helpers.encounter_utils import join_player_party
-from helpers.format_utils import format_dialogue
+from helpers.format_utils import format_dialogue, format_greeting
 from queries import talk_queries
 from shared_enums import Emotes, ResponseType, Unicode
 from views.common_view import MessageView
@@ -307,7 +307,12 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 		# Format text.
 		stars = f" ({self.demon.dupes}{Emotes.GEM_THIN.value})" if self.demon.dupes > 0 else ""
-		greeting = self.demon.design_data.greeting or f"{self.demon.race} {self.demon.name}{stars}!"
+
+		if self.demon.design_data.greeting is not None:
+			greeting = format_greeting(self.demon.design_data.greeting, self.demon)
+		else:
+			greeting = f"{self.demon.race} {self.demon.name}{stars}!"
+
 		question = format_dialogue(question, self.demon)
 		details = f"Rank: {self.demon.rank}"
 
