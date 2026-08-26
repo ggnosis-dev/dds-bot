@@ -2,7 +2,21 @@ import json
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH, SPECIAL_FUSION_JSON
-from queries.demon_queries import get_demon_id_by_name
+
+
+def get_demon_id_by_name(demon_name: str) -> int:
+	"""Retrieve a demon's ID from the database using its name."""
+	with sqlite3.connect(PLAYERS_DB_PATH) as conn:
+		conn.execute("PRAGMA foreign_keys = ON")
+		cursor = conn.cursor()
+		response = cursor.execute(
+			"""
+				SELECT id FROM demons
+				WHERE LOWER(name) = LOWER(?)
+			""",
+			(demon_name,),
+		).fetchone()
+		return response[0] if response else 0
 
 
 def load_fusion_recipes():
