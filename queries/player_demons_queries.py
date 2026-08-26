@@ -428,3 +428,32 @@ async def get_custom_greeting_on_demon(player_id: int, server_id: int, demon_id:
 	)
 
 	return response[0] if response else None
+
+
+async def increase_demon_mag_bonus(player_id: int, server_id: int, demon_id: int, amount: float = 0.05) -> bool:
+	rows_affected = query_write(
+		"""
+			UPDATE player_demons
+			SET mag_bonus = ?
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id, amount),
+	)
+
+	return rows_affected > 0
+
+
+def get_demon_mag_bonus(player_id: int, server_id: int, demon_id: int) -> float:
+	response = query_one(
+		"""
+			SELECT mag_bonus FROM player_demons
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	return response[0]

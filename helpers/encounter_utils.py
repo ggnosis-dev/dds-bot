@@ -50,7 +50,6 @@ async def join_player_party(
 	if server_id is None:
 		raise RuntimeError("ERROR: Server ID is None.")
 
-	mag_multiplier = 0
 	gems_to_add = 0
 	gem_name = ""
 	extra_response = None
@@ -68,8 +67,7 @@ async def join_player_party(
 
 	match new_entry:
 		case DemonRegistration.UNREGISTERED:
-			# Added demon to COMP with a little bonus MAG.
-			mag_multiplier = 0.6
+			# Add demon to COMP.
 			asyncio.gather(
 				player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank),
 				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
@@ -81,7 +79,6 @@ async def join_player_party(
 
 		case DemonRegistration.IN_COMP:
 			# Only add demon to player's party, has been obtained before.
-			mag_multiplier = 0.3
 			asyncio.gather(
 				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
 				player_demons_queries.update_party_average(player.id, server_id),
@@ -90,7 +87,6 @@ async def join_player_party(
 		case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
-			mag_multiplier = 0.9
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
 			await player_demons_queries.increase_dupe_level(player.id, server_id, demon.id)
@@ -98,15 +94,14 @@ async def join_player_party(
 
 		case DemonRegistration.PARTY_FULL:
 			gems_to_add = _gems_for_rank(demon.rank)
-			mag_multiplier = 0.3
 			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 			extra_response = party_full_extra_responses[demon.tone_type]
 
 		case DemonRegistration.TOO_WEAK:
-			mag_multiplier = 0.1
 			extra_response = "TOO WEAK"
 
-	mag_to_add = int((demon.rank * 10) / mag_multiplier)
+	mag_mult = _get_mag_multipler(player.id, server_id, demon, new_entry)
+	mag_to_add = int(demon.rank * 10 * mag_mult)
 	update_mag(player.id, server_id, mag_to_add)
 	status_message = _get_status_message(new_entry, demon, player.name, mag_to_add, gems_to_add, gem_name)
 
@@ -114,6 +109,23 @@ async def join_player_party(
 		status_message,
 		extra_response,
 	)
+
+
+def _get_mag_multipler(player_id: int, server_id: int, demon: DemonData, reg_status: DemonRegistration) -> float:
+	race_mult = player_queries.get_race_mag_bonus(player_id, server_id, demon.race_id)
+	demon_mult = player_demons_queries.get_demon_mag_bonus(player_id, server_id, demon.id)
+
+	match reg_status:
+		case DemonRegistration.IN_COMP | DemonRegistration.PARTY_FULL:
+			reg_rate = 0.3
+		case DemonRegistration.UNREGISTERED:
+			reg_rate = 0.6
+		case _:
+			reg_rate = 0.9
+
+	# (1 + 0) / 0.9 = 111
+	# (1.1 + 0.05) / 0.9 = 128
+	return (race_mult + demon_mult) / reg_rate
 
 
 def _get_status_message(new_entry, demon, user_name, mag_received, gems_added, gem_name) -> str:
@@ -193,4 +205,4 @@ async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, du
 				raise RuntimeError("Badge for demon not available.")
 			badge_queries.set_badge_on_player(player_id, badge_id)
 		case _:
-			await player_queries.increase_race_mag_bonus(player_id, server_id, demon.race_id, amount=0.05)
+			await player_demons_queries.increase_demon_mag_bonus(player_id, server_id, demon.race_id)

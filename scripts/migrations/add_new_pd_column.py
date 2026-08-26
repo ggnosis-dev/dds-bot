@@ -19,3 +19,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		ALTER TABLE player_demons
 		ADD COLUMN greeting TEXT DEFAULT NULL
 	""")
+
+	cursor.execute("""
+		ALTER TABLE player_demons
+		ADD COLUMN mag_bonus FLOAT DEFAULT 0
+	""")

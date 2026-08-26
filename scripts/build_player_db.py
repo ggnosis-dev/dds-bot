@@ -39,6 +39,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			on_loan			INTEGER CHECK (on_loan IN (0, 1)) 	DEFAULT 0,
 			gem_meter		INTEGER DEFAULT 0,
 			dupes			INTEGER DEFAULT 0,
+			mag_mult		FLOAT DEFAULT 0,
 			colour 			INTEGER DEFAULT NULL,
 			greeting		TEXT DEFAULT NULL,
 			-- The same player ID could be on a different server ID with the same demon ID.

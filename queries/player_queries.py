@@ -144,3 +144,17 @@ async def increase_race_mag_bonus(player_id: int, server_id: int, race_id: int, 
 	)
 
 	return rows_affected > 0
+
+
+def get_race_mag_bonus(player_id: int, server_id: int, race_id: int) -> float:
+	response = query_one(
+		"""
+		SELECT mag_bonus FROM player_race_stats
+		WHERE player_id = ?
+			AND server_id = ?
+			AND race_id = ?
+		""",
+		(player_id, server_id, race_id),
+	)
+
+	return response[0] if response is not None else 1
