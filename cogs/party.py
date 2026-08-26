@@ -323,10 +323,10 @@ class LeaderCommands(commands.Cog):
 			await ctx.send(view=msg)
 			return
 
-		# [r] and [d] are required so player's can still see what it is.
-		if "[r]" not in greeting_string and "[d]" not in greeting_string:
+		# [r]/[R] and [d]/[D] are required so player's can still see what it is.
+		if "[r]" not in greeting_string.lower() or "[d]" not in greeting_string.lower():
 			msg = MessageView(
-				"Your greeting must include both `[r]` for race name and `[d]` for demon name.",
+				"Your greeting must include both `[r]`/`[R]` for race name and `[d]`/`[D]` for demon name.",
 			)
 			await ctx.send(view=msg)
 			return

@@ -79,7 +79,8 @@ DEMONS_COMMANDS = {
 			" Greeting text **must include** `[d]` for demon name and [r] for race name"
 			f" and be no longer than {GREETING_LENGTH} characters long."
 			" Optionally, you can include `[p]` for player name, `[s]` for star level and `[k]` for rank."
-			"\n\n>set_greeting Pixie; **[n]**[s] of the **[r]** race has appeared!"
+			" `[D]`, `[R]` and `[P]` for capitalisation options."
+			"\n\n>set_greeting Pixie; **[D]** ([s]) of the **[r]** race has appeared!"
 		),
 		usage=">set_greeting | sg {demon}; {opt: text}",
 	),

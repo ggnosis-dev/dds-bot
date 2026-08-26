@@ -38,10 +38,13 @@ def format_dialogue(message: str, demon_data: DemonData) -> str:
 
 def format_greeting(message: str, demon_data: DemonData, player_name: str) -> str:
 	message = message.replace("[r]", f"{demon_data.race}")
+	message = message.replace("[R]", f"{demon_data.race.upper()}")
 	message = message.replace("[d]", f"{demon_data.name}")
+	message = message.replace("[D]", f"{demon_data.name.upper()}")
 	message = message.replace("[s]", f"{demon_data.dupes}{Emotes.GEM_THIN.value}")
 	message = message.replace("[r]", f"{demon_data.rank}")
 	message = message.replace("[p]", f"{player_name}")
+	message = message.replace("[P]", f"{player_name.upper()}")
 	return message
 
 
