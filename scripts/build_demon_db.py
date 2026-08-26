@@ -19,7 +19,7 @@ for race_json in DEMONS_DIR.glob("*.json"):
 	for entry in data:
 		prevent_spawn = bool(entry.get("prevent_spawn", False))
 		encounter_img = entry.get("encounter_img", None)
-		race_id = Race[race].value
+		race_id = Race[race.upper()].value
 		pers_id = Personality[entry.get("personality", "NONE")].value
 		tone_id = Tone[entry.get("tone", "NONE")].value
 
