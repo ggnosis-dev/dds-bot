@@ -140,7 +140,12 @@ def _get_status_message(new_entry, demon, user_name, mag_received, gems_added, g
 
 		# Demon already in the party.
 		case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
-			status = f"> {demon.race} {demon.name} gifted {user_name} {gems_added} {gem_name.title()}! +{mag_received} MAG"
+			status_addition = "| +0.05x Mult" if demon.dupes > 5 else ""
+
+			status = (
+				f"> {demon.race} {demon.name} gifted {user_name} {gems_added} {gem_name.title()}!"
+				f" +{mag_received} MAG {status_addition}"
+			)
 
 		# Party had too many demons already.
 		case DemonRegistration.PARTY_FULL:
@@ -184,7 +189,7 @@ async def get_count_for_encounters(server_id: int) -> int:
 	return demon_count
 
 
-async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, dupe_level: int):
+async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, dupe_level: int) -> None:
 	match dupe_level:
 		case 1:
 			await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon.id)
