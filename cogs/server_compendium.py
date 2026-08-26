@@ -1,5 +1,4 @@
 import asyncio
-import typing
 
 from collections import Counter
 
@@ -76,6 +75,8 @@ class ServerCompendium(commands.Cog):
 			demon_queries.get_design_data(demon_id, player.id, server.id),
 		)
 
+		print(player_demon, registration_status, design_data)
+
 		if registration_status == DemonRegistration.ON_LOAN:
 			msg = MessageView(f"**{demon_name}** is already being loaned...")
 			await ctx.send(view=msg)
@@ -107,7 +108,7 @@ class ServerCompendium(commands.Cog):
 		# If a demon is already stored, check if they can overwrite it.
 		if success is False:
 			stored_demon = await server_demons_queries.get_single_serv_comp_demon(server.id, player_demon.demon_id)
-			stored_owner = typing.cast(discord.Member, self.bot.get_user(stored_demon.player_id))
+			stored_owner = await self.bot.fetch_user(stored_demon.player_id)
 
 			# If weaker, send message regarding that.
 			if player_demon.stored_rank <= stored_demon.stored_rank:
@@ -149,7 +150,7 @@ class ServerCompendium(commands.Cog):
 				server_level_queries.try_server_level_up(server.id, player_demon.stored_rank),
 			)
 
-			if r1 or r2:
+			if (r1 and r1.old_level != r1.new_level) or (r2 and r2.old_level != r2.new_level):
 				# Start level is either the first old level or the second old level.
 				old_level = r1.old_level if r1 else r2.old_level
 

@@ -1,4 +1,4 @@
-from entities.comp_data import DemonEntry, convert_row_to_demon_entry
+from entities.comp_data import DemonEntry, convert_row_to_demon_entry, convert_row_to_list_demon_entries
 from entities.demon_data import GREETING_LENGTH
 from entities.player_data import PartyStats
 from helpers.db import query_all, query_one, query_write
@@ -6,30 +6,24 @@ from shared_enums import DemonRegistration
 
 
 async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonEntry | None:
-	row = query_all(
+	row = query_one(
 		"""
-			SELECT d.id, d.name, d.race, d.rank, pd.on_loan, pd.stored_rank, pd.in_party
-			FROM demons d
-			JOIN player_demons pd ON pd.demon_id = d.id
-				AND pd.player_id = ? AND pd.server_id = ?
-			WHERE pd.demon_id = ?
+			SELECT
+				v.*,
+				pd.on_loan,
+				pd.stored_rank,
+				pd.in_party
+			FROM demon_entry_VIEW v
+			JOIN player_demons pd ON pd.demon_id = v.id
+			WHERE pd.player_id = ?
+				AND pd.server_id = ?
+				AND pd.demon_id = ?
 		""",
 		(player_id, server_id, demon_id),
 	)
 
 	if row:
-		d_id, name, race, rank, on_loan, st_rank, in_party = row[0]
-
-		return DemonEntry(
-			demon_id=d_id,
-			name=name,
-			race=race,
-			initial_rank=rank,
-			stored_rank=st_rank,
-			on_loan=on_loan,
-			in_party=in_party,
-			owner_id=player_id,
-		)
+		return convert_row_to_demon_entry(row)
 	return None
 
 
@@ -149,7 +143,7 @@ async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> 
 		(user_id, server_id),
 	)
 
-	return convert_row_to_demon_entry(rows, need_gems)
+	return convert_row_to_list_demon_entries(rows, need_gems)
 
 
 async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -> int:
@@ -187,7 +181,7 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 		(user_id, server_id),
 	)
 
-	return convert_row_to_demon_entry(rows, need_gems)
+	return convert_row_to_list_demon_entries(rows, need_gems)
 
 
 def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:

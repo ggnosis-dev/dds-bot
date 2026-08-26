@@ -27,7 +27,7 @@ def query_one(query: str, params: tuple = ()) -> sqlite3.Row:
 		raise RuntimeError(f"ERROR: query_one failed: {e}\nQuery: {query}\nParams: {params}")
 
 
-def query_all(query: str, params: tuple = ()) -> list[dict]:
+def query_all(query: str, params: tuple = ()) -> list[sqlite3.Row]:
 	"""Queries and returns many entry."""
 	try:
 		with _get_db_connection() as conn:

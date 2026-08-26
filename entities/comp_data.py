@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from sqlite3 import Row
 
 from queries.gem_queries import get_possible_gems
 from shared_enums import Tone
@@ -37,7 +38,7 @@ class DemonEntry:
 		return self.in_party is None and self.owner_id is None
 
 
-def convert_row_to_demon_entry(rows: list, need_gems: bool) -> list[DemonEntry]:
+def convert_row_to_list_demon_entries(rows: list[Row], need_gems: bool) -> list[DemonEntry]:
 	"""
 	Convert retrieved DB rows into list of DemonEntry.
 
@@ -51,9 +52,9 @@ def convert_row_to_demon_entry(rows: list, need_gems: bool) -> list[DemonEntry]:
 		entries = []
 		gem_cache: dict[str, tuple] = {}
 
-		for row in rows:
-			row = dict(row)
-			st_rank = row.get("stored_rank")
+		for raw_row in rows:
+			row: dict = dict(raw_row)
+			st_rank = row.get("stored_rank", 0)
 			gems = None
 
 			# If we're querying gems, make sure to skip anything that's not seen.
@@ -64,21 +65,30 @@ def convert_row_to_demon_entry(rows: list, need_gems: bool) -> list[DemonEntry]:
 					gem_cache[race] = get_possible_gems(race)
 				gems = gem_cache[race]
 
-			entries.append(
-				DemonEntry(
-					demon_id=row["id"],
-					name=row["name"],
-					race=row["race"],
-					initial_rank=row["rank"],
-					stored_rank=st_rank or 0,
-					gems=gems,
-					tone_name=Tone(row["tone"]).name,
-					on_loan=row.get("on_loan", False),
-					in_party=row.get("in_party"),
-					owner_id=row.get("owner_id"),
-				)
-			)
+			row["stored_rank"] = st_rank
+			row["gems"] = gems
+			entries.append(convert_row_to_demon_entry(row))
 
 		return entries
+	except Exception as e:
+		raise KeyError(f"ERROR: Problem when creating DemonEntry | {e}")
+
+
+def convert_row_to_demon_entry(raw_row: Row | dict) -> DemonEntry:
+	try:
+		row = dict(raw_row)
+
+		return DemonEntry(
+			demon_id=row["id"],
+			name=row["name"],
+			race=row["race"].title(),
+			initial_rank=row["rank"],
+			stored_rank=row["stored_rank"],
+			gems=row.get("gems"),
+			tone_name=Tone(row["tone"]).name,
+			on_loan=row.get("on_loan", False),
+			in_party=row.get("in_party"),
+			owner_id=row.get("owner_id"),
+		)
 	except Exception as e:
 		raise KeyError(f"ERROR: Problem when creating DemonEntry | {e}")

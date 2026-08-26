@@ -1,4 +1,4 @@
-from entities.comp_data import DemonEntry, ServerCompendiumDemon, convert_row_to_demon_entry
+from entities.comp_data import DemonEntry, ServerCompendiumDemon, convert_row_to_list_demon_entries
 from helpers.db import query_all, query_one, query_write
 
 
@@ -153,4 +153,4 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None, n
 		params,
 	)
 
-	return convert_row_to_demon_entry(rows, need_gems)
+	return convert_row_to_list_demon_entries(rows, need_gems)
