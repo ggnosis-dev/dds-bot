@@ -9,7 +9,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# cursor.execute("DROP TABLE IF EXISTS players")
 	# cursor.execute("DROP TABLE IF EXISTS player_demons")
 	# cursor.execute("DROP TABLE IF EXISTS player_gems")
-	# cursor.execute("DROP TABLE IF EXISTS player_items")
+	cursor.execute("DROP TABLE IF EXISTS player_items")
 	# cursor.execute("DROP TABLE IF EXISTS player_race_stats")
 
 	cursor.execute("""
@@ -72,7 +72,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		CREATE TABLE IF NOT EXISTS player_items (
 			player_id 		INTEGER,
 			server_id 		INTEGER,
-			item_id			TEXT,
+			item_id			INTEGER,
 			quantity		INTEGER DEFAULT 0,
 			UNIQUE (player_id, server_id, item_id)
 		)
