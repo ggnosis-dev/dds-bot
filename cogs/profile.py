@@ -1,16 +1,16 @@
 from discord.ext import commands
 
-from entities.command_data import BADGE_COMMANDS, command_kwargs
+from entities.command_data import PROFILE_COMMANDS, command_kwargs
 from helpers import checks, gets
 from queries import badge_queries
 
 
-class Badges(commands.Cog):
+class Profile(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
 	@checks.has_profile()
-	@commands.command(**command_kwargs(BADGE_COMMANDS, "badges"))
+	@commands.command(**command_kwargs(PROFILE_COMMANDS, "badges"))
 	async def badges_command(self, ctx: commands.Context) -> None:
 		"""
 		Use an item on a demon.
@@ -31,4 +31,4 @@ class Badges(commands.Cog):
 
 
 async def setup(bot: commands.Bot) -> None:
-	await bot.add_cog(Badges(bot))
+	await bot.add_cog(Profile(bot))

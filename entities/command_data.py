@@ -33,18 +33,10 @@ COG_DESCRIPTIONS = {
 	"Fusion": "Commands to fuse two or more demons together",
 	"Items": "Commands for the player's gems and item collections",
 	"Party": "Commands for the demons currently in your party",
+	"Profile": "Commands for the player profile and badges",
 	"ServerCompendium": "Commands for viewing the server's registered demon collection",
 	"Shop": "Commands for using the Rag's Jewelrey Shop",
 	"Utility": "Commands for miscellaneous checks and tools",
-}
-
-BADGE_COMMANDS = {
-	"badges": CommandData(
-		name="badges",
-		aliases=["b"],
-		help=("-# View the badges you have obtained."),
-		usage=">badges | b {opt: @player}",
-	)
 }
 
 COMPENDIUM_COMMANDS = {
@@ -209,6 +201,15 @@ PARTY_COMMANDS = {
 		),
 		usage=">release | rel {demon}",
 	),
+}
+
+PROFILE_COMMANDS = {
+	"badges": CommandData(
+		name="badges",
+		aliases=["b"],
+		help=("-# View the badges you have obtained."),
+		usage=">badges | b {opt: @player}",
+	)
 }
 
 SERVER_COMPENDIUM_COMMANDS = {
