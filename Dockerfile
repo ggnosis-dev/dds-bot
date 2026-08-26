@@ -20,4 +20,4 @@ RUN poetry install --no-root --without dev
 # Copy application code into /app.
 COPY . .
 
-CMD [ "python3", "main.py" ]
+CMD [ "python3", "main.py", "--build" ]
