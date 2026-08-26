@@ -4,7 +4,7 @@ from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
 
 
-def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData | None:
+def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData:
 	"""
 	Retrieve a demon's data from the database using its unique ID.
 
@@ -32,7 +32,10 @@ def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData 
 		(player_id, server_id, demon_id),
 	)
 
-	return convert_row_to_demon_data(row) if row else None
+	if row is None:
+		raise RuntimeError("Provided demon_id was out of bounds.")
+
+	return convert_row_to_demon_data(row)
 
 
 def get_demon_id_by_name(demon_name: str) -> int | None:
