@@ -114,8 +114,8 @@ async def join_player_party(
 
 
 def _get_mag_multipler(player_id: int, server_id: int, demon: DemonData, reg_status: DemonRegistration) -> float:
-	race_mult = player_queries.get_race_mag_bonus(player_id, server_id, demon.race_id)
-	demon_mult = player_demons_queries.get_demon_mag_bonus(player_id, server_id, demon.id)
+	race_mult = player_queries.get_race_mag_mult(player_id, server_id, demon.race_id)
+	demon_mult = player_demons_queries.get_demon_mag_mult(player_id, server_id, demon.id)
 
 	match reg_status:
 		case DemonRegistration.IN_COMP | DemonRegistration.PARTY_FULL:
@@ -202,8 +202,8 @@ async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, du
 				" (see `>demon_colour`)!"
 			)
 		case 2:
-			await player_queries.increase_race_mag_bonus(player_id, server_id, demon.race_id)
-			race_bonus = player_queries.get_race_mag_bonus(player_id, server_id, demon.race_id)
+			await player_queries.increase_race_mag_mult(player_id, server_id, demon.race_id)
+			race_bonus = player_queries.get_race_mag_mult(player_id, server_id, demon.race_id)
 			response = (
 				f"**{demon.name}** has contributed +0.1x to **{demon.race}'s MAG Multiplier**!"
 				f" Any MAG received from the **{demon.race}** race will now be multiplied by **{race_bonus}**!"
@@ -230,6 +230,6 @@ async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, du
 				f"\n\n-# Any levels after this will add **+0.05x MAG multiplier** when interacting with **{demon.name}**."
 			)
 		case _:
-			await player_demons_queries.increase_demon_mag_bonus(player_id, server_id, demon.id)
+			await player_demons_queries.increase_demon_mag_mult(player_id, server_id, demon.id)
 
 	return response

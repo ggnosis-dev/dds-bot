@@ -22,5 +22,5 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute("""
 		ALTER TABLE player_demons
-		ADD COLUMN mag_bonus FLOAT DEFAULT 0
+		ADD COLUMN mag_mult FLOAT DEFAULT 0
 	""")
