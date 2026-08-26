@@ -3,6 +3,8 @@ from sqlite3 import Row
 
 from shared_enums import EmbedColours, Personality, Tone
 
+GREETING_LENGTH = 48
+
 
 @dataclass
 class DesignData:
@@ -55,7 +57,7 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 				profile_img=row["profile_img"],
 				encounter_img=row["encounter_img"],
 				colour=row["colour"] or EmbedColours.DEFAULT.value,
-				greeting=row["greeting"],
+				greeting=row["greeting"] or None,
 			),
 			prevent_spawn=row["prevent_spawn"],
 		)

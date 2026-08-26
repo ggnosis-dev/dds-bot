@@ -1,4 +1,5 @@
 from entities.comp_data import DemonEntry, convert_row_to_demon_entry
+from entities.demon_data import GREETING_LENGTH
 from entities.player_data import PartyStats
 from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
@@ -380,10 +381,45 @@ async def set_custom_colour_on_demon(player_id: int, server_id: int, demon_id: i
 
 
 async def get_custom_colour_on_demon(player_id: int, server_id: int, demon_id: int) -> int | None:
-	"""When setting colour to 0, it will still hit the OR check in demon_data, thus becoming DEFAULT again."""
+	"""If colour is not NULL or None, it means that the player has it unlocked for the demon."""
 	response = query_one(
 		"""
 			SELECT colour FROM player_demons
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	return response[0] if response else None
+
+
+async def set_custom_greeting_on_demon(player_id: int, server_id: int, demon_id: int, greeting: str = "") -> bool:
+	""""""
+	if len(greeting) > GREETING_LENGTH:
+		# Too long. SQLite doesn't have a way to validate text length so has to be done here.
+		return False
+
+	rows_affected = query_write(
+		"""
+			UPDATE player_demons
+			SET greeting = ?
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(greeting, player_id, server_id, demon_id),
+	)
+
+	return rows_affected > 0
+
+
+async def get_custom_greeting_on_demon(player_id: int, server_id: int, demon_id: int) -> str | None:
+	"""If greeting is not NULL or None, it means that the player has it unlocked for the demon."""
+	response = query_one(
+		"""
+			SELECT greeting FROM player_demons
 			WHERE player_id = ?
 				AND server_id = ?
 				AND demon_id = ?

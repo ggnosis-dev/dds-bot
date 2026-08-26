@@ -4,7 +4,8 @@ import discord
 
 from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
-from helpers.encounter_utils import format_dialogue, join_player_party
+from helpers.encounter_utils import join_player_party
+from helpers.format_utils import format_dialogue
 from queries import talk_queries
 from shared_enums import Emotes, ResponseType, Unicode
 from views.common_view import MessageView

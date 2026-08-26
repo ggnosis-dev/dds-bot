@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from entities.demon_data import GREETING_LENGTH
+
 
 @dataclass
 class CommandData:
@@ -68,6 +70,18 @@ DEMONS_COMMANDS = {
 			" If no colour is provided, the demon will return to using its default colour."
 		),
 		usage=">demon_colour | demon_color | dc {demon}; {opt: hex_code}",
+	),
+	"set_greeting": CommandData(
+		name="set_greeting",
+		aliases=["sg"],
+		help=(
+			"-# If unlocked, set the greeting text for the specified demon."
+			" Greeting text **must include** `[d]` for demon name and [r] for race name"
+			f" and be no longer than {GREETING_LENGTH} characters long."
+			" Optionally, you can include `[p]` for player name, `[s]` for star level and `[k]` for rank."
+			"\n\n>set_greeting Pixie; **[n]**[s] of the **[r]** race has appeared!"
+		),
+		usage=">set_greeting | sg {demon}; {opt: text}",
 	),
 	"select": CommandData(
 		name="select",

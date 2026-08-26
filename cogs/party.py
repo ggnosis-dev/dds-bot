@@ -4,10 +4,12 @@ import re
 from discord.ext import commands
 
 from entities.command_data import DEMONS_COMMANDS, PARTY_COMMANDS, command_kwargs
+from entities.demon_data import GREETING_LENGTH
 from entities.player_data import PlayerData
 from entities.view_data import Columns, get_args
 from helpers import checks, gets
 from helpers.costs import party_slot_cost
+from helpers.format_utils import format_greeting, sanitise_greeting
 from queries import demon_queries, gem_queries, player_demons_queries
 from queries.currency_queries import update_mag
 from queries.player_queries import get_player, increase_party_slots
@@ -240,16 +242,21 @@ class LeaderCommands(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(DEMONS_COMMANDS, "demon_colour"))
-	async def set_colour_command(self, ctx: commands.Context, *, input_str: str) -> None:
+	async def demon_colour_command(self, ctx: commands.Context, *, input_str: str) -> None:
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		parts = input_str.split(";")
 		demon_name = parts[0].strip().title()
 		demon_id = demon_queries.get_demon_id_by_name(demon_name)
+		reg = (
+			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+			if demon_id is not None
+			else DemonRegistration.UNREGISTERED
+		)
 
-		# Check if demon is valid.
-		if demon_id is None:
-			msg = MessageView(f"A **{demon_name}** was not found in your party...")
+		# Check if demon is valid. If it is, still check registration as to not reveal demons player haven't seen yet.
+		if demon_id is None or reg == DemonRegistration.UNREGISTERED:
+			msg = MessageView(f"A **{demon_name}** was not found in your COMP...")
 			await ctx.send(view=msg)
 			return
 
@@ -278,6 +285,73 @@ class LeaderCommands(commands.Cog):
 			colour=new_colour,
 		)
 		await ctx.send(view=msg)
+
+	@checks.has_profile()
+	@commands.command(**command_kwargs(DEMONS_COMMANDS, "set_greeting"))
+	async def set_greeting_command(self, ctx: commands.Context, *, input_str: str) -> None:
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		parts = input_str.split(";")
+		demon_name = parts[0].strip().title()
+		demon_id = demon_queries.get_demon_id_by_name(demon_name)
+		reg = (
+			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+			if demon_id is not None
+			else DemonRegistration.UNREGISTERED
+		)
+
+		# Check if demon is valid. If it is, still check registration as to not reveal demons player haven't seen yet.
+		if demon_id is None or reg == DemonRegistration.UNREGISTERED:
+			msg = MessageView(f"A **{demon_name}** was not found in your COMP...")
+			await ctx.send(view=msg)
+			return
+
+		# Anything past here implies the player has access to customising.
+		old_greeting = await player_demons_queries.get_custom_greeting_on_demon(player_id, server_id, demon_id)
+		if old_greeting is None:
+			msg = MessageView(f"You do not have the ability to customise the greeting for **{demon_name}** yet.")
+			await ctx.send(view=msg)
+			return
+
+		greeting_string = parts[1].strip() if len(parts) > 1 else None
+
+		# No greeting given, reset to default.
+		if greeting_string is None:
+			await player_demons_queries.set_custom_greeting_on_demon(player_id, server_id, demon_id)
+			msg = MessageView(
+				f"**{demon_name}**'s greeting has been reverted to its **DEFAULT**.",
+			)
+			await ctx.send(view=msg)
+			return
+
+		# [r] and [d] are required so player's can still see what it is.
+		if "[r]" not in greeting_string and "[d]" not in greeting_string:
+			msg = MessageView(
+				"Your greeting must include both `[r]` for race name and `[d]` for demon name.",
+			)
+			await ctx.send(view=msg)
+			return
+
+		# Sanitise the message to make sure it's under the character limit and doesn't have evil things in it.
+		sanitised_greeting = sanitise_greeting(greeting_string)
+		if sanitised_greeting is None:
+			msg = MessageView(
+				f"Either your greeting is over {GREETING_LENGTH} characters in length, or you're trying to be cheeky.",
+			)
+			await ctx.send(view=msg)
+			return
+
+		# Do not format the string before saving it, otherwise it can never be updated in encounters.
+		await player_demons_queries.set_custom_greeting_on_demon(player_id, server_id, demon_id, sanitised_greeting)
+
+		# Format here so the player can view an example instantly.
+		demon = demon_queries.get_demon_by_id(player_id, server_id, demon_id)
+		formatted_greeting = format_greeting(greeting_string, demon, ctx.author.name)
+		msg = MessageView(
+			f'**{demon_name}**\'s greeting has been updated to "{formatted_greeting}".',
+			colour=demon.design_data.colour,
+		)
+		await ctx.send(view=msg)
+		return
 
 
 class Party(PartyCommands, LeaderCommands):

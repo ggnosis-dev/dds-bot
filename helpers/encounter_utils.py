@@ -8,7 +8,7 @@ from entities.encounter_data import JoinData, party_full_extra_responses
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from queries import player_demons_queries, player_queries, server_queries
 from queries.currency_queries import update_mag
-from queries.gem_queries import add_gem, get_possible_gems
+from queries.gem_queries import add_gem
 from shared_enums import DemonRegistration
 
 TOO_WEAK_LEEWAY = 3
@@ -174,31 +174,14 @@ async def get_count_for_encounters(server_id: int) -> int:
 	return demon_count
 
 
-def format_dialogue(message: str, demon_data: DemonData) -> str:
-	if not message.startswith("[p]"):
-		message = f"-# {message}"
-	else:
-		message.replace("[p]", "", 1)
-
-	message = message.replace("[p]", "\n\n")
-	message = message.replace("[d]", "\n\n-# ")
-	message = message.replace("[race]", f"{demon_data.race.upper()}")
-	message = message.replace("[name]", f"{demon_data.name.upper()}")
-
-	if "[gem]" in message:
-		gems = get_possible_gems(demon_data.race)
-		message = message.replace("[gem]", f"{gems[0]}")
-
-	return message
-
-
 async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, dupe_level: int):
 	match dupe_level:
 		case 1:
 			await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon.id)
 		case 2:
 			await player_queries.increase_race_mag_bonus(player_id, server_id, demon.race_id)
-		# case 3:
+		case 3:
+			await player_demons_queries.set_custom_greeting_on_demon(player_id, server_id, demon.id)
 		# case 4:
 		# case 5:
 		# case _:
