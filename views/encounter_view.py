@@ -160,9 +160,15 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		    interaction (discord.Interaction): The Discord interaction object from the button press.
 		"""
 		user = interaction.user
-		join_outcome = await join_player_party(user, interaction.guild, self.demon)
+		join_data = await join_player_party(user, interaction.guild, self.demon)
 
-		await self._handle_demon_interacted(interaction, response, join_outcome.status_message, join_outcome.extra_response)
+		await self._handle_demon_interacted(
+			interaction,
+			response,
+			join_data.status_message,
+			join_data.extra_response,
+			join_data.dupe_message,
+		)
 
 	async def _encounter_flee(self, interaction: discord.Interaction, response: str) -> None:
 		"""
@@ -212,6 +218,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		response: str,
 		status_message: str,
 		extra_response: str | None = None,
+		dupe_message: str | None = None,
 	) -> None:
 		"""
 		Handler for when an encounter has finished. Updates the status message and icon count, then
@@ -255,6 +262,23 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			self.demon.design_data.colour,
 		)
 		await interaction.followup.send(view=msg, ephemeral=True)
+
+		# Add the message for duplicates if it's available.
+		if dupe_message:
+			player_mention = interaction.user.mention
+			new_level = self.demon.dupes + 1
+			level_string = "MAX" if new_level == 5 else str(new_level)
+
+			msg = MessageView(
+				(
+					f"### {player_mention}'s {self.demon.race} {self.demon.name} has leveled up to"
+					f" {level_string}{Emotes.GEM.value}!"
+					f"\n{dupe_message}"
+				),
+				self.demon.design_data.profile_img,
+				self.demon.design_data.colour,
+			)
+			await interaction.followup.send(view=msg, ephemeral=False)
 
 
 class EncounterViewInitial(EncounterViewTemplate):
