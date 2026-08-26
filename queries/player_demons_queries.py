@@ -434,12 +434,12 @@ async def increase_demon_mag_bonus(player_id: int, server_id: int, demon_id: int
 	rows_affected = query_write(
 		"""
 			UPDATE player_demons
-			SET mag_bonus = ?
+			SET mag_bonus = mag_bonus + ?
 			WHERE player_id = ?
 				AND server_id = ?
 				AND demon_id = ?
 		""",
-		(player_id, server_id, demon_id, amount),
+		(amount, player_id, server_id, demon_id),
 	)
 
 	return rows_affected > 0

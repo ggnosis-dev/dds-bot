@@ -164,8 +164,6 @@ def _gems_for_rank(rank: int) -> int:
 	# Always guaranteed 1.
 	total = 1
 	max_extra_gems = int(rank / 33)
-
-	# TODO: Thing we could let players manipulate.
 	probability = 0.5
 
 	for _ in range(max_extra_gems):
@@ -205,4 +203,4 @@ async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, du
 				raise RuntimeError("Badge for demon not available.")
 			badge_queries.set_badge_on_player(player_id, badge_id)
 		case _:
-			await player_demons_queries.increase_demon_mag_bonus(player_id, server_id, demon.race_id)
+			await player_demons_queries.increase_demon_mag_bonus(player_id, server_id, demon.id)
