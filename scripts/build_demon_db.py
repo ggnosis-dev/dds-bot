@@ -18,7 +18,6 @@ for race_json in DEMONS_DIR.glob("*.json"):
 
 	for entry in data:
 		prevent_spawn = bool(entry.get("prevent_spawn", False))
-		encounter_img = entry.get("encounter_img", None)
 		race_id = Race[race.upper()].value
 		pers_id = Personality[entry.get("personality", "NONE")].value
 		tone_id = Tone[entry.get("tone", "NONE")].value
@@ -27,11 +26,11 @@ for race_json in DEMONS_DIR.glob("*.json"):
 			entry["name"],
 			race_id,
 			entry["rank"],
-			pers_id,
-			entry["profile_img"],
-			encounter_img,
-			prevent_spawn,
 			tone_id,
+			pers_id,
+			prevent_spawn,
+			entry["profile_img"],
+			entry.get("encounter_img", None),
 		)
 
 		demon_data.append(demon)
@@ -41,11 +40,12 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	# Delete existing demon table in case changes to general structure.
 	# cursor.execute("DROP TABLE IF EXISTS demons")
+	# cursor.execute("DROP TABLE IF EXISTS new_demons")
 	# cursor.execute("DELETE FROM demons WHERE name LIKE 'Jack%'")
 
 	# Create demon table.
 	cursor.execute("""
-		CREATE TABLE IF NOT EXISTS new_demons (
+		CREATE TABLE IF NOT EXISTS demons (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL,
 			race_id INTEGER NOT NULL,
