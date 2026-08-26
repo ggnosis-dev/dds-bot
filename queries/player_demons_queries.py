@@ -221,9 +221,9 @@ async def get_selected_demon_id(player_id: int, server_id: int) -> int | None:
 			WHERE player_id = ? AND server_id = ?
 		""",
 		(player_id, server_id),
-	)[0]
+	)
 
-	return response if response else None
+	return response[0] if response else None
 
 
 async def update_party(player_id: int, server_id: int, party_add: int = 1) -> bool:
@@ -456,4 +456,4 @@ def get_demon_mag_mult(player_id: int, server_id: int, demon_id: int) -> float:
 		(player_id, server_id, demon_id),
 	)
 
-	return response[0]
+	return response[0] if response else 1
