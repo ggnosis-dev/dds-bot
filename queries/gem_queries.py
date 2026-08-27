@@ -4,7 +4,7 @@ from entities.item_data import ItemEntry, convert_row_to_item_entry
 from helpers.db import query_all, query_one, query_write
 from queries import player_demons_queries
 
-GEM_EXP_MULTIPLIER = 1
+GEM_EXP_MULTIPLIER = 0.1
 GEM_METER_FULL = 100
 
 
