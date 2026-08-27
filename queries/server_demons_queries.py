@@ -138,8 +138,9 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None, n
 
 	rows = query_all(
 		f"""
-			SELECT d.id, d.name, d.race, d.rank, d.tone, pd.stored_rank, pd.player_id as owner_id
+			SELECT d.id, d.name, r.name AS race, d.rank, d.tone, pd.stored_rank, pd.player_id AS owner_id
 			FROM demons d
+			JOIN races r ON d.race_id = r.id
 			LEFT JOIN server_demons sd
 				ON sd.demon_id = d.id
 				AND sd.server_id = ?
@@ -148,7 +149,7 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None, n
 				AND pd.server_id = sd.server_id
 				AND pd.demon_id = sd.demon_id
 				{show_only_owner}
-			ORDER BY d.race ASC, d.id ASC
+			ORDER BY race ASC, d.id ASC
 		""",
 		params,
 	)
