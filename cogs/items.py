@@ -88,6 +88,7 @@ class InventoryCommands(commands.Cog):
 		player, server = gets.get_player_server(ctx)
 		items = await item_queries.get_player_inventory(player.id, server.id)
 		columns = list(Columns.ITEM_DEFAULT)
+		columns.append(Columns.DESC)
 
 		if not items:
 			await ctx.send("Your inventory is empty.")

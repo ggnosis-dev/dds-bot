@@ -4,7 +4,7 @@ from typing import Any, Generic
 import discord
 
 from entities.fusion_data import SpecialFusionData
-from entities.item_data import ItemData
+from entities.item_data import ShopItemData
 from entities.view_data import SHOP_PAGE_SIZE
 from shared_enums import Banners, EmbedColours, Emotes
 from views.common_view import BaseLayoutView, EntryT
@@ -36,7 +36,7 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		return callback
 
 
-class RagsShopView(BaseShopView[ItemData]):
+class RagsShopView(BaseShopView[ShopItemData]):
 	def _build_layout(self) -> None:
 		"""Function to build Rag's Shop view layout."""
 
@@ -89,7 +89,7 @@ class RagsShopView(BaseShopView[ItemData]):
 	def _build_page_entry(
 		self,
 		container: discord.ui.Container,
-		item: ItemData,
+		item: ShopItemData,
 	) -> discord.ui.Container:
 		cost = item.cost
 		gem_amounts = []
@@ -99,7 +99,7 @@ class RagsShopView(BaseShopView[ItemData]):
 
 		# Set up buttons.
 		button = discord.ui.Button(
-			emoji=Emotes[item.emote].value,
+			emoji=item.emote.value,
 			style=discord.ButtonStyle.grey,
 		)
 		button.callback = self._make_purchase_callback(item)

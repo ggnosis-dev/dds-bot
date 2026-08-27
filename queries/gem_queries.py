@@ -1,9 +1,8 @@
 import random
 
-from entities.item_data import ItemEntry
+from entities.item_data import ItemEntry, convert_row_to_item_entry
 from helpers.db import query_all, query_one, query_write
 from queries import player_demons_queries
-from shared_enums import Emotes
 
 GEM_EXP_MULTIPLIER = 1
 GEM_METER_FULL = 100
@@ -93,25 +92,19 @@ def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
 	"""
 	rows = query_all(
 		"""
-			SELECT gem_name, quantity FROM player_gems
+			SELECT
+				gem_name AS name,
+				quantity
+			FROM player_gems
 			WHERE player_id = ? AND server_id = ?
-			ORDER BY gem_name ASC
+			ORDER BY name ASC
 		""",
 		(player_id, server_id),
 	)
 
 	entries = []
 	for row in rows:
-		name, qty = row
-
-		entries.append(
-			ItemEntry(
-				name=name,
-				quantity=qty,
-				emote=Emotes.BLANK,
-			)
-		)
-
+		entries.append(convert_row_to_item_entry(row))
 	return entries
 
 

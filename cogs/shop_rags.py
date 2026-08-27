@@ -1,7 +1,7 @@
 from discord.ext import commands
 
 from entities.command_data import SHOP_RAGS_COMMANDS, command_kwargs
-from entities.item_data import ItemData
+from entities.item_data import ShopItemData
 from helpers import checks
 from queries import item_queries
 from shared_enums import EmbedColours
@@ -24,7 +24,7 @@ class Shop(commands.Cog):
 		await ctx.send(view=view)
 
 	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
-	async def _purchase_callback(self, interaction, item_data: ItemData) -> None:
+	async def _purchase_callback(self, interaction, item_data: ShopItemData) -> None:
 		"""Callback for when an item purchase button is clicked."""
 
 		player_id = interaction.user.id

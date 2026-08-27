@@ -41,7 +41,7 @@ class Columns:
 	QUANTITY = ColumnConfig(key="quantity", label="Qty", width=3, header_tabs=4, align=">")
 	DESC = ColumnConfig(key="description", label="Description", width=32, header_tabs=6, align="<")
 
-	ITEM_DEFAULT = [EMOTE, ITEM_NAME, QUANTITY, DESC]
+	ITEM_DEFAULT = [EMOTE, ITEM_NAME, QUANTITY]
 
 
 def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) -> tuple:

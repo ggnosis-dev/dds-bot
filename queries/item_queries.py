@@ -1,6 +1,6 @@
 import json
 
-from entities.item_data import ItemData, ItemEntry
+from entities.item_data import ItemEntry, ShopItemData, convert_row_to_item_entry, convert_rows_to_shop_item_data
 from helpers.db import query_all, query_one, query_write
 from queries import demon_queries
 
@@ -24,20 +24,12 @@ async def get_player_inventory(player_id: int, server_id: int) -> list[ItemEntry
 	)
 
 	entries = []
-	for name, emote, qty, desc in rows:
-		entries.append(
-			ItemEntry(
-				name=name,
-				quantity=qty,
-				emote=emote,
-				description=desc,
-			)
-		)
-
+	for row in rows:
+		entries.append(convert_row_to_item_entry(row))
 	return entries
 
 
-async def get_rags_item_list() -> list[ItemData]:
+async def get_rags_item_list() -> list[ShopItemData]:
 	rows = query_all(
 		"""
 			SELECT * FROM items
@@ -45,22 +37,7 @@ async def get_rags_item_list() -> list[ItemData]:
 		""",
 	)
 
-	entries = []
-	for row in rows:
-		i_id, name, typ, cost, excl, desc, emote = row
-		entries.append(
-			ItemData(
-				item_id=i_id,
-				name=name,
-				i_type=typ,
-				cost=json.loads(cost),
-				description=desc,
-				emote=emote,
-				exclusive_to=excl,
-			)
-		)
-
-	return entries
+	return convert_rows_to_shop_item_data(rows)
 
 
 def get_player_has_item(player_id: int, server_id: int, item_id: int) -> bool:
