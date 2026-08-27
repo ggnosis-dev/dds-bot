@@ -5,6 +5,8 @@ from sqlite3 import Row
 
 from shared_enums import Emotes
 
+INCENSE_RANK_INCREASE = 1
+
 
 @dataclass
 class ItemEntry:

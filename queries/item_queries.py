@@ -1,6 +1,12 @@
 import json
 
-from entities.item_data import ItemEntry, ShopItemData, convert_row_to_item_entry, convert_rows_to_shop_item_data
+from entities.item_data import (
+	INCENSE_RANK_INCREASE,
+	ItemEntry,
+	ShopItemData,
+	convert_row_to_item_entry,
+	convert_rows_to_shop_item_data,
+)
 from helpers.db import query_all, query_one, query_write
 from queries import demon_queries
 
@@ -98,9 +104,9 @@ def use_incense(player_id: int, server_id: int, demon_id: int, item_id: int) -> 
 
 	# Increase the demon's stored rank by 3.
 	q1 = query_write(
-		"""
+		f"""
 			UPDATE player_demons
-			SET stored_rank = stored_rank + 3
+			SET stored_rank = stored_rank + {INCENSE_RANK_INCREASE}
 			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
 		(player_id, server_id, demon_id),

@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from entities.command_data import GEMS_COMMANDS, ITEMS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
+from entities.item_data import INCENSE_RANK_INCREASE
 from entities.view_data import Columns
 from helpers import checks, gets
 from queries import demon_queries, gem_queries, item_queries, player_demons_queries, server_queries
@@ -77,7 +78,10 @@ class InventoryCommands(commands.Cog):
 		if item_queries.use_incense(player_id, server_id, demon_id, item_id):
 			demon_name = demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(
-				(f"<@{player_id}> used **{item_name}** on **{demon_name}**! Their rank has **increased** by **3**."),
+				(
+					f"<@{player_id}> used **{item_name}** on **{demon_name}**!"
+					f" Their rank has **increased** by **{INCENSE_RANK_INCREASE}**."
+				),
 			)
 
 	@checks.has_profile()
