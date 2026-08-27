@@ -13,7 +13,7 @@ from helpers.format_utils import format_greeting, sanitise_greeting
 from queries import demon_queries, gem_queries, player_demons_queries
 from queries.currency_queries import update_mag
 from queries.player_queries import get_player, increase_party_slots
-from shared_enums import DemonRegistration, Unicode
+from shared_enums import DemonRegistration, Emotes, Unicode
 from views.common_view import ConfirmationView, MessageView
 from views.table_view import PartyView
 
@@ -232,8 +232,9 @@ class LeaderCommands(commands.Cog):
 			(
 				f"**{d.race} {d.name}** is currently leading your party.\n\n"
 				f"-# **Rank:** {d.rank}\n"
+				f"-# **Level:** {d.dupes}{Emotes.GEM.value}\n"
 				f"-# **Hunting:** {gem_text}\n"
-				f"-# **Progress:** {progress_bar}"
+				f"-# **Progress:**\n{progress_bar}"
 			),
 			d.design_data.profile_img,
 			d.design_data.colour,
