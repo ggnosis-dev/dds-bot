@@ -1,6 +1,6 @@
 from numpy.random import triangular
 
-from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data
+from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data, convert_row_to_design_data
 from helpers.db import query_all, query_one
 
 
@@ -169,7 +169,7 @@ def get_demon_names_by_race(race: str) -> list[str]:
 
 async def get_design_data(demon_id: int, player_id: int = 0, server_id: int = 0) -> DesignData:
 	"""player_id and server_id are optional. Without them, default colour should be provided."""
-	p_url, en_url, col, greeting = query_one(
+	row = query_one(
 		"""
 			SELECT d.profile_img, d.encounter_img, pd.colour, pd.greeting
 			FROM demons d
@@ -182,9 +182,4 @@ async def get_design_data(demon_id: int, player_id: int = 0, server_id: int = 0)
 		(player_id, server_id, demon_id),
 	)
 
-	return DesignData(
-		profile_img=p_url,
-		encounter_img=en_url,
-		colour=col,
-		greeting=greeting,
-	)
+	return convert_row_to_design_data(row)

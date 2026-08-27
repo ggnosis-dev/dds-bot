@@ -53,14 +53,20 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			dupes=row["dupes"] or 0,
 			tone_type=Tone(row["tone"]),
 			personality_type=Personality(row["personality"]),
-			design_data=DesignData(
-				profile_img=row["profile_img"],
-				encounter_img=row["encounter_img"],
-				colour=row["colour"] or EmbedColours.DEFAULT.value,
-				greeting=row["greeting"] or None,
-			),
+			design_data=convert_row_to_design_data(row),
 			prevent_spawn=row["prevent_spawn"],
 		)
 	except Exception as e:
-		print(e)
-		raise KeyError(f"ERROR: Problem when creating DemonData | {e}")
+		raise KeyError(f"Problem when creating DemonData | {e}")
+
+
+def convert_row_to_design_data(row: Row) -> DesignData:
+	try:
+		return DesignData(
+			profile_img=row["profile_img"],
+			encounter_img=row["encounter_img"],
+			colour=row["colour"] or EmbedColours.DEFAULT.value,
+			greeting=row["greeting"] or None,
+		)
+	except Exception as e:
+		raise KeyError(f"Problem when creating DesignData | {e}")

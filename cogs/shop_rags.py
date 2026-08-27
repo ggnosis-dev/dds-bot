@@ -30,14 +30,7 @@ class Shop(commands.Cog):
 		player_id = interaction.user.id
 		server_id = interaction.guild.id
 
-		# print(f"DEBUG: item_data: {item_data}")
-
-		check = item_queries.attempt_purchase_item(
-			player_id=player_id,
-			server_id=server_id,
-			item_id=item_data.item_id,
-			cost=item_data.cost,
-		)
+		check = item_queries.attempt_purchase_item(player_id, server_id, item_data.item_id, item_data.cost)
 
 		if not check:
 			await interaction.response.send_message(
