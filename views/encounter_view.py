@@ -142,12 +142,12 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction, r_text)
 				case ResponseType.NEUTRAL | ResponseType.BAD:
-					self.consecutive_bad_interactions += BAD_COUNT_INCREMENT[r_type]
+					new_bad_count = self.consecutive_bad_interactions + BAD_COUNT_INCREMENT[r_type]
 
-					if self.consecutive_bad_interactions >= FLEE_THRESHOLD and not self.tutorial:
+					if new_bad_count >= FLEE_THRESHOLD and not self.tutorial:
 						await self._encounter_flee(interaction, r_text)
 					else:
-						await self._encounter_followup(interaction, r_text)
+						await self._encounter_followup(interaction, r_text, new_bad_count)
 
 		return callback
 
@@ -182,7 +182,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			interaction, response, f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}..."
 		)
 
-	async def _encounter_followup(self, interaction: discord.Interaction, response: str) -> None:
+	async def _encounter_followup(self, interaction: discord.Interaction, response: str, new_bad_count: int) -> None:
 		"""
 		Handler for when encounter needs a followup. This happens on neutral and on bad responses that haven't hit the flee
 		threshold. Creates a new ephemeral message with new dialogue options.
@@ -199,7 +199,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			self.demon,
 			parent_view,
 			response,
-			consecutive_bad=self.consecutive_bad_interactions,
+			consecutive_bad=new_bad_count,
 			tutorial=self.tutorial,
 		)
 
@@ -423,7 +423,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		parent_view: EncounterViewTemplate,
 		response: str,
 		consecutive_bad: int,
-		tutorial=False,
+		tutorial: bool = False,
 	):
 		"""
 		Init for the followup encounter view.
