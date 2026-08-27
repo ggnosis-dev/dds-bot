@@ -23,7 +23,6 @@ class Shop(commands.Cog):
 		view = RagsShopView(items, self._purchase_callback, colour=EmbedColours.RAGS.value)
 		await ctx.send(view=view)
 
-	# self.shop_items = database_paths.load_json(database_paths.ITEMS_JSON)
 	async def _purchase_callback(self, interaction, item_data: ShopItemData) -> None:
 		"""Callback for when an item purchase button is clicked."""
 
