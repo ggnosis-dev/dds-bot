@@ -1,3 +1,5 @@
+import asyncio
+
 from abc import ABC, abstractmethod
 
 import discord
@@ -6,8 +8,8 @@ from entities.demon_data import DemonData
 from entities.encounter_data import AnswerData, ReactionData
 from helpers.encounter_utils import join_player_party
 from helpers.format_utils import format_dialogue, format_greeting
-from queries import talk_queries
-from shared_enums import Emotes, ResponseType, Unicode
+from queries import player_demons_queries, talk_queries
+from shared_enums import DemonRegistration, Emotes, ResponseType, Unicode
 from views.common_view import MessageView
 
 # 5 minute timeout.
@@ -24,6 +26,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	def __init__(
 		self,
 		demon: DemonData,
+		summoner_id: int,
 		count: int = 1,
 		consecutive_bad_interactions: int = 0,
 		message: discord.Message | None = None,
@@ -44,10 +47,11 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		super().__init__(timeout=ENCOUNTER_TIMEOUT)
 
 		self.demon = demon
+		self.summoner_id = summoner_id
+		self.count = count
 		self.consecutive_bad_interactions = consecutive_bad_interactions
 		self.message = message
 		self.tutorial = tutorial
-		self.count = count
 
 		self.talk_data = talk_queries.get_talk_dialogue(demon.tone_type.value, demon.personality_type.value)
 
@@ -162,12 +166,14 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		user = interaction.user
 		join_data = await join_player_party(user, interaction.guild, self.demon)
 
-		await self._handle_demon_interacted(
-			interaction,
-			response,
-			join_data.status_message,
-			join_data.extra_response,
-			join_data.dupe_message,
+		await asyncio.gather(
+			self._handle_demon_interacted(
+				interaction,
+				response,
+				join_data.status_message,
+				join_data.extra_response,
+			),
+			self._update_dupe_level(interaction, self.demon, join_data.dupe_message),
 		)
 
 	async def _encounter_flee(self, interaction: discord.Interaction, response: str) -> None:
@@ -197,6 +203,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		followup_view = EncounterViewFollowup(
 			self.demon,
+			self.summoner_id,
 			parent_view,
 			response,
 			consecutive_bad=new_bad_count,
@@ -218,7 +225,6 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		response: str,
 		status_message: str,
 		extra_response: str | None = None,
-		dupe_message: str | None = None,
 	) -> None:
 		"""
 		Handler for when an encounter has finished. Updates the status message and icon count, then
@@ -263,22 +269,38 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		)
 		await interaction.followup.send(view=msg, ephemeral=True)
 
-		# Add the message for duplicates if it's available.
-		if dupe_message:
-			player_mention = interaction.user.mention
-			new_level = self.demon.dupes + 1
-			level_string = "MAX" if new_level == 5 else str(new_level)
+	async def _update_dupe_level(
+		self,
+		interaction: discord.Interaction,
+		demon: DemonData,
+		dupe_message: str | None,
+	):
+		summoner_id = self.summoner_id
+		server_id = interaction.guild_id
 
-			msg = MessageView(
-				(
-					f"### {player_mention}'s {self.demon.race} {self.demon.name} has leveled up to"
-					f" {level_string}{Emotes.GEM.value}!"
-					f"\n{dupe_message}"
-				),
-				self.demon.design_data.profile_img,
-				self.demon.design_data.colour,
-			)
-			await interaction.followup.send(view=msg, ephemeral=False)
+		if server_id is None:
+			raise RuntimeError("Server ID is None.")
+
+		reg_status = await player_demons_queries.check_demon_registration(summoner_id, server_id, demon.id)
+		summoned = reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]
+
+		if summoned:
+			# Add the message for duplicates if it's available.
+			if dupe_message:
+				player_mention = f"<@{summoner_id}>'s"
+				new_level = demon.dupes + 1
+				level_string = "MAX" if new_level == 5 else str(new_level)
+
+				msg = MessageView(
+					(
+						f"### {player_mention} {demon.race} {demon.name} has leveled up to"
+						f" {level_string}{Emotes.GEM.value}!"
+						f"\n{dupe_message}"
+					),
+					demon.design_data.profile_img,
+					demon.design_data.colour,
+				)
+				await interaction.followup.send(view=msg)
 
 
 class EncounterViewInitial(EncounterViewTemplate):
@@ -291,6 +313,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 	def __init__(
 		self,
 		demon: DemonData,
+		summoner_id: int,
 		count: int = 1,
 		user_exclusive_to: int | None = None,
 		tutorial: bool = False,
@@ -304,7 +327,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		    user_exclusive_to (int | None, optional): If set, only this user ID can interact with the encounter.
 		    tutorial (bool, optional): If set to True, the encounter can't be failed. Defaults to False.
 		"""
-		super().__init__(demon, count, tutorial=tutorial)
+		super().__init__(demon, summoner_id, count, tutorial=tutorial)
 
 		self.user_exclusive_to = user_exclusive_to
 		self.parent_view = self
@@ -420,6 +443,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 	def __init__(
 		self,
 		demon: DemonData,
+		summoner_id: int,
 		parent_view: EncounterViewTemplate,
 		response: str,
 		consecutive_bad: int,
@@ -437,7 +461,7 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		    tutorial (bool, optional): Whether this encounter is a tutorial encounter, which prevents encounter from
 				fleeing. Defaults to False.
 		"""
-		super().__init__(demon, consecutive_bad_interactions=consecutive_bad, tutorial=tutorial)
+		super().__init__(demon, summoner_id, consecutive_bad_interactions=consecutive_bad, tutorial=tutorial)
 
 		self.response = response
 		self.parent_view = parent_view

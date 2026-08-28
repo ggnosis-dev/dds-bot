@@ -48,7 +48,7 @@ async def join_player_party(
 	server_id = server.id if server else None
 
 	if server_id is None:
-		raise RuntimeError("ERROR: Server ID is None.")
+		raise RuntimeError("Server ID is None.")
 
 	gems_to_add = 0
 	gem_name = ""
@@ -88,15 +88,20 @@ async def join_player_party(
 		case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
-			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
-			await player_demons_queries.increase_dupe_level(player.id, server_id, demon.id)
-			dupe_message = await grant_dupe_reward(player.id, server_id, demon, demon.dupes + 1)
+			gem_name, dupe_message = await asyncio.gather(
+				add_gem(player.id, server_id, demon.race, gems_to_add),
+				grant_dupe_reward(player.id, server_id, demon),
+			)
 
 		case DemonRegistration.PARTY_FULL:
-			gems_to_add = _gems_for_rank(demon.rank)
-			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 			extra_response = party_full_extra_responses[demon.tone_type]
+			gems_to_add = _gems_for_rank(demon.rank)
+
+			gem_name, dupe_message = await asyncio.gather(
+				add_gem(player.id, server_id, demon.race, gems_to_add),
+				grant_dupe_reward(player.id, server_id, demon),
+			)
 
 		case DemonRegistration.TOO_WEAK:
 			extra_response = "TOO WEAK"
@@ -191,25 +196,30 @@ async def get_count_for_encounters(server_id: int) -> int:
 	return demon_count
 
 
-async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, dupe_level: int) -> str | None:
+async def grant_dupe_reward(summoner_id: int, server_id: int, demon: DemonData) -> str | None:
+	# Do the update.
+	await player_demons_queries.increase_dupe_level(summoner_id, server_id, demon.id)
+
+	# Get a response if needed.
 	response = None
+	dupe_level = demon.dupes + 1
 
 	match dupe_level:
 		case 1:
-			await player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon.id)
+			await player_demons_queries.set_custom_colour_on_demon(summoner_id, server_id, demon.id)
 			response = (
 				f"You have unlocked the ability to customise the side colour for your **{demon.name}**"
 				" (see `>demon_colour`)!"
 			)
 		case 2:
-			await player_queries.increase_race_mag_mult(player_id, server_id, demon.race_id)
-			race_bonus = player_queries.get_race_mag_mult(player_id, server_id, demon.race_id)
+			await player_queries.increase_race_mag_mult(summoner_id, server_id, demon.race_id)
+			race_bonus = player_queries.get_race_mag_mult(summoner_id, server_id, demon.race_id)
 			response = (
 				f"**{demon.name}** has contributed +0.1x to **{demon.race}'s MAG Multiplier**!"
 				f" Any MAG received from the **{demon.race}** race will now be multiplied by **{race_bonus}**!"
 			)
 		case 3:
-			await player_demons_queries.set_custom_greeting_on_demon(player_id, server_id, demon.id)
+			await player_demons_queries.set_custom_greeting_on_demon(summoner_id, server_id, demon.id)
 			response = (
 				f"You have unlocked the ability to customise the greeting for your **{demon.name}** (see `>set_greeting`)!"
 			)
@@ -217,19 +227,19 @@ async def grant_dupe_reward(player_id: int, server_id: int, demon: DemonData, du
 			item_id = item_queries.get_item_id_by_name("grimoire")
 			if item_id is None:
 				raise RuntimeError("Grimoire item returned None.")
-			item_queries.give_player_item(player_id, server_id, item_id)
+			item_queries.give_player_item(summoner_id, server_id, item_id)
 			response = f"**{demon.name}** has gifted you a special item: **Grimoire**!"
 		case 5:
 			badge_id = badge_queries.get_demon_badge_id(demon.id)
 			if badge_id is None:
 				raise RuntimeError("Badge for demon not available.")
-			badge_queries.set_badge_on_player(player_id, badge_id)
+			badge_queries.set_badge_on_player(summoner_id, badge_id)
 			response = (
 				f"You are now fully linked with **{demon.name}**!"
 				" A universal badge has been added to your player (see `>badges`)!"
 				f"\n\n-# Any levels after this will add **+0.05x MAG multiplier** when interacting with **{demon.name}**."
 			)
 		case _:
-			await player_demons_queries.increase_demon_mag_mult(player_id, server_id, demon.id)
+			await player_demons_queries.increase_demon_mag_mult(summoner_id, server_id, demon.id)
 
 	return response

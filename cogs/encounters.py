@@ -32,7 +32,7 @@ class Encounters(commands.Cog):
 		"""Command to start a test encounter with a random demon."""
 		try:
 			if not isinstance(ctx.channel, discord.TextChannel):
-				raise RuntimeError("ERROR: test_encounter_command | Could not find the channel to send the encounter to.")
+				raise RuntimeError("test_encounter_command | Could not find the channel to send the encounter to.")
 
 			player_id, server_id = gets.get_player_server_ids(ctx)
 			d = (
@@ -45,7 +45,8 @@ class Encounters(commands.Cog):
 				print(f"WARN: Demon {name} was None.")
 				return
 
-			await self._start_encounter(ctx.channel, d, 1)
+			await self._start_encounter(ctx.channel, d, 1, player_id)
+
 		except Exception as e:
 			raise RuntimeError(f"ERROR: encounters.py | test_encounter_command | {e}")
 
@@ -90,7 +91,7 @@ class Encounters(commands.Cog):
 
 		# Start the encounter.
 		await asyncio.gather(
-			self._start_encounter(send_to_channel, demon, count),
+			self._start_encounter(send_to_channel, demon, count, player_id),
 			player_queries.set_encounter_timer(player_id, server_id, now),
 		)
 
@@ -99,6 +100,7 @@ class Encounters(commands.Cog):
 		send_to_channel: discord.TextChannel,
 		demon_data: DemonData,
 		count: int,
+		summoner_id: int,
 		exclusive_to: int | None = None,
 	) -> None:
 		"""
@@ -109,7 +111,8 @@ class Encounters(commands.Cog):
 			demon_data (DemonData): The demon to send.
 			exclusive_to (discord.Member | None): Optional lock encounter to the player.
 		"""
-		view = EncounterViewInitial(demon_data, count=count, user_exclusive_to=exclusive_to)
+
+		view = EncounterViewInitial(demon_data, summoner_id, count=count, user_exclusive_to=exclusive_to)
 		sent = await send_to_channel.send(view=view)
 		view.message = sent
 
@@ -140,7 +143,7 @@ class Encounters(commands.Cog):
 						f"ERROR: _start_tutorial_encounter | Demon {tut_demon} was not found in the database."
 					)
 
-				view = EncounterViewInitial(demon, user_exclusive_to=player_id, tutorial=True)
+				view = EncounterViewInitial(demon, player_id, user_exclusive_to=player_id, tutorial=True)
 				await send_to_channel.send(view=view)
 		except Exception as e:
 			raise RuntimeError(f"ERROR: encounters.py | _start_tutorial_encounter | {e}")
