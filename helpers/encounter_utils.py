@@ -71,6 +71,7 @@ async def join_player_party(
 			asyncio.gather(
 				player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank),
 				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
+				player_demons_queries.update_party(player.id, server_id),
 				player_demons_queries.update_party_average(player.id, server_id),
 			)
 
@@ -81,6 +82,7 @@ async def join_player_party(
 			# Only add demon to player's party, has been obtained before.
 			asyncio.gather(
 				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
+				player_demons_queries.update_party(player.id, server_id),
 				player_demons_queries.update_party_average(player.id, server_id),
 			)
 
@@ -195,15 +197,17 @@ async def get_count_for_encounters(server_id: int) -> int:
 	return demon_count
 
 
-async def grant_dupe_reward(summoner_id: int, server_id: int, demon: DemonData | FusionDemonData) -> str | None:
+async def grant_dupe_reward(
+	summoner_id: int,
+	server_id: int,
+	demon: DemonData | FusionDemonData,
+) -> str | None:
 	# Do the update.
-	await player_demons_queries.increase_dupe_level(summoner_id, server_id, demon.id)
+	new_dupe_level = await player_demons_queries.increase_dupe_level(summoner_id, server_id, demon.id)
 
 	# Get a response if needed.
 	response = None
-	dupe_level = demon.dupes + 1
-
-	match dupe_level:
+	match new_dupe_level:
 		case 1:
 			await player_demons_queries.set_custom_colour_on_demon(summoner_id, server_id, demon.id)
 			response = (

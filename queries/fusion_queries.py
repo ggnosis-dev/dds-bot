@@ -1,7 +1,7 @@
+from entities.demon_data import TOO_WEAK_LEEWAY
 from entities.fusion_data import (
 	ELEMENT_PAIRS,
 	ELEMENT_RACE,
-	FUSION_DIFF_CAP,
 	FusionDemonData,
 	SpecialFusionData,
 	convert_row_to_fusion_demon_data,
@@ -95,16 +95,12 @@ def get_closest_demon_in_race(race: str, rank: int) -> FusionDemonData | None:
 			SELECT * FROM fusion_demon_data_VIEW
 			WHERE race = UPPER(?)
 				AND prevent_spawn = 0
-				-- Prevent fusing a demon that is considerably higher.
-				AND rank <= ? + ?
 			ORDER BY
-				-- Order by absolute rank minus the passed in rank.
-				ABS(rank - ?),
-				-- If there's a tie, prioritise the smaller one.
-				rank
+				-- Order by absolute rank minus the passed in rank. If tied, prioritise the smaller one.
+				ABS(rank - ?), rank
 			LIMIT 1
 		""",
-		(race, rank, FUSION_DIFF_CAP, rank),
+		(race, rank),
 	)
 
 	return convert_row_to_fusion_demon_data(row) if row else None
@@ -138,32 +134,28 @@ def get_specifc_fusion_demon(name: str) -> FusionDemonData | None:
 	return convert_row_to_fusion_demon_data(row) if row else None
 
 
-def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> FusionDemonData:
+def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> FusionDemonData | None:
 	"""
 	Retrieve a random demon's data that is not currently in the player's party, from the database.
 	Range is between 1 and rank + 10.
 	Used exclusively for fusion accidents.
 	"""
-	rank += FUSION_DIFF_CAP
+	rank += TOO_WEAK_LEEWAY
 
 	row = query_one(
 		"""
-			SELECT * FROM fusion_demon_data_VIEW v
+			SELECT v.* FROM fusion_demon_data_VIEW v
+			JOIN player_demons pd ON v.id = pd.demon_id
+				-- Scope to the player and server to avoid incoming from other servers.
+				AND pd.player_id = ?
+				AND pd.server_id = ?
 			WHERE v.rank BETWEEN 1 AND ?
 				AND v.prevent_spawn = 0
-				AND NOT EXISTS (
-					SELECT 1 FROM player_demons pd
-					WHERE pd.demon_id = v.id
-						AND pd.in_party = 1
-						AND pd.player_id = ?
-						AND pd.server_id = ?
-				)
+				AND pd.in_party = 0
 			ORDER BY RANDOM()
 			LIMIT 1
 		""",
-		(rank, player_id, server_id),
+		(player_id, server_id, rank),
 	)
 
-	if not row:
-		raise RuntimeError("ERROR: No demons could be found in the database.")
-	return convert_row_to_fusion_demon_data(row)
+	return convert_row_to_fusion_demon_data(row) if row is not None else None

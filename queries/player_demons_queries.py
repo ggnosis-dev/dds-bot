@@ -48,9 +48,6 @@ async def set_demon_in_party(player_id: int, server_id: int, demon_id: int, set_
 		(set_in_party, player_id, server_id, demon_id, set_in_party),
 	)
 
-	add_remove = 1 if set_in_party else -1
-	await update_party(player_id, server_id, add_remove)
-
 	return rows_affected > 0
 
 
@@ -343,19 +340,23 @@ async def get_strongest_party_demon_rank(player_id: int, server_id: int) -> int:
 	return response if response is not None else 1
 
 
-async def increase_dupe_level(player_id: int, server_id: int, demon_id: int) -> bool:
-	rows_affected = query_write(
+async def increase_dupe_level(player_id: int, server_id: int, demon_id: int) -> int:
+	response = query_one(
 		"""
 			UPDATE player_demons
 			SET dupes = dupes + 1
 			WHERE player_id = ?
 				AND server_id = ?
 				AND demon_id = ?
+			RETURNING dupes
 		""",
 		(player_id, server_id, demon_id),
 	)
 
-	return rows_affected > 0
+	if response is None:
+		raise RuntimeError("increase_dupe_level was called for an invalid player demon.")
+
+	return response[0]
 
 
 async def set_custom_colour_on_demon(player_id: int, server_id: int, demon_id: int, colour: int = 0) -> bool:
@@ -451,3 +452,17 @@ def get_demon_mag_mult(player_id: int, server_id: int, demon_id: int) -> float:
 	)
 
 	return response[0] if response else 1
+
+
+def get_demon_dupes(player_id: int, server_id: int, demon_id: int) -> int:
+	response = query_one(
+		"""
+			SELECT dupes FROM player_demons
+			WHERE player_id = ?
+				AND server_id = ?
+				AND demon_id = ?
+		""",
+		(player_id, server_id, demon_id),
+	)
+
+	return response[0] if response else 0

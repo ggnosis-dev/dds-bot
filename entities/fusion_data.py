@@ -12,7 +12,6 @@ class FusionDemonData:
 	race_id: int
 	race: str
 	rank: int
-	dupes: int
 
 
 ## FUSION RELATED.
@@ -51,7 +50,6 @@ def convert_row_to_fusion_demon_data(row: Row) -> FusionDemonData:
 			race_id=row["race_id"],
 			race=row["race"].title(),
 			rank=row["rank"],
-			dupes=row["dupes"] or 0,
 		)
 	except Exception as e:
 		raise KeyError(f"ERROR: Problem when creating FusionDemonData | {e}")

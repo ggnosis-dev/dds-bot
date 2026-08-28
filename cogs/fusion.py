@@ -130,6 +130,7 @@ class Fusion(commands.Cog):
 		await asyncio.gather(
 			player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank),
 			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True),
+			player_demons_queries.update_party(player_id, server_id, party_add=len(ingredients) - 1),
 		)
 
 		# Needs to be a followup.
@@ -319,26 +320,35 @@ class Fusion(commands.Cog):
 			f"\n-# I'm **{demon_result.race} {demon_result.name}**. Well, it's nice to meet you."
 		)
 
+		# Check for dupes.
 		dupe_message = None
 		if not is_fusion_accident and result_reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]:
 			dupe_message = await encounter_utils.grant_dupe_reward(player_id, server_id, demon_result)
+		# Unregistered or in Compendium.
 		else:
-			# Remove demons being fused from party.
-			await asyncio.gather(
-				player_demons_queries.set_demon_in_party(player_id, server_id, demon_1.id, set_in_party=False),
-				player_demons_queries.set_demon_in_party(player_id, server_id, demon_2.id, set_in_party=False),
-			)
-			currency_queries.update_mag(player_id, server_id, -cost)
-
+			# Check if it's a brand new demon.
 			new_demon = await player_demons_queries.add_demon_to_compendium(
 				player_id, server_id, demon_result.id, demon_result.rank
 			)
-			await player_demons_queries.set_demon_in_party(player_id, server_id, demon_result.id, set_in_party=True)
+
+			# Set it in party, update party count.
+			await asyncio.gather(
+				player_demons_queries.set_demon_in_party(player_id, server_id, demon_result.id, set_in_party=True),
+				player_demons_queries.update_party(player_id, server_id),
+			)
 
 			if new_demon:
 				fuse_complete_text += (
 					f"\n\n-# `> {demon_result.race} {demon_result.name} has been registered to your compendium.`"
 				)
+
+		# Remove demons being fused from party.
+		await asyncio.gather(
+			player_demons_queries.set_demon_in_party(player_id, server_id, demon_1.id, set_in_party=False),
+			player_demons_queries.set_demon_in_party(player_id, server_id, demon_2.id, set_in_party=False),
+			player_demons_queries.update_party(player_id, server_id, party_add=-2),
+		)
+		currency_queries.update_mag(player_id, server_id, -cost)
 
 		view = MessageView(
 			fuse_complete_text,
@@ -350,8 +360,8 @@ class Fusion(commands.Cog):
 		# Send dupe message if it exists (TODO: This code is reused from encounter_view)
 		if dupe_message:
 			player_mention = f"<@{player_id}>'s"
-			new_level = demon_result.dupes + 1
-			level_string = "MAX" if new_level == 5 else str(new_level)
+			new_dupe_level = player_demons_queries.get_demon_dupes(player_id, server_id, demon_result.id)
+			level_string = "MAX" if new_dupe_level == 5 else str(new_dupe_level)
 
 			msg = MessageView(
 				(
@@ -368,7 +378,7 @@ class Fusion(commands.Cog):
 		accident = fusion_queries.get_random_unowned_demon(player_id, server_id, og_demon.rank)
 
 		# Check if demon_result is the same, very rare but don't treat it like an accident in that case.
-		return og_demon if og_demon.id == accident.id else accident
+		return og_demon if accident is None or og_demon.id == accident.id else accident
 
 
 async def setup(bot: commands.Bot) -> None:

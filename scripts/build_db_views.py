@@ -44,10 +44,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 				d.race_id,
 				r.name AS race,
 				d.rank,
-				d.prevent_spawn,
-				pd.dupes
+				d.prevent_spawn
 			FROM demons d
 			JOIN races r ON d.race_id = r.id
-			LEFT JOIN player_demons pd ON d.id = pd.demon_id
 		"""
 	)

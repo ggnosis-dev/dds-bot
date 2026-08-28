@@ -60,8 +60,8 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	conn.execute("PRAGMA foreign_keys = ON")
 	cursor = conn.cursor()
 
-	# cursor.execute("DROP TABLE IF EXISTS sp_fusion_ingredients")
-	# cursor.execute("DROP TABLE IF EXISTS sp_fusion_recipes")
+	cursor.execute("DROP TABLE IF EXISTS sp_fusion_ingredients")
+	cursor.execute("DROP TABLE IF EXISTS sp_fusion_recipes")
 
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS sp_fusion_recipes (

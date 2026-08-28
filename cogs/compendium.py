@@ -103,6 +103,7 @@ class Compendium(commands.Cog):
 
 		currency_queries.update_mag(player_id, server_id, -cost)
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id)
+		await player_demons_queries.update_party(player_id, server_id)
 		msg = MessageView(
 			f"You have summoned **{demon_name}** to your party!",
 			thumbnail=demon.design_data.profile_img,

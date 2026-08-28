@@ -108,7 +108,10 @@ class PartyCommands(commands.Cog):
 		if result is False or result is None:
 			return
 
-		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_id, set_in_party=False)
+		asyncio.gather(
+			player_demons_queries.set_demon_in_party(player_id, server_id, demon_id, set_in_party=False),
+			player_demons_queries.update_party(player_id, server_id, party_add=-1),
+		)
 		msg = MessageView(
 			f"### Good-Bye...\n**{demon_name}** will have a happy life in a faraway forest."
 			f"You will never see your **{demon_name}** again."
