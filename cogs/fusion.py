@@ -65,7 +65,8 @@ class Fusion(commands.Cog):
 			view = MessageView(
 				(
 					f"\nBut you are too weak to control **{demon.race} {demon.name}**..."
-					f"\n\n-# You can control up to {party_stats.strongest + 3} (Your strongest demon's rank + 3)."
+					f"\n\n-# You can control up to {party_stats.strongest + TOO_WEAK_LEEWAY}"
+					f" (Your strongest demon's rank + {TOO_WEAK_LEEWAY})."
 				),
 				colour=EmbedColours.SP_FUSION.value,
 			)
@@ -261,7 +262,8 @@ class Fusion(commands.Cog):
 					f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
 					f"\n{Emotes.BLANK.value}"
 					"\nBut you are too weak to control it..."
-					f"\n\n-# You can control up to {party_stats.strongest + 3} (Your strongest demon's rank + 3)."
+					f"\n\n-# You can control up to {party_stats.strongest + TOO_WEAK_LEEWAY}"
+					f" (Your strongest demon's rank + {TOO_WEAK_LEEWAY})."
 				),
 				result_design_data.profile_img,
 				EmbedColours.SP_FUSION.value,
