@@ -48,6 +48,8 @@ async def set_demon_in_party(player_id: int, server_id: int, demon_id: int, set_
 		(set_in_party, player_id, server_id, demon_id, set_in_party),
 	)
 
+	print(rows_affected)
+
 	return rows_affected > 0
 
 
@@ -224,26 +226,15 @@ async def update_party(player_id: int, server_id: int, party_add: int = 1) -> bo
 	Returns:
 		bool: True if successful, False otherwise.
 	"""
-	# If adding to party, we will only allow if party_size < party_cap.
-	# If removing from party, need to make sure we have one left.
-	if party_add > 0:
-		where = "WHERE party_size < party_cap"
-	else:
-		where = "WHERE party_size > 1"
 
 	rows_affected = query_write(
-		f"""
+		"""
 			UPDATE players
 			SET party_size = party_size + ?
-			{where}
-				AND player_id = ?
-				AND server_id = ?
+			WHERE player_id = ? AND server_id = ?
 		""",
 		(party_add, player_id, server_id),
 	)
-
-	if rows_affected == 0:
-		raise RuntimeError("ERROR: Attempted Party size updated. Shouldn't have reached this hence missing a check.")
 
 	return rows_affected > 0
 
