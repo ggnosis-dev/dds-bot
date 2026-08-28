@@ -1,4 +1,3 @@
-from collections import defaultdict
 from dataclasses import dataclass
 from sqlite3 import Row
 
@@ -9,8 +8,10 @@ class FusionDemonData:
 
 	id: int
 	name: str
+	race_id: int
 	race: str
 	rank: int
+	dupes: int
 
 
 ## FUSION RELATED.
@@ -48,17 +49,19 @@ def convert_row_to_fusion_demon_data(row: Row) -> FusionDemonData:
 		return FusionDemonData(
 			id=row["id"],
 			name=row["name"],
+			race_id=row["race_id"],
 			race=row["race"].title(),
 			rank=row["rank"],
+			dupes=row["dupes"] or 0,
 		)
 	except Exception as e:
 		raise KeyError(f"ERROR: Problem when creating FusionDemonData | {e}")
 
 
-def convert_row_to_ingredient_data(rows: list[dict]) -> dict:
+def convert_row_to_ingredient_data(rows: list[Row]) -> dict[int, IngredientData]:
 	"""Get all the ingredients for the recipe. Create a dictionary where recipe_id: ingredients."""
 	try:
-		ingredients_for_recipes = defaultdict(list)
+		ingredients_for_recipes = {}
 
 		for row in rows:
 			ingredients_for_recipes[row["recipe_id"]].append(

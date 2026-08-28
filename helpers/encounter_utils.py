@@ -5,6 +5,7 @@ import discord
 
 from entities.demon_data import TOO_WEAK_LEEWAY, DemonData
 from entities.encounter_data import JoinData, party_full_extra_responses
+from entities.fusion_data import FusionDemonData
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from queries import badge_queries, item_queries, player_demons_queries, player_queries, server_queries
 from queries.currency_queries import update_mag
@@ -194,7 +195,7 @@ async def get_count_for_encounters(server_id: int) -> int:
 	return demon_count
 
 
-async def grant_dupe_reward(summoner_id: int, server_id: int, demon: DemonData) -> str | None:
+async def grant_dupe_reward(summoner_id: int, server_id: int, demon: DemonData | FusionDemonData) -> str | None:
 	# Do the update.
 	await player_demons_queries.increase_dupe_level(summoner_id, server_id, demon.id)
 

@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 import discord
@@ -7,7 +8,7 @@ from discord.ext import commands
 from entities.command_data import FUSION_COMMANDS, command_kwargs
 from entities.demon_data import TOO_WEAK_LEEWAY
 from entities.fusion_data import FusionDemonData, SpecialFusionData
-from helpers import checks, costs, gets
+from helpers import checks, costs, encounter_utils, gets
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
 from shared_enums import DemonRegistration, EmbedColours, Emotes
 from views.common_view import ConfirmationView, MessageView
@@ -43,10 +44,7 @@ class Fusion(commands.Cog):
 	@commands.command(**command_kwargs(FUSION_COMMANDS, "special_fusion"))
 	async def special_fusion_command(self, ctx: commands.Context) -> None:
 		"""Command to view the Rags Shop and trade gems for items."""
-
-		# print("DEBUG: In special_fusion")
 		server_id = gets.get_server(ctx).id
-
 		entries = await fusion_queries.get_special_fusion_list(server_id)
 		view = SpecialFusionView(entries, self._purchase_callback, colour=EmbedColours.SP_FUSION.value)
 		await ctx.send(view=view)
@@ -129,8 +127,10 @@ class Fusion(commands.Cog):
 		for i in ingredients:
 			await player_demons_queries.set_demon_in_party(player_id, server_id, i.ing_id, set_in_party=False)
 
-		await player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
-		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True)
+		await asyncio.gather(
+			player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank),
+			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True),
+		)
 
 		# Needs to be a followup.
 		msg = MessageView(
@@ -221,7 +221,7 @@ class Fusion(commands.Cog):
 			)
 		else:
 			# Get the average INITIAL rank of the two demons.
-			average_rank = demon_1.rank + demon_2.rank // 2
+			average_rank = (demon_1.rank + demon_2.rank) // 2
 			demon_result = fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
 
 		# Unique message if no demon can be fused.
@@ -234,24 +234,6 @@ class Fusion(commands.Cog):
 			return
 
 		result_design_data = await demon_queries.get_design_data(demon_result.id)
-
-		# Check if the fused demon is already in the player's party.
-		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_result.id)
-		if result_reg_status == DemonRegistration.IN_PARTY:
-			view = MessageView(
-				(
-					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
-					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
-					f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
-					f"\n{Emotes.BLANK.value}"
-					f"\nBut {demon_result.name} can already be found in your party..."
-				),
-				result_design_data.profile_img,
-				EmbedColours.SP_FUSION.value,
-			)
-			await ctx.send(view=view)
-			return
-
 		# If player's strongest demon is less than the result's rank + 3, do not let them fuse it.
 		party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
 		if demon_result.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
@@ -273,20 +255,36 @@ class Fusion(commands.Cog):
 
 		cost = costs.fusion_cost(demon_result.rank)
 
-		view = MessageView(
-			(
-				f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
-				f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
-				f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
-			),
-			result_design_data.profile_img,
-			EmbedColours.SP_FUSION.value,
-		)
-		await ctx.send(view=view)
+		# Check if the fused demon is already in the player's party.
+		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_result.id)
+		if result_reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]:
+			view = MessageView(
+				(
+					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
+					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
+					f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
+					f"\n{Emotes.BLANK.value}"
+					f"\n**NOTE: {demon_result.name}** can already be found in your party,"
+					" summoning it again will raise its level by 1 instead."
+				),
+				result_design_data.profile_img,
+				EmbedColours.SP_FUSION.value,
+			)
+			await ctx.send(view=view)
+		else:
+			view = MessageView(
+				(
+					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
+					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
+					f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
+				),
+				result_design_data.profile_img,
+				EmbedColours.SP_FUSION.value,
+			)
+			await ctx.send(view=view)
 
 		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
 		mag = currency_queries.get_mag(player_id, server_id)
-
 		if mag < cost:
 			msg = MessageView(
 				f"The cost to fuse these demons are **{cost}** MAG. You don't have enough Magnetite to fuse these demons!",
@@ -311,16 +309,6 @@ class Fusion(commands.Cog):
 		if is_fusion_accident:
 			demon_result = await self._try_fusion_accident(player_id, server_id, demon_result)
 
-		# Remove demons being fused from party.
-		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_1.id, set_in_party=False)
-		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_2.id, set_in_party=False)
-		currency_queries.update_mag(player_id, server_id, -cost)
-
-		new_demon = await player_demons_queries.add_demon_to_compendium(
-			player_id, server_id, demon_result.id, demon_result.rank
-		)
-		await player_demons_queries.set_demon_in_party(player_id, server_id, demon_result.id, set_in_party=True)
-
 		fuse_complete_text = ""
 
 		if is_fusion_accident:
@@ -330,10 +318,27 @@ class Fusion(commands.Cog):
 			f"\n\n-# **{demon_result.name.capitalize()}**:"
 			f"\n-# I'm **{demon_result.race} {demon_result.name}**. Well, it's nice to meet you."
 		)
-		if new_demon:
-			fuse_complete_text += (
-				f"\n\n-# `> {demon_result.race} {demon_result.name} has been registered to your compendium.`"
+
+		dupe_message = None
+		if not is_fusion_accident and result_reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]:
+			dupe_message = await encounter_utils.grant_dupe_reward(player_id, server_id, demon_result)
+		else:
+			# Remove demons being fused from party.
+			await asyncio.gather(
+				player_demons_queries.set_demon_in_party(player_id, server_id, demon_1.id, set_in_party=False),
+				player_demons_queries.set_demon_in_party(player_id, server_id, demon_2.id, set_in_party=False),
 			)
+			currency_queries.update_mag(player_id, server_id, -cost)
+
+			new_demon = await player_demons_queries.add_demon_to_compendium(
+				player_id, server_id, demon_result.id, demon_result.rank
+			)
+			await player_demons_queries.set_demon_in_party(player_id, server_id, demon_result.id, set_in_party=True)
+
+			if new_demon:
+				fuse_complete_text += (
+					f"\n\n-# `> {demon_result.race} {demon_result.name} has been registered to your compendium.`"
+				)
 
 		view = MessageView(
 			fuse_complete_text,
@@ -341,6 +346,23 @@ class Fusion(commands.Cog):
 			EmbedColours.SP_FUSION.value,
 		)
 		await ctx.send(view=view)
+
+		# Send dupe message if it exists (TODO: This code is reused from encounter_view)
+		if dupe_message:
+			player_mention = f"<@{player_id}>'s"
+			new_level = demon_result.dupes + 1
+			level_string = "MAX" if new_level == 5 else str(new_level)
+
+			msg = MessageView(
+				(
+					f"### {player_mention} {demon_result.race} {demon_result.name} has leveled up to"
+					f" {level_string}{Emotes.GEM.value}!"
+					f"\n{dupe_message}"
+				),
+				result_design_data.profile_img,
+				EmbedColours.SP_FUSION.value,
+			)
+			await ctx.send(view=msg)
 
 	async def _try_fusion_accident(self, player_id: int, server_id: int, og_demon: FusionDemonData) -> FusionDemonData:
 		accident = fusion_queries.get_random_unowned_demon(player_id, server_id, og_demon.rank)
