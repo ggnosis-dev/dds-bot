@@ -5,7 +5,6 @@ from entities.fusion_data import (
 	FusionDemonData,
 	SpecialFusionData,
 	convert_row_to_fusion_demon_data,
-	convert_row_to_ingredient_data,
 	convert_row_to_special_fusion_data,
 )
 from helpers.db import query_all, query_one
@@ -62,8 +61,7 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 		tuple(recipe_ids),
 	)
 
-	ingredients_for_recipes = convert_row_to_ingredient_data(ing_rows)
-	return convert_row_to_special_fusion_data(recipe_rows, ingredients_for_recipes)
+	return convert_row_to_special_fusion_data(recipe_rows, ing_rows)
 
 
 async def get_unlocked_sp_fusions(server_id: int) -> list:

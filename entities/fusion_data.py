@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from sqlite3 import Row
 
@@ -29,8 +30,6 @@ class SpecialFusionData:
 	fusion_demon_data: FusionDemonData
 
 
-# TODO: Fix this whole thing. Lowkey just make these their own races and
-# replace their race names with ELEMENT when using them.
 ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
 
 ELEMENT_PAIRS = {
@@ -58,13 +57,11 @@ def convert_row_to_fusion_demon_data(row: Row) -> FusionDemonData:
 		raise KeyError(f"ERROR: Problem when creating FusionDemonData | {e}")
 
 
-def convert_row_to_ingredient_data(rows: list[Row]) -> dict[int, IngredientData]:
-	"""Get all the ingredients for the recipe. Create a dictionary where recipe_id: ingredients."""
+def convert_row_to_special_fusion_data(recipe_rows: list[Row], ingredient_rows: list[Row]) -> list[SpecialFusionData]:
 	try:
-		ingredients_for_recipes = {}
-
-		for row in rows:
-			ingredients_for_recipes[row["recipe_id"]].append(
+		recipe_ingredients: dict[int, list[IngredientData]] = defaultdict(list)
+		for row in ingredient_rows:
+			recipe_ingredients[row["recipe_id"]].append(
 				IngredientData(
 					ing_id=row["id"],
 					race=row["race"].title(),
@@ -72,20 +69,12 @@ def convert_row_to_ingredient_data(rows: list[Row]) -> dict[int, IngredientData]
 				)
 			)
 
-		return ingredients_for_recipes
-	except Exception as e:
-		raise KeyError(f"ERROR: Problem when creating IngreidentData | {e}")
-
-
-def convert_row_to_special_fusion_data(rows: list, ingredients_for_recipe: dict) -> list[SpecialFusionData]:
-	try:
 		all_recipes = []
-
-		for row in rows:
+		for row in recipe_rows:
 			recipe_id = row["recipe_id"]
 			key = row["required_key"]
 			fd_data = convert_row_to_fusion_demon_data(row)
-			ings = tuple(ingredients_for_recipe.get(recipe_id, ()))
+			ings = tuple(recipe_ingredients[recipe_id])
 
 			all_recipes.append(
 				SpecialFusionData(
