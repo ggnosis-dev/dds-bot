@@ -59,11 +59,12 @@ async def join_player_party(
 	if party_stats.strongest < demon.rank - TOO_WEAK_LEEWAY:
 		new_entry = DemonRegistration.TOO_WEAK
 
-	# Check if party has space after the TOO_WEAK check. If it doesn't, assign PARTY_FULL.
-	elif party_stats.size < party_stats.cap:
-		new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
 	else:
-		new_entry = DemonRegistration.PARTY_FULL
+		new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
+
+		# If no room in party AND the demon isn't already in there, assign PARTY_FULL.
+		if party_stats.size >= party_stats.cap and new_entry not in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]:
+			new_entry = DemonRegistration.PARTY_FULL
 
 	match new_entry:
 		case DemonRegistration.UNREGISTERED:
@@ -98,11 +99,7 @@ async def join_player_party(
 		case DemonRegistration.PARTY_FULL:
 			extra_response = party_full_extra_responses[demon.tone_type]
 			gems_to_add = _gems_for_rank(demon.rank)
-
-			gem_name, dupe_message = await asyncio.gather(
-				add_gem(player.id, server_id, demon.race, gems_to_add),
-				grant_dupe_reward(player.id, server_id, demon),
-			)
+			gem_name = await add_gem(player.id, server_id, demon.race, gems_to_add)
 
 		case DemonRegistration.TOO_WEAK:
 			extra_response = "TOO WEAK"
