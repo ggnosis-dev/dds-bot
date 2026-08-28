@@ -5,10 +5,11 @@ import discord
 from discord.ext import commands
 
 from entities.command_data import FUSION_COMMANDS, command_kwargs
+from entities.demon_data import TOO_WEAK_LEEWAY
 from entities.fusion_data import FusionDemonData, SpecialFusionData
 from helpers import checks, costs, gets
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
-from shared_enums import DemonRegistration, EmbedColours
+from shared_enums import DemonRegistration, EmbedColours, Emotes
 from views.common_view import ConfirmationView, MessageView
 from views.shop_view import SpecialFusionView
 
@@ -59,9 +60,20 @@ class Fusion(commands.Cog):
 		demon = fusion_result.fusion_demon_data
 		ingredients = fusion_result.ingredients
 
+		party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
+		if demon.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
+			view = MessageView(
+				(
+					f"\nBut you are too weak to control **{demon.race} {demon.name}**..."
+					f"\n\n-# You can control up to {party_stats.strongest + 3} (Your strongest demon's rank + 3)."
+				),
+				colour=EmbedColours.SP_FUSION.value,
+			)
+			await interaction.response.send_message(view=view)
+			return
+
 		# Check if demon already exists in party.
 		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
-
 		if in_party == DemonRegistration.IN_PARTY or in_party == DemonRegistration.ON_LOAN:
 			msg = MessageView(
 				f"You already have **{demon.name}** in your party...",
@@ -207,6 +219,7 @@ class Fusion(commands.Cog):
 				original_rank=demon.rank,
 			)
 		else:
+			# Get the average INITIAL rank of the two demons.
 			average_rank = demon_1.rank + demon_2.rank // 2
 			demon_result = fusion_queries.get_fused_demon(demon_1.race, demon_2.race, average_rank)
 
@@ -227,9 +240,28 @@ class Fusion(commands.Cog):
 			view = MessageView(
 				(
 					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
-					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank})"
-					f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
-					f"\n\nBut {demon_result.name} can already be found in your party..."
+					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
+					f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
+					f"\n{Emotes.BLANK.value}"
+					f"\nBut {demon_result.name} can already be found in your party..."
+				),
+				result_design_data.profile_img,
+				EmbedColours.SP_FUSION.value,
+			)
+			await ctx.send(view=view)
+			return
+
+		# If player's strongest demon is less than the result's rank + 3, do not let them fuse it.
+		party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
+		if demon_result.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
+			view = MessageView(
+				(
+					f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
+					f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
+					f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
+					f"\n{Emotes.BLANK.value}"
+					"\nBut you are too weak to control it..."
+					f"\n\n-# You can control up to {party_stats.strongest + 3} (Your strongest demon's rank + 3)."
 				),
 				result_design_data.profile_img,
 				EmbedColours.SP_FUSION.value,
@@ -242,8 +274,8 @@ class Fusion(commands.Cog):
 		view = MessageView(
 			(
 				f"**{demon_1.race} {demon_1.name}** ({demon_1.rank})"
-				f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank})"
-				f"\n\n= **{demon_result.race} {demon_result.name}** ({demon_result.rank})"
+				f" + **{demon_2.race} {demon_2.name}** ({demon_2.rank}) ="
+				f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
 			),
 			result_design_data.profile_img,
 			EmbedColours.SP_FUSION.value,

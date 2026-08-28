@@ -105,7 +105,7 @@ class Compendium(commands.Cog):
 		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id)
 		msg = MessageView(
 			f"You have summoned **{demon_name}** to your party!",
-			thumbnail=demon.design_data.encounter_img,
+			thumbnail=demon.design_data.profile_img,
 			colour=demon.design_data.colour,
 		)
 		await ctx.send(view=msg)
