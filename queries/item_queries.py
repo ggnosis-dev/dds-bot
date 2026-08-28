@@ -92,7 +92,7 @@ def give_player_item(player_id: int, server_id: int, item_id: int) -> bool:
 def use_incense(player_id: int, server_id: int, demon_id: int, item_id: int) -> bool:
 	"""Use an incense item on a specified demon."""
 	exclusive_to = query_one(
-		"SELECT exclusive_to FROM items WHERE item_id = ?",
+		"SELECT UPPER(exclusive_to) FROM items WHERE item_id = ?",
 		(item_id,),
 	)[0]
 	demon_race = demon_queries.get_demon_race_by_id(demon_id)

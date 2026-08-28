@@ -23,7 +23,7 @@ class InventoryCommands(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(ITEMS_COMMANDS, "use"))
-	async def use_item_command(self, ctx: commands.Context, *, input_str: str) -> None:
+	async def use_command(self, ctx: commands.Context, *, input_str: str) -> None:
 		"""
 		Use an item on a demon.
 
@@ -56,6 +56,7 @@ class InventoryCommands(commands.Cog):
 			if demon_id is None:
 				await ctx.send(f"A **{demon_name}** was not found in your party...")
 				return
+		# Can use items directly on the leader.
 		else:
 			demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
@@ -75,7 +76,9 @@ class InventoryCommands(commands.Cog):
 			return
 
 		# Use the incense item and apply its effect.
-		if item_queries.use_incense(player_id, server_id, demon_id, item_id):
+		used_item = item_queries.use_incense(player_id, server_id, demon_id, item_id)
+
+		if used_item:
 			demon_name = demon_queries.get_demon_name_by_id(demon_id)
 			await ctx.send(
 				(
@@ -83,6 +86,11 @@ class InventoryCommands(commands.Cog):
 					f" Their rank has **increased** by **{INCENSE_RANK_INCREASE}**."
 				),
 			)
+			return
+
+		await ctx.send(
+			(f"This item was not made for **{demon_name}**'s race."),
+		)
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(ITEMS_COMMANDS, "inventory"))

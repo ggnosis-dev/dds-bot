@@ -144,8 +144,9 @@ def get_demon_race_by_id(demon_id: int) -> str:
 	"""Get demon's race from the database using its ID."""
 	response = query_one(
 		"""
-			SELECT race FROM demons
-			WHERE id = ?
+			SELECT r.name FROM demons d
+			JOIN races r ON d.race_id = r.id
+			WHERE d.id = ?
 		""",
 		(demon_id,),
 	)[0]
