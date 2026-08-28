@@ -370,7 +370,7 @@ class Fusion(commands.Cog):
 					f"\n{dupe_message}"
 				),
 				result_design_data.profile_img,
-				EmbedColours.SP_FUSION.value,
+				result_design_data.colour,
 			)
 			await ctx.send(view=msg)
 
