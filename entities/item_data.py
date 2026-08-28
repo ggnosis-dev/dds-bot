@@ -6,6 +6,7 @@ from sqlite3 import Row
 from shared_enums import Emotes
 
 INCENSE_RANK_INCREASE = 1
+MINIMUM_COST = 500
 
 
 @dataclass

@@ -1,12 +1,14 @@
 import random
 
+from entities.item_data import MINIMUM_COST
+
 
 def fusion_cost(demon_rank: int) -> int:
-	return max(int(demon_rank * 100), 1000)
+	return max(int(demon_rank * 100), MINIMUM_COST)
 
 
 def summon_cost(demon_rank: int) -> int:
-	return max(int(demon_rank * 100), 1000)
+	return max(int(demon_rank * 100), MINIMUM_COST)
 
 
 def daily_mag() -> int:
@@ -14,7 +16,7 @@ def daily_mag() -> int:
 
 
 def party_slot_cost(current_cap: int, number: int) -> int:
-	unit = 500
+	unit = MINIMUM_COST
 	example = range(current_cap, current_cap + number)
 	cost = unit * (current_cap - 5)
 
