@@ -209,6 +209,7 @@ class LeaderCommands(commands.Cog):
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
+		# This should never happen.
 		if demon_id is None:
 			await ctx.send("There is currently no demon leading your party. Select one using `>select {demon}`.")
 			return
@@ -216,7 +217,7 @@ class LeaderCommands(commands.Cog):
 		d = demon_queries.get_demon_by_id(player_id, server_id, demon_id)
 
 		if d is None:
-			raise RuntimeError("ERROR: leader_command | ID was found but DemonData was not.")
+			raise RuntimeError("leader_command | ID was found but DemonData was not.")
 
 		# Get gem progress.
 		gem_progress = round(gem_queries.get_gem_progress(player_id, server_id, d.id) / 10)
@@ -226,15 +227,19 @@ class LeaderCommands(commands.Cog):
 
 		# Get gems player can get with demon.
 		gems = gem_queries.get_possible_gems(d.race)
-		gem_text = "; ".join(gems).title()
+		gem_text = " & ".join(gems).title()
+
+		# Get multiplier.
+		mag_mult = player_demons_queries.get_demon_mag_mult(player_id, server_id, demon_id)
 
 		view = MessageView(
 			(
-				f"**{d.race} {d.name}** is currently leading your party.\n\n"
-				f"-# **Rank:** {d.rank}\n"
-				f"-# **Level:** {d.dupes}{Emotes.GEM.value}\n"
-				f"-# **Hunting:** {gem_text}\n"
-				f"-# **Progress:**\n{progress_bar}"
+				f"**{d.race} {d.name}** is currently leading your party."
+				f"\n\n-# **Rank:** {d.rank}"
+				f"\n-# **Level:** {d.dupes}{Emotes.GEM.value}"
+				f"\n-# **MAG Mult:** +{mag_mult}x"
+				f"\n-# **Hunting:** {gem_text}"
+				f"\n-# **Progress:**\n{progress_bar}"
 			),
 			d.design_data.profile_img,
 			d.design_data.colour,
