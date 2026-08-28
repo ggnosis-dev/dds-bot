@@ -3,15 +3,13 @@ import random
 
 import discord
 
-from entities.demon_data import DemonData
+from entities.demon_data import TOO_WEAK_LEEWAY, DemonData
 from entities.encounter_data import JoinData, party_full_extra_responses
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from queries import badge_queries, item_queries, player_demons_queries, player_queries, server_queries
 from queries.currency_queries import update_mag
 from queries.gem_queries import add_gem
 from shared_enums import DemonRegistration
-
-TOO_WEAK_LEEWAY = 3
 
 
 def get_current_encounter_window(now: int) -> int:

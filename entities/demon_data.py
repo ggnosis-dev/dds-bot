@@ -4,6 +4,7 @@ from sqlite3 import Row
 from shared_enums import EmbedColours, Personality, Tone
 
 GREETING_LENGTH = 48
+TOO_WEAK_LEEWAY = 3
 
 
 @dataclass

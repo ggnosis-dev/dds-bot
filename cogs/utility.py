@@ -6,10 +6,11 @@ import discord
 from discord.ext import commands
 
 from entities.command_data import UTILITY_COMMANDS, command_kwargs
+from entities.demon_data import TOO_WEAK_LEEWAY
 from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW_HOURS
 from helpers import checks, gets
 from helpers.costs import daily_mag
-from helpers.encounter_utils import TOO_WEAK_LEEWAY, get_current_encounter_window
+from helpers.encounter_utils import get_current_encounter_window
 from queries import currency_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
 
