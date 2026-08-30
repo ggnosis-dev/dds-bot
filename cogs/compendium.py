@@ -1,8 +1,11 @@
+import asyncio
+
 from discord.ext import commands
 
 from entities.command_data import COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
 from helpers import checks, costs, gets
+from helpers.messages import CompendiumMsg
 from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
 from views.common_view import ConfirmationView, MessageView
@@ -13,17 +16,12 @@ class Compendium(commands.Cog):
 	"""Cog for viewing and summoning from player compendiums."""
 
 	def __init__(self, bot: commands.Bot) -> None:
-		"""Init the Compendium cog with reference to bot instance and database classes."""
 		self.bot = bot
 
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "compendium"))
 	async def compendium_command(self, ctx: commands.Context, *args: str) -> None:
 		"""
-		Command to display player's seen demons which is stored in their compendium.
-
-		Args:
-			ctx (discord.Context): Context of the command call.
-			mentioned (discord.Member | None): Optional user to check compendium for.
+		Command to display a player's seen demons which is stored in their compendium.
 		"""
 		player, server = gets.get_player_server(ctx)
 		columns = list(Columns.COMP_DEFAULT)
@@ -31,11 +29,10 @@ class Compendium(commands.Cog):
 
 		if args:
 			columns, mentioned = get_args(args, server, columns)
-
-		player = mentioned if mentioned is not None else player
-
 		need_gems = Columns.GEMS in columns
 
+		# Swap player to the mentioned player if it was provided.
+		player = mentioned if mentioned is not None else player
 		comp_list = await player_demons_queries.check_compendium(player.id, server.id, need_gems)
 		view = CompendiumView(player.name, comp_list, columns)
 		await ctx.send(view=view)
@@ -43,73 +40,59 @@ class Compendium(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "summon"))
 	async def summon_command(self, ctx, *, demon_name) -> None:
-		"""
-		Command to summon a demon from the player's compendium into their party.
+		"""Command to summon a demon from the player's compendium into their party."""
 
-		Args:
-			ctx (discord.Context): Context of the command call.
-			demon_name (str): Name of the demon to summon. The * before it in the arguments
-				allows for multi-word demon names.
-		"""
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon = await demon_queries.get_demon_by_name(player_id, server_id, demon_name)
 
 		if demon is None:
-			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
-			await ctx.send(view=msg)
+			await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
 			return
 
 		# Check if party has space.
 		if not player_demons_queries.get_party_has_space(player_id, server_id):
-			msg = MessageView(
-				f"Cannot summon **{demon_name}**. Party is full. You can increase capacity using `>increase_party`."
-			)
-			await ctx.send(view=msg)
+			await MessageView.send(ctx.channel, CompendiumMsg.party_full())
 			return
-
-		cost = costs.summon_cost(demon.rank)
 
 		# Check if demon is in compendium before summoning to give a more informative message.
 		in_comp = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
-			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")
-			await ctx.send(view=msg)
+			await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
 			return
 
-		if in_comp == DemonRegistration.IN_PARTY or in_comp == DemonRegistration.ON_LOAN:
-			msg = MessageView(f"You already have **{demon_name}** in your party...")
-			await ctx.send(view=msg)
+		if in_comp in (DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN):
+			await MessageView.send(ctx.channel, CompendiumMsg.already_in_party())
 			return
 
-		# Send a confirmation view with the cost.
-		view = ConfirmationView(
-			f"Summoning a **{demon_name}** will cost **{cost} MAG**. Do you wish to continue?",
-			player_id,
-		)
-		result = await ConfirmationView.send_message(view, ctx)
+		# Check if player has enough mag to summon.
+		cost = costs.summon_cost(demon.rank)
+		mag = currency_queries.get_mag(player_id, server_id)
+		if mag < cost:
+			await MessageView.send(ctx.channel, CompendiumMsg.summon_cost_not_enough(demon_name, mag, cost))
+			return
 
+		# All success. Send a confirmation view with the cost.
+		message = CompendiumMsg.summon_cost(demon_name, cost)
+		result = await ConfirmationView(message, player_id).send(ctx)
 		if result is False or result is None:
 			return
 
-		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
-		mag = currency_queries.get_mag(player_id, server_id)
-
-		if mag < cost:
-			msg = MessageView("You don't have enough Magnetite to summon this demon!")
-			await ctx.send(view=msg)
-			return
-
-		currency_queries.update_mag(player_id, server_id, -cost)
-		await player_demons_queries.set_demon_in_party(player_id, server_id, demon.id)
-		await player_demons_queries.update_party(player_id, server_id)
-		msg = MessageView(
-			f"You have summoned **{demon_name}** to your party!",
-			thumbnail=demon.design_data.profile_img,
-			colour=demon.design_data.colour,
+		# Operations. Take cash, put demon in party and update stats.
+		await asyncio.gather(
+			currency_queries.update_mag(player_id, server_id, -cost),
+			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id),
+			player_demons_queries.update_party(player_id, server_id),
 		)
-		await ctx.send(view=msg)
+
+		# Final message.
+		await MessageView.send(
+			ctx.channel,
+			CompendiumMsg.summoned_to_party(demon.race, demon.name),
+			demon.design_data.profile_img,
+			demon.design_data.colour,
+		)
 
 
 async def setup(bot: commands.Bot) -> None:

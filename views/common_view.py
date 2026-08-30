@@ -37,6 +37,17 @@ class MessageView(discord.ui.LayoutView):
 
 		self.add_item(container)
 
+	@classmethod
+	async def send(
+		cls,
+		destination: discord.abc.Messageable,
+		message: str,
+		thumbnail: str | None = None,
+		colour: int = EmbedColours.DEFAULT.value,
+	) -> discord.Message:
+		view = cls(message, thumbnail, colour)
+		return await destination.send(view=view)
+
 
 class ConfirmationView(discord.ui.LayoutView):
 	def __init__(
@@ -110,7 +121,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		if self.msg:
 			await self.msg.edit(view=self)
 
-	async def send_message(self, ctx: commands.Context | discord.Interaction) -> bool | None:
+	async def send(self, ctx: commands.Context | discord.Interaction) -> bool | None:
 		"""Send the message and begin a wait for response timer."""
 		if type(ctx) is commands.Context:
 			msg = await ctx.send(view=self)
