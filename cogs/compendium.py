@@ -53,7 +53,7 @@ class Compendium(commands.Cog):
 		"""
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
-		demon = demon_queries.get_demon_by_name(player_id, server_id, demon_name)
+		demon = await demon_queries.get_demon_by_name(player_id, server_id, demon_name)
 
 		if demon is None:
 			msg = MessageView(f"The demon **{demon_name}** was not found in your compendium.")

@@ -40,6 +40,7 @@ def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> FusionDemonD
 
 
 def get_fuse_with_element(race: str, element: str, original_rank: int) -> FusionDemonData | None:
+	"""If the pair is a good one, get the next demon up in the race, otherwise next demon down."""
 	direction = 1 if race in ELEMENT_PAIRS[element] else -1
 	return get_next_demon_in_race(race, original_rank, direction)
 

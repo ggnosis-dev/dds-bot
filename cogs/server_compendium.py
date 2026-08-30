@@ -214,7 +214,7 @@ class ServerCompendium(commands.Cog):
 	async def return_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		player, server = gets.get_player_server(ctx)
 		demon_name = demon_name.title()
-		demon = demon_queries.get_demon_by_name(player.id, server.id, demon_name)
+		demon = await demon_queries.get_demon_by_name(player.id, server.id, demon_name)
 
 		if demon is None:
 			msg = MessageView(f"**{demon_name}** was not found on loan...")

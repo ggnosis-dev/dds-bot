@@ -160,8 +160,10 @@ class Fusion(commands.Cog):
 		name_1 = parts[0].strip().title()
 		name_2 = parts[1].strip().title()
 
-		demon_1 = demon_queries.get_demon_by_name(player_id, server_id, name_1)
-		demon_2 = demon_queries.get_demon_by_name(player_id, server_id, name_2)
+		demon_1, demon_2 = asyncio.gather(
+			demon_queries.get_demon_by_name(player_id, server_id, name_1),
+			demon_queries.get_demon_by_name(player_id, server_id, name_2),
+		)
 
 		# If the demon doesn't exist at all.
 		if not demon_1 or not demon_2:

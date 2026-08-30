@@ -51,7 +51,7 @@ def get_demon_id_by_name(demon_name: str) -> int | None:
 	return response[0] if response else None
 
 
-def get_demon_by_name(player_id: int, server_id: int, demon_name: str) -> DemonData | None:
+async def get_demon_by_name(player_id: int, server_id: int, demon_name: str) -> DemonData | None:
 	"""Helper to get demon by name."""
 	d_id = get_demon_id_by_name(demon_name)
 	return get_demon_by_id(player_id, server_id, d_id) if d_id else None
@@ -70,7 +70,7 @@ def get_demon_name_by_id(demon_id: int) -> str:
 	return response if response else ""
 
 
-def get_random_demon() -> DemonData:
+async def get_random_demon() -> DemonData:
 	"""
 	Retrieve a random demon's data from the database. Does not need a profile.
 	Used mainly for testing.

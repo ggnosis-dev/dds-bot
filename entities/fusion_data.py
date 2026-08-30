@@ -29,16 +29,19 @@ class SpecialFusionData:
 	fusion_demon_data: FusionDemonData
 
 
-ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis"]
+ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis", "Gnome", "Salamander", "Sylph", "Undine"]
 
+# Races typically have 2 pairings for level up.
 ELEMENT_PAIRS = {
 	"Erthys": ["Beast", "Femme", "Jaki"],
 	"Aeros": ["Fairy", "Flight"],
 	"Aquans": ["Fairy", "Wilder"],
 	"Flaemis": ["Beast", "Femme", "Flight", "Jaki", "Wilder"],
+	"Gnome": [],
+	"Salamander": [],
+	"Sylph": ["Avian", "Holy", "Dragon", "Lady"],
+	"Undine": [],
 }
-
-FUSION_DIFF_CAP = 5
 
 
 def convert_row_to_fusion_demon_data(row: Row) -> FusionDemonData:
