@@ -72,8 +72,7 @@ class Encounters(commands.Cog):
 			hours, remainder = divmod(remaining, 3600)
 			minutes, seconds = divmod(remainder, 60)
 
-			view = MessageView(EncountersMsg.encounter_cooldown(hours, minutes, seconds))
-			await send_to_channel.send(view=view)
+			await MessageView.send(send_to_channel, EncountersMsg.encounter_cooldown(hours, minutes, seconds))
 			return
 
 		# If encounter is available, calculate rank of demon then select a random one from it.
@@ -114,8 +113,7 @@ class Encounters(commands.Cog):
 		"""Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial."""
 		try:
 			if await player_queries.setup_player(player_id, server_id):
-				view = MessageView(EncountersMsg.introduction(player_name))
-				await send_to_channel.send(view=view)
+				await MessageView.send(send_to_channel, EncountersMsg.introduction(player_name))
 
 				tut_demon = "pixie"
 				demon = await demon_queries.get_demon_by_name(player_id, server_id, tut_demon)
