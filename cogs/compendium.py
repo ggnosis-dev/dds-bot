@@ -20,9 +20,7 @@ class Compendium(commands.Cog):
 
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "compendium"))
 	async def compendium_command(self, ctx: commands.Context, *args: str) -> None:
-		"""
-		Command to display a player's seen demons which is stored in their compendium.
-		"""
+		"""Command to display a player's seen demons which is stored in their compendium."""
 		player, server = gets.get_player_server(ctx)
 		columns = list(Columns.COMP_DEFAULT)
 		mentioned = None
@@ -68,15 +66,15 @@ class Compendium(commands.Cog):
 
 		# Check if player has enough mag to summon.
 		cost = costs.summon_cost(demon.rank)
-		mag = currency_queries.get_mag(player_id, server_id)
+		mag = await currency_queries.get_mag(player_id, server_id)
 		if mag < cost:
 			await MessageView.send(ctx.channel, CompendiumMsg.summon_cost_not_enough(demon_name, mag, cost))
 			return
 
 		# All success. Send a confirmation view with the cost.
-		message = CompendiumMsg.summon_cost(demon_name, cost)
-		result = await ConfirmationView(message, player_id).send(ctx)
-		if result is False or result is None:
+		message = CompendiumMsg.confirm_summon_cost(demon_name, cost)
+		confirmed = await ConfirmationView.send(ctx, message, player_id)
+		if confirmed in (False, None):
 			return
 
 		# Operations. Take cash, put demon in party and update stats.

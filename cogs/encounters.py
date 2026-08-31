@@ -80,7 +80,7 @@ class Encounters(commands.Cog):
 		average_rank = player_data.party_stats.average
 
 		count, server_cap = await asyncio.gather(
-			encounter_utils.get_count_for_encounters(server_id),
+			encounter_utils.get_num_available_for_encounters(server_id),
 			server_level_queries.get_rank_cap(server_id),
 		)
 		demon = await demon_queries.get_demon_by_distribution(player_id, server_id, average_rank, server_cap)

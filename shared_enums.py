@@ -113,3 +113,12 @@ class Race(Enum):
 	TYRANT = auto()
 	VILE = auto()
 	WILDER = auto()
+
+
+class DupeReward(Enum):
+	COLOUR = 1
+	MAG_MULT = 2
+	RACE_MULT = 3
+	GREETING = 5
+	GRIMOIRE = 8
+	BADGE = 10

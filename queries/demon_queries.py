@@ -4,7 +4,7 @@ from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data
 from helpers.db import query_all, query_one
 
 
-def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData:
+async def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData:
 	"""
 	Retrieve a demon's data from the database using its unique ID.
 
@@ -38,7 +38,7 @@ def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData:
 	return convert_row_to_demon_data(row)
 
 
-def get_demon_id_by_name(demon_name: str) -> int | None:
+async def get_demon_id_by_name(demon_name: str) -> int | None:
 	"""Retrieve a demon's ID from the database using its name."""
 	response = query_one(
 		"""
@@ -53,8 +53,8 @@ def get_demon_id_by_name(demon_name: str) -> int | None:
 
 async def get_demon_by_name(player_id: int, server_id: int, demon_name: str) -> DemonData | None:
 	"""Helper to get demon by name."""
-	d_id = get_demon_id_by_name(demon_name)
-	return get_demon_by_id(player_id, server_id, d_id) if d_id else None
+	d_id = await get_demon_id_by_name(demon_name)
+	return await get_demon_by_id(player_id, server_id, d_id) if d_id else None
 
 
 def get_demon_name_by_id(demon_id: int) -> str:

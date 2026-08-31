@@ -1,7 +1,6 @@
 import re
 
 from entities.demon_data import GREETING_LENGTH, DemonData
-from queries.gem_queries import get_possible_gems
 from shared_enums import Emotes
 
 EVIL_PATTERNS = [
@@ -18,7 +17,7 @@ EVIL_PATTERNS = [
 ]
 
 
-def format_dialogue(message: str, demon_data: DemonData) -> str:
+async def format_dialogue(message: str, demon_data: DemonData) -> str:
 	if not message.startswith("[p]"):
 		message = f"-# {message}"
 	else:
@@ -28,10 +27,7 @@ def format_dialogue(message: str, demon_data: DemonData) -> str:
 	message = message.replace("[d]", "\n\n-# ")
 	message = message.replace("[race]", f"{demon_data.race.upper()}")
 	message = message.replace("[name]", f"{demon_data.name.upper()}")
-
-	if "[gem]" in message:
-		gems = get_possible_gems(demon_data.race)
-		message = message.replace("[gem]", f"{gems[0]}")
+	message = message.replace("[gem]", f"{demon_data.gems[0]}")
 
 	return message
 
@@ -41,8 +37,11 @@ def format_greeting(message: str, demon_data: DemonData) -> str:
 	message = message.replace("[R]", f"{demon_data.race.upper()}")
 	message = message.replace("[d]", f"{demon_data.name}")
 	message = message.replace("[D]", f"{demon_data.name.upper()}")
+
 	message = message.replace("[s]", f"{demon_data.dupes}{Emotes.GEM_THIN.value}")
-	message = message.replace("[r]", f"{demon_data.rank}")
+	message = message.replace("[k]", f"{demon_data.rank}")
+	message = message.replace("[g1]", f"{demon_data.gems[0].title()}")
+	message = message.replace("[g2]", f"{demon_data.gems[1].title()}")
 	return message
 
 

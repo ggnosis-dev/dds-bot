@@ -14,7 +14,9 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			CREATE VIEW IF NOT EXISTS demon_data_VIEW AS
 			SELECT
 				d.*,
-				r.name AS race
+				r.name AS race,
+				r.gem_1,
+				r.gem_2
 			FROM demons d
 			JOIN races r
 				ON d.race_id = r.id

@@ -98,7 +98,7 @@ class ServerCompendium(commands.Cog):
 			thumbnail=design_data.profile_img,
 			colour=design_data.colour,
 		)
-		result = await ConfirmationView.send_message(view, ctx)
+		result = await ConfirmationView.send(view, ctx)
 
 		if result is False or result is None:
 			return
@@ -133,7 +133,7 @@ class ServerCompendium(commands.Cog):
 				thumbnail=design_data.profile_img,
 				colour=design_data.colour,
 			)
-			result = await ConfirmationView.send_message(view, ctx)
+			result = await ConfirmationView.send(view, ctx)
 
 			if result is False or result is None:
 				return
@@ -232,7 +232,7 @@ class ServerCompendium(commands.Cog):
 				deny_label="No",
 				colour=demon.design_data.colour,
 			)
-			result = await ConfirmationView.send_message(view, ctx)
+			result = await ConfirmationView.send(view, ctx)
 
 			if result is False or result is None:
 				return

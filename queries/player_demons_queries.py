@@ -1,5 +1,5 @@
 from entities.comp_data import DemonEntry, convert_row_to_demon_entry, convert_row_to_list_demon_entries
-from entities.demon_data import GREETING_LENGTH
+from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, GREETING_LENGTH
 from entities.player_data import PartyStats
 from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
@@ -183,7 +183,7 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 	return convert_row_to_list_demon_entries(rows, need_gems)
 
 
-def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:
+async def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:
 	"""
 	Set the selected demon for the player. The player's selected demon will hunt for their gem type,
 	and have other uses in the future.
@@ -416,22 +416,29 @@ async def get_custom_greeting_on_demon(player_id: int, server_id: int, demon_id:
 	return response[0] if response else None
 
 
-async def increase_demon_mag_mult(player_id: int, server_id: int, demon_id: int, amount: float = 0.05) -> bool:
-	rows_affected = query_write(
+async def increase_demon_mag_mult(
+	player_id: int,
+	server_id: int,
+	demon_id: int,
+	amount: float = DEFAULT_DEMON_MULT_INCREMENT,
+) -> float:
+	"""Update and return the mag mult value."""
+	response = query_one(
 		"""
 			UPDATE player_demons
 			SET mag_mult = mag_mult + ?
 			WHERE player_id = ?
 				AND server_id = ?
 				AND demon_id = ?
+			RETURNING mag_mult
 		""",
 		(amount, player_id, server_id, demon_id),
 	)
 
-	return rows_affected > 0
+	return response[0]
 
 
-def get_demon_mag_mult(player_id: int, server_id: int, demon_id: int) -> float:
+async def get_demon_mag_mult(player_id: int, server_id: int, demon_id: int) -> float:
 	response = query_one(
 		"""
 			SELECT mag_mult FROM player_demons

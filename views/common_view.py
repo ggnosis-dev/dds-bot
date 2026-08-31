@@ -12,11 +12,14 @@ from shared_enums import EmbedColours
 
 
 class MessageView(discord.ui.LayoutView):
+	"""Standard message wrapped in a embed like view."""
+
 	def __init__(
 		self,
 		message: str,
-		thumbnail: str | None = None,
-		colour: int = EmbedColours.DEFAULT.value,
+		*,
+		thumbnail: str | None,
+		colour: int,
 	):
 		super().__init__()
 		self.message = message
@@ -45,7 +48,7 @@ class MessageView(discord.ui.LayoutView):
 		thumbnail: str | None = None,
 		colour: int = EmbedColours.DEFAULT.value,
 	) -> discord.Message:
-		view = cls(message, thumbnail, colour)
+		view = cls(message, thumbnail=thumbnail, colour=colour)
 		return await destination.send(view=view)
 
 
@@ -54,14 +57,15 @@ class ConfirmationView(discord.ui.LayoutView):
 		self,
 		message: str,
 		exclusive_to: int,
-		confirm_label: str = "Confirm",
-		deny_label: str = "Deny",
-		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
-		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
-		thumbnail: str | None = None,
-		colour: int = EmbedColours.DEFAULT.value,
-		timeout: float = 20.0,
-	):
+		*,
+		confirm_label: str,
+		deny_label: str,
+		confirm_colour: discord.ButtonStyle,
+		deny_colour: discord.ButtonStyle,
+		thumbnail: str | None,
+		colour: int,
+		timeout: float,
+	) -> None:
 		super().__init__(timeout=timeout)
 
 		self.message = message
@@ -74,11 +78,49 @@ class ConfirmationView(discord.ui.LayoutView):
 		self.colour = colour
 		self.timed_out: bool = False
 		self.confirmed: bool | None = None
-		self.msg = None
+		self.msg: discord.Message | None = None
 
 		self._event = asyncio.Event()
 
 		self._build_layout()
+
+	@classmethod
+	async def send(
+		cls,
+		ctx: commands.Context | discord.Interaction,
+		message: str,
+		exclusive_to: int,
+		confirm_label: str = "Confirm",
+		deny_label: str = "Deny",
+		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
+		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
+		thumbnail: str | None = None,
+		colour: int = EmbedColours.DEFAULT.value,
+		timeout: float = 20.0,
+	) -> bool | None:
+		"""Send the message and begin a wait for response timer."""
+		view = cls(
+			message,
+			exclusive_to,
+			confirm_label=confirm_label,
+			deny_label=deny_label,
+			confirm_colour=confirm_colour,
+			deny_colour=deny_colour,
+			thumbnail=thumbnail,
+			colour=colour,
+			timeout=timeout,
+		)
+
+		if isinstance(ctx, commands.Context):
+			msg = await ctx.send(view=view)
+		elif isinstance(ctx, discord.Interaction):
+			await ctx.response.send_message(view=view)
+			msg = await ctx.original_response()
+		else:
+			raise TypeError(f"ERROR: ctx was an unsupported type: {type(ctx)}")
+
+		view.msg = msg
+		return await view.wait_for_response()
 
 	def _build_layout(self) -> None:
 		ui = discord.ui
@@ -120,20 +162,6 @@ class ConfirmationView(discord.ui.LayoutView):
 
 		if self.msg:
 			await self.msg.edit(view=self)
-
-	async def send(self, ctx: commands.Context | discord.Interaction) -> bool | None:
-		"""Send the message and begin a wait for response timer."""
-		if type(ctx) is commands.Context:
-			msg = await ctx.send(view=self)
-		elif type(ctx) is discord.Interaction:
-			await ctx.response.send_message(view=self)
-			msg = await ctx.original_response()
-		else:
-			raise TypeError(f"ERROR: ctx was an unsupported type: {type(ctx)}")
-
-		self.msg = msg
-
-		return await self.wait_for_response()
 
 	def _disable_buttons(self) -> None:
 		container = self.children[0]

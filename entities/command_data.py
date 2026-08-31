@@ -29,6 +29,7 @@ def command_kwargs(command_type: dict[str, CommandData], key: str):
 
 COG_DESCRIPTIONS = {
 	"Compendium": "Commands for viewing your registered demon collection",
+	"Demons": "Commands to view and customise the demons you own",
 	"Encounters": "Commands for encountering demons",
 	"Fusion": "Commands to fuse two or more demons together",
 	"Items": "Commands for the player's gems and item collections",
@@ -68,7 +69,7 @@ DEMONS_COMMANDS = {
 		help=(
 			"-# If unlocked, change the embed colour for the specified demon."
 			" Colour must be provided as a HEX colour code."
-			" If no colour is provided, the demon will return to using its default colour."
+			" If no colour is provided, the demons will return to using its default colour."
 		),
 		usage=">demon_colour | demon_color | dc {demon}; {opt: hex_code}",
 	),
@@ -77,25 +78,12 @@ DEMONS_COMMANDS = {
 		aliases=["sg"],
 		help=(
 			"-# If unlocked, set the greeting text for the specified demon."
-			" Greeting text **must include** `[d]` for demon name and [r] for race name"
-			f" and be no longer than {GREETING_LENGTH} characters long."
-			" Optionally, you can include `[s]` for star level and `[k]` for rank."
-			" `[D]` and `[R]` for capitalisation options."
-			"\n\n-# >set_greeting Pixie; **[D]** ([s]) of the **[r]** race has appeared!"
+			" Greeting text **MUST INCLUDE** `[d]` for demon name and `[r]` for race name."
+			f" It must be no longer than {GREETING_LENGTH} characters long."
+			"\n\n-# Optionally, you can include `[s]` for star level, `[k]` for rank, `[g1]`/`[g2]` for gems."
+			" You can capitalise letters like `[D]` to have them appear in all caps."
 		),
 		usage=">set_greeting | sg {demon}; {opt: text}",
-	),
-	"select": CommandData(
-		name="select",
-		aliases=["sel"],
-		help="-# Select a demon to lead your Party. The selected demon will hunt for gemstones while you use the server.",
-		usage=">select | sel {demon}",
-	),
-	"leader": CommandData(
-		name="leader",
-		aliases=["le"],
-		help="-# View the status of the demon leading your Party.",
-		usage=">leader | le",
 	),
 }
 
@@ -191,6 +179,16 @@ PARTY_COMMANDS = {
 			" Each new slot's cost increments by 500 MAG."
 		),
 		usage=">increase_party | inp {opt: number}",
+	),
+	"leader": CommandData(
+		name="leader",
+		aliases=["lead", "le"],
+		help=(
+			"-# View or set the status of the demon leading your Party."
+			"-# Add a demon's name to set that demon to lead the party."
+			" The selected demon will hunt for gemstones while you use the server."
+		),
+		usage=">leader | lead | le {opt: demon}",
 	),
 	"release": CommandData(
 		name="release",

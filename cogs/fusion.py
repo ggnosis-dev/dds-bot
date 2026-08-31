@@ -118,7 +118,7 @@ class Fusion(commands.Cog):
 			thumbnail=dd.profile_img,
 			colour=EmbedColours.SP_FUSION.value,
 		)
-		result = await ConfirmationView.send_message(view, interaction)
+		result = await ConfirmationView.send(view, interaction)
 
 		if result is False or result is None:
 			return
@@ -302,7 +302,7 @@ class Fusion(commands.Cog):
 			player_id,
 			colour=EmbedColours.SP_FUSION.value,
 		)
-		result = await ConfirmationView.send_message(view, ctx)
+		result = await ConfirmationView.send(view, ctx)
 
 		if result is False or result is None:
 			return
@@ -349,8 +349,8 @@ class Fusion(commands.Cog):
 			player_demons_queries.set_demon_in_party(player_id, server_id, demon_1.id, set_in_party=False),
 			player_demons_queries.set_demon_in_party(player_id, server_id, demon_2.id, set_in_party=False),
 			player_demons_queries.update_party(player_id, server_id, party_add=-2),
+			currency_queries.update_mag(player_id, server_id, -cost),
 		)
-		currency_queries.update_mag(player_id, server_id, -cost)
 
 		view = MessageView(
 			fuse_complete_text,

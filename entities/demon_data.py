@@ -3,6 +3,8 @@ from sqlite3 import Row
 
 from shared_enums import EmbedColours, Personality, Tone
 
+DEFAULT_DEMON_MULT_INCREMENT = 0.05
+DEFAULT_RACE_MULT_INCREMENT = 0.1
 GREETING_LENGTH = 48
 TOO_WEAK_LEEWAY = 3
 
@@ -38,6 +40,7 @@ class DemonData:
 	dupes: int
 	tone_type: Tone
 	personality_type: Personality
+	gems: tuple[str, str]
 	design_data: DesignData
 	prevent_spawn: bool
 
@@ -54,6 +57,7 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			dupes=row["dupes"] or 0,
 			tone_type=Tone(row["tone"]),
 			personality_type=Personality(row["personality"]),
+			gems=(row["gem_1"], row["gem_2"]),
 			design_data=convert_row_to_design_data(row),
 			prevent_spawn=row["prevent_spawn"],
 		)

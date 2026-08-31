@@ -8,7 +8,7 @@ GEM_EXP_MULTIPLIER = 0.1
 GEM_METER_FULL = 100
 
 
-def get_possible_gems(race: str) -> tuple:
+async def get_possible_gems(race: str) -> tuple:
 	response = query_all(
 		"""
 			SELECT gem_1, gem_2 FROM races
@@ -46,7 +46,7 @@ async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> b
 		(increment, player_id, server_id, demon_id),
 	)
 
-	meter_val = get_gem_progress(player_id, server_id, demon_id)
+	meter_val = await get_gem_progress(player_id, server_id, demon_id)
 
 	# Reset meter if gem found.
 	if meter_val >= GEM_METER_FULL:
@@ -64,9 +64,8 @@ async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> b
 	return False
 
 
-async def add_gem(player_id: int, server_id: int, race: str, number: int = 1) -> str:
+async def add_gem(player_id: int, server_id: int, gems: tuple, number: int = 1) -> str:
 	# Get gem type.
-	gems = get_possible_gems(race)
 	gem_name = random.choice(gems)
 
 	query_write(
@@ -82,7 +81,7 @@ async def add_gem(player_id: int, server_id: int, race: str, number: int = 1) ->
 	return gem_name
 
 
-def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
+async def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
 	"""
 	Get a player's gem collection.
 
@@ -108,7 +107,7 @@ def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
 	return entries
 
 
-def get_gem_progress(player_id: int, server_id: int, demon_id: int) -> int:
+async def get_gem_progress(player_id: int, server_id: int, demon_id: int) -> int:
 	"""Get gem meter progress."""
 	result = query_one(
 		"""

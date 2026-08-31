@@ -1,7 +1,7 @@
 from helpers.db import query_one, query_write
 
 
-def get_mag(player_id: int, server_id: int) -> int:
+async def get_mag(player_id: int, server_id: int) -> int:
 	"""Get the amount of magnetite a player has."""
 	result = query_one(
 		"""
@@ -13,7 +13,7 @@ def get_mag(player_id: int, server_id: int) -> int:
 	return result[0] if result else 0
 
 
-def update_mag(player_id: int, server_id: int, amount: int) -> bool:
+async def update_mag(player_id: int, server_id: int, amount: int) -> bool:
 	"""Update the amount of magnetite a player has."""
 	rows_affected = query_write(
 		"""

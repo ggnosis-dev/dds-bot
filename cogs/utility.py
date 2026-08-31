@@ -100,7 +100,7 @@ class Utility(commands.Cog):
 			else:
 				add_mag = daily_mag()
 				total_mag = player_data.mag + add_mag
-				currency_queries.update_mag(player_id, server_id, add_mag)
+				await currency_queries.update_mag(player_id, server_id, add_mag)
 				daily_string = f"You've found **+{add_mag}** MAG! Your total is now **{total_mag}** MAG."
 				await player_queries.set_daily_timer(player_id, server_id, time_now)
 
@@ -113,7 +113,7 @@ class Utility(commands.Cog):
 		"""Add MAG to self for testing."""
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
-		currency_queries.update_mag(player_id, server_id, amount)
+		await currency_queries.update_mag(player_id, server_id, amount)
 		mag = currency_queries.get_mag(player_id, server_id)
 
 		view = MessageView(f"Added {amount} MAG.\n\nTotal MAG: **{mag}**")

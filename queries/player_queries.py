@@ -1,3 +1,4 @@
+from entities.demon_data import DEFAULT_RACE_MULT_INCREMENT
 from entities.player_data import PlayerData, convert_row_to_player_data
 from helpers.db import query_one, query_write
 from queries.player_demons_queries import get_strongest_party_demon_rank
@@ -127,8 +128,13 @@ async def increase_party_slots(player_id: int, server_id: int, number: int) -> b
 	return rows_affected > 0
 
 
-async def increase_race_mag_mult(player_id: int, server_id: int, race_id: int, amount: float = 0.1) -> bool:
-	rows_affected = query_write(
+async def increase_race_mag_mult(
+	player_id: int,
+	server_id: int,
+	race_id: int,
+	amount: float = DEFAULT_RACE_MULT_INCREMENT,
+) -> float:
+	response = query_one(
 		"""
 			INSERT INTO player_race_stats (
 				player_id,
@@ -139,14 +145,15 @@ async def increase_race_mag_mult(player_id: int, server_id: int, race_id: int, a
 			VALUES (?, ?, ?, 1.1)
 			ON CONFLICT (player_id, server_id, race_id) DO
 				UPDATE SET mag_mult = mag_mult + ?
+			RETURNING mag_mult
 		""",
 		(player_id, server_id, race_id, amount),
 	)
 
-	return rows_affected > 0
+	return response[0]
 
 
-def get_race_mag_mult(player_id: int, server_id: int, race_id: int) -> float:
+async def get_race_mag_mult(player_id: int, server_id: int, race_id: int) -> float:
 	response = query_one(
 		"""
 		SELECT mag_mult FROM player_race_stats

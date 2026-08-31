@@ -60,7 +60,7 @@ def get_player_has_item(player_id: int, server_id: int, item_id: int) -> bool:
 	return response[0] if response else False
 
 
-def get_item_id_by_name(item_name: str) -> int | None:
+async def get_item_id_by_name(item_name: str) -> int | None:
 	"""Get an item's ID by its name."""
 
 	response = query_one(
@@ -74,7 +74,7 @@ def get_item_id_by_name(item_name: str) -> int | None:
 	return response[0] if response else None
 
 
-def give_player_item(player_id: int, server_id: int, item_id: int) -> bool:
+async def give_player_item(player_id: int, server_id: int, item_id: int) -> bool:
 	"""Add item to inventory. If it doesn't exist already, set to 1."""
 	rows_affected = query_write(
 		"""
@@ -125,7 +125,7 @@ def use_incense(player_id: int, server_id: int, demon_id: int, item_id: int) -> 
 	return bool(q1 and q2)
 
 
-def attempt_purchase_item(player_id: int, server_id: int, item_id: int, cost: dict) -> bool:
+async def attempt_purchase_item(player_id: int, server_id: int, item_id: int, cost: dict) -> bool:
 	"""
 	Attempt to purchase item for the player. Checks if the player has enough gems and deducts the cost if they do.
 
@@ -176,6 +176,6 @@ def attempt_purchase_item(player_id: int, server_id: int, item_id: int, cost: di
 		)
 
 	# Add item to inventory. If it doesn't exist already, set to 1.
-	give_player_item(player_id, server_id, item_id)
+	await give_player_item(player_id, server_id, item_id)
 
 	return True
