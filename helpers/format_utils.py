@@ -1,6 +1,6 @@
 import re
 
-from entities.demon_data import GREETING_LENGTH, DemonData
+from entities.demon_data import DemonData
 from shared_enums import Emotes
 
 EVIL_PATTERNS = [
@@ -45,9 +45,9 @@ def format_greeting(message: str, demon_data: DemonData) -> str:
 	return message
 
 
-def sanitise_greeting(message: str) -> str | None:
+def sanitise_input(message: str, max_length: int) -> str | None:
 	# None if too long.
-	if len(message) > GREETING_LENGTH:
+	if len(message) > max_length:
 		return None
 
 	# Check for annoying patterns that we don't want storing.

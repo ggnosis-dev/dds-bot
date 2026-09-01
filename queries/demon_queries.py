@@ -57,7 +57,7 @@ async def get_demon_by_name(player_id: int, server_id: int, demon_name: str) -> 
 	return await get_demon_by_id(player_id, server_id, d_id) if d_id else None
 
 
-def get_demon_name_by_id(demon_id: int) -> str:
+async def get_demon_name_by_id(demon_id: int) -> str:
 	"""Retrieve a demon's name from the database using its ID."""
 	response = query_one(
 		"""
@@ -140,7 +140,7 @@ async def get_demon_by_distribution(
 	return convert_row_to_demon_data(row)
 
 
-def get_demon_race_by_id(demon_id: int) -> str:
+async def get_demon_race_by_id(demon_id: int) -> str:
 	"""Get demon's race from the database using its ID."""
 	response = query_one(
 		"""

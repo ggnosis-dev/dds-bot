@@ -300,3 +300,39 @@ class FusionMsg(GenericMsg):
 			f"{ingredient_text}"
 			f"\n\nComplete the ritual?"
 		)
+
+
+class ItemMsg(GenericMsg):
+	@staticmethod
+	def item_doesnt_exist(item: str) -> str:
+		return f"The item, **{item}**, doesn't exist."
+
+	@staticmethod
+	def not_in_inventory(item: str) -> str:
+		return f"You do not have enough **{item}**."
+
+	@staticmethod
+	def currently_on_loan(demon_name: str) -> str:
+		return f"**{demon_name}** is currently being loaned to the Server Compendium and can't use items..."
+
+	@staticmethod
+	def exclusive_to_fail(demon_name: str, item: str) -> str:
+		return f"**{demon_name}** is not a part of the race that can use **{item}**."
+
+	@staticmethod
+	def confirm_use_item(qty_owned: int, item: str, number_to_use: int, demon_name: str) -> str:
+		return (
+			f"You own **{qty_owned} {item}(s)**. Are you sure you want to use **{number_to_use}** on your **{demon_name}**?"
+		)
+
+	@staticmethod
+	def use_item_completed(player_id: int, item: str, demon_name: str, increment: int) -> str:
+		return f"<@{player_id}> has used **{item}** on **{demon_name}**! Their rank has **increased** by **{increment}**."
+
+	@staticmethod
+	def empty_inventory() -> str:
+		return "Your inventory is empty."
+
+	@staticmethod
+	def found_gem(player_id, name: str, gem: str) -> str:
+		return f"<@{player_id}>, your **{name}** has found a **{gem.title()}**!"

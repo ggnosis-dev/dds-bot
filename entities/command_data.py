@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from entities.demon_data import GREETING_LENGTH
 
+INPUT_DIVIDER = ";"
+
 
 @dataclass
 class CommandData:
@@ -151,11 +153,8 @@ ITEMS_COMMANDS = {
 	),
 	"use": CommandData(
 		name="use",
-		help=(
-			"-# Use an item on a demon."
-			" If no demon is specified, the item will be used on the current demon leading your party."
-		),
-		usage=">use {item}; {opt: demon}",
+		help="-# Use an item on a demon. You can optionally provide an amount to use at once.",
+		usage=">use {item}; {demon}; {opt: amount}",
 	),
 }
 

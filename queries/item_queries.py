@@ -46,7 +46,7 @@ async def get_rags_item_list() -> list[ShopItemData]:
 	return convert_rows_to_shop_item_data(rows)
 
 
-def get_player_has_item(player_id: int, server_id: int, item_id: int) -> bool:
+async def get_player_has_item(player_id: int, server_id: int, item_id: int) -> int:
 	"""Check if a player has an item."""
 
 	response = query_one(
@@ -57,7 +57,7 @@ def get_player_has_item(player_id: int, server_id: int, item_id: int) -> bool:
 		(player_id, server_id, item_id),
 	)
 
-	return response[0] if response else False
+	return response[0] if response else 0
 
 
 async def get_item_id_by_name(item_name: str) -> int | None:
@@ -89,40 +89,53 @@ async def give_player_item(player_id: int, server_id: int, item_id: int) -> bool
 	return rows_affected > 0
 
 
-def use_incense(player_id: int, server_id: int, demon_id: int, item_id: int) -> bool:
+async def use_incense(player_id: int, server_id: int, demon_id: int, item_id: int, number_to_use: int) -> bool:
 	"""Use an incense item on a specified demon."""
-	exclusive_to = query_one(
-		"SELECT UPPER(exclusive_to) FROM items WHERE item_id = ?",
-		(item_id,),
-	)[0]
-	demon_race = demon_queries.get_demon_race_by_id(demon_id)
 
-	# Some incense may be special and work for all demons.
-	if exclusive_to is not None and demon_race != exclusive_to:
-		# If the incense is exclusive to a specific race we should return False.
+	# Remove one of the used item from the player's inventory.
+	q1 = query_write(
+		"""
+			UPDATE player_items
+			SET quantity = quantity - ?
+			WHERE player_id = ?
+				AND server_id = ?
+				AND item_id = ?
+				AND quantity >= ?
+		""",
+		(number_to_use, player_id, server_id, item_id, number_to_use),
+	)
+
+	if not q1:
 		return False
 
-	# Increase the demon's stored rank by 3.
-	q1 = query_write(
+	increase_by = number_to_use * INCENSE_RANK_INCREASE
+
+	# Increase the demon's stored rank by increment.
+	q2 = query_write(
 		f"""
 			UPDATE player_demons
-			SET stored_rank = stored_rank + {INCENSE_RANK_INCREASE}
+			SET stored_rank = stored_rank + {increase_by}
 			WHERE player_id = ? AND server_id = ? AND demon_id = ?
 		""",
 		(player_id, server_id, demon_id),
 	)
 
-	# Remove one of the used item from the player's inventory.
-	q2 = query_write(
-		"""
-			UPDATE player_items
-			SET quantity = quantity - 1
-			WHERE player_id = ? AND server_id = ? AND item_id = ?
-		""",
-		(player_id, server_id, item_id),
+	return bool(q2)
+
+
+async def can_demon_use_item(demon_id: int, item_id: int) -> bool:
+	"""If the incense is exclusive to a specific race we should return False. Some incense are special and work for all."""
+	response = query_one(
+		"SELECT UPPER(exclusive_to) FROM items WHERE item_id = ?",
+		(item_id,),
 	)
 
-	return bool(q1 and q2)
+	exclusive_to = response[0] if response else None
+	demon_race = await demon_queries.get_demon_race_by_id(demon_id)
+
+	if exclusive_to is not None and demon_race != exclusive_to:
+		return False
+	return True
 
 
 async def attempt_purchase_item(player_id: int, server_id: int, item_id: int, cost: dict) -> bool:
