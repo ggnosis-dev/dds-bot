@@ -282,7 +282,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 			raise RuntimeError("Server ID is None.")
 
 		reg_status = await player_demons_queries.check_demon_registration(summoner_id, server_id, demon.id)
-		summoned = reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]
+		summoned = reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN}
 
 		if summoned:
 			# Add the message for duplicates if it's available.

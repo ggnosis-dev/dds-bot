@@ -101,7 +101,7 @@ class Fusion(commands.Cog):
 		# Check if demon is already summoned and warn that fusing will only add to its level.
 		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 
-		if result_reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER]:
+		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
 			await MessageView.reply(
 				interaction,
 				FusionMsg.fusion_already_in_party(demon),
@@ -208,7 +208,7 @@ class Fusion(commands.Cog):
 		# Check if demon is already summoned and warn that fusing will only add to its level.
 		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_result.id)
 
-		if result_reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER]:
+		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
 			message += FusionMsg.fusion_already_in_party(demon_result)
 			await MessageView.send(
 				ctx.channel,
@@ -246,7 +246,7 @@ class Fusion(commands.Cog):
 			demon_result = await self._try_fusion_accident(player_id, server_id, demon_result, demon_result.rank)
 
 		# Try applying dupe level.
-		if result_reg_status in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER]:
+		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
 			dupe_message = await encounter_utils.grant_dupe_reward(player_id, server_id, demon_result)
 
 		# Unregistered or in Compendium.

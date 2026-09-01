@@ -56,7 +56,7 @@ def get_sprite(name: str) -> list[Path]:
 
 	# Find the first matching sprite file for the given name and extensions.
 	sprite_path = None
-	for ext in [".gif", ".png"]:
+	for ext in {".gif", ".png"}:
 		check_image = next(CHARACTER_DIRS.rglob(f"{name}{ext}"), None)
 
 		if check_image is not None:

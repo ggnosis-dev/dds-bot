@@ -95,7 +95,7 @@ def bulk_find_character_sprites(race: str) -> list[Path]:
 		raise FileNotFoundError(f"Race directory not found: {race_dir}")
 
 	for file in race_dir.iterdir():
-		for ext in [".gif", ".png"]:
+		for ext in {".gif", ".png"}:
 			file = race_dir / f"{file.stem}{ext}"
 			print(file)
 
@@ -122,7 +122,7 @@ def bulk_find_character_sprites_in_db(race: str) -> list[Path]:
 
 	# Find sprites for names from the race.
 	for name in d_names:
-		for ext in [".gif", ".png"]:
+		for ext in {".gif", ".png"}:
 			file = race_dir / f"{name}{ext}"
 
 			if file.exists():
@@ -400,7 +400,7 @@ if __name__ == "__main__":
 
 		# Find the first matching sprite file for the given name and extensions.
 		sprite_path = None
-		for ext in [".gif", ".png"]:
+		for ext in {".gif", ".png"}:
 			check_image = next(CHARACTER_DIRS.rglob(f"{name}{ext}"), None)
 
 			if check_image is not None:

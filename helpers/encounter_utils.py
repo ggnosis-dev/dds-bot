@@ -53,16 +53,20 @@ async def join_player_party(
 
 	# Check if party's strongest member is TOO_WEAK.
 	if party_stats.strongest < demon.rank - TOO_WEAK_LEEWAY:
-		new_entry = DemonRegistration.TOO_WEAK
+		reg_status = DemonRegistration.TOO_WEAK
 
 	else:
-		new_entry = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
+		reg_status = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
 
 		# If no room in party AND the demon isn't already in there, assign PARTY_FULL.
-		if party_stats.size >= party_stats.cap and new_entry not in [DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN]:
-			new_entry = DemonRegistration.PARTY_FULL
+		if party_stats.size >= party_stats.cap and reg_status not in {
+			DemonRegistration.IN_PARTY,
+			DemonRegistration.ON_LOAN,
+			DemonRegistration.LEADER,
+		}:
+			reg_status = DemonRegistration.PARTY_FULL
 
-	match new_entry:
+	match reg_status:
 		case DemonRegistration.UNREGISTERED:
 			# Add demon to COMP.
 			asyncio.gather(
@@ -105,10 +109,10 @@ async def join_player_party(
 		player_demons_queries.get_demon_mag_mult(player.id, server_id, demon.id),
 	)
 
-	mag_mult = _get_mag_multipler(new_entry, race_mult, demon_mult)
+	mag_mult = _get_mag_multipler(reg_status, race_mult, demon_mult)
 	mag_to_add = int(demon.rank * 10 * mag_mult)
 	await update_mag(player.id, server_id, mag_to_add)
-	status_message = EncountersMsg.get_status_message(new_entry, demon, player.name, mag_to_add, gems_to_add, gem_name)
+	status_message = EncountersMsg.get_status_message(reg_status, demon, player.name, mag_to_add, gems_to_add, gem_name)
 
 	return JoinData(
 		status_message,
