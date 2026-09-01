@@ -67,11 +67,15 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 
 def convert_row_to_design_data(row: Row) -> DesignData:
 	try:
+		row_keys = row.keys()
+		colour = row["colour"] if "colour" in row_keys else EmbedColours.DEFAULT.value
+		greeting = row["greeting"] if "greeting" in row_keys else None
+
 		return DesignData(
 			profile_img=row["profile_img"],
 			encounter_img=row["encounter_img"],
-			colour=row["colour"] or EmbedColours.DEFAULT.value,
-			greeting=row["greeting"] or None,
+			colour=colour,
+			greeting=greeting,
 		)
 	except Exception as e:
 		raise KeyError(f"Problem when creating DesignData | {e}")

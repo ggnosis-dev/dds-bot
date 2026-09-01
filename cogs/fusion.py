@@ -82,7 +82,6 @@ class Fusion(commands.Cog):
 		for i in ingredients:
 			# Check if each demon is summoned to the party.
 			reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
-			print(i, reg_status)
 			if reg_status == DemonRegistration.ON_LOAN:
 				await MessageView.reply(interaction, FusionMsg.currently_on_loan(i.name), colour=self.col, ephemeral=True)
 				return
@@ -161,7 +160,6 @@ class Fusion(commands.Cog):
 
 			# Check if each demon is summoned to the party.
 			reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, d.id)
-			print(n, reg_status)
 			if reg_status == DemonRegistration.ON_LOAN:
 				await MessageView.send(ctx.channel, FusionMsg.currently_on_loan(n), colour=self.col)
 				return
@@ -181,11 +179,13 @@ class Fusion(commands.Cog):
 		# Do a different process if fusing with an Element demon.
 		if d1.race == "Element" or d2.race == "Element":
 			element, demon = (d1, d2) if d1.race == "Element" else (d2, d1)
-			demon_result = await fusion_queries.get_fuse_with_element(demon.race, element.name, demon.rank)
+			demon_result = await fusion_queries.get_fuse_with_element(
+				player_id, server_id, demon.race, element.name, demon.rank
+			)
 		else:
 			# Get the average INITIAL rank of the two demons.
 			average_rank = (d1.rank + d2.rank) // 2
-			demon_result = await fusion_queries.get_fused_demon(d1.race, d2.race, average_rank)
+			demon_result = await fusion_queries.get_fused_demon(player_id, server_id, d1.race, d2.race, average_rank)
 
 		# Unique message if demons can't be fused.
 		if demon_result is None:
