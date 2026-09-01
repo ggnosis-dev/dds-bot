@@ -128,7 +128,7 @@ class LeaderCommands(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "leader"))
-	async def leader_command(self, ctx: commands.Context, *, demon_name: str | None = None) -> None:
+	async def leader_command(self, ctx: commands.Context, *, demon_name: str | None) -> None:
 		if demon_name:
 			await self._select_demon_to_lead(ctx, demon_name)
 			return

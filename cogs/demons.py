@@ -18,23 +18,23 @@ class CustomisationCommands(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(DEMONS_COMMANDS, "demon_colour"))
 	async def demon_colour_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
+		"""Changes the embed colour of a player owned demon if unlocked. input_str structured like name; (opt) hex_code"""
 
-		if input_str is None:
+		# Get and validate player input.
+		parts = utils.split_input_str(input_str, maximum=2)
+		if len(parts) < 1:
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(DEMONS_COMMANDS["demon_colour"]))
 			return
-
+		demon_name = parts[0]
 		player_id, server_id = gets.get_player_server_ids(ctx)
-		parts = input_str.split(";")
-		demon_name = parts[0].strip().title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
+		# Check if demon is valid. If it is, still check registration as to not reveal demons player haven't seen yet.
 		reg_status = (
 			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
 			if demon_id is not None
 			else DemonRegistration.UNREGISTERED
 		)
-
-		# Check if demon is valid. If it is, still check registration as to not reveal demons player haven't seen yet.
 		if demon_id is None or reg_status == DemonRegistration.UNREGISTERED:
 			await MessageView.send(ctx.channel, CustomisationMsg.not_in_comp(demon_name))
 			return
@@ -46,7 +46,7 @@ class CustomisationCommands(commands.Cog):
 			return
 
 		# Set to 0 (returns to DEFAULT) if no second part was provided.
-		hex_string = parts[1].strip() if len(parts) > 1 else None
+		hex_string = parts[1] if len(parts) > 1 else None
 		new_colour = utils.get_hex_colour(hex_string) if hex_string else 0
 
 		# Update colour and send complete message.
@@ -57,15 +57,15 @@ class CustomisationCommands(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(DEMONS_COMMANDS, "set_greeting"))
-	async def set_greeting_command(self, ctx: commands.Context, *, input_str: str | None = None) -> None:
+	async def set_greeting_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
 
-		if input_str is None:
+		# Get and validate player input.
+		parts = utils.split_input_str(input_str, maximum=2)
+		if len(parts) < 1:
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(DEMONS_COMMANDS["set_greeting"]))
 			return
-
+		demon_name = parts[0]
 		player_id, server_id = gets.get_player_server_ids(ctx)
-		parts = input_str.split(";")
-		demon_name = parts[0].strip().title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
 		reg_status = (
@@ -87,7 +87,7 @@ class CustomisationCommands(commands.Cog):
 
 		# Want demon for design data and for greeting example after confirmation.
 		demon = await demon_queries.get_demon_by_id(player_id, server_id, demon_id)
-		greeting_string = parts[1].strip() if len(parts) > 1 else None
+		greeting_string = parts[1] if len(parts) > 1 else None
 
 		# No greeting given, reset to default.
 		if greeting_string is None:

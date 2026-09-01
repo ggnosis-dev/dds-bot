@@ -8,10 +8,14 @@ from shared_enums import DemonRegistration, DupeReward, Emotes, Unicode
 class GenericMsg:
 	@staticmethod
 	def not_in_party(demon_name: str) -> str:
+		if not demon_name:
+			demon_name = "Demon"
 		return f"**{demon_name.title()}** could not be found in your party..."
 
 	@staticmethod
 	def not_in_comp(demon_name: str) -> str:
+		if not demon_name:
+			demon_name = "Demon"
 		return f"The demon **{demon_name.title()}** was not found in your compendium."
 
 	@staticmethod
@@ -36,7 +40,7 @@ class GenericMsg:
 
 	@staticmethod
 	def no_input_given(command: CommandData) -> str:
-		return f"{command.help}\n\n-# `{command.usage}`"
+		return f"### `> DDS-BOT HELP SYSTEM` {Emotes.HUH.value}\n{command.help}\n\n-# `{command.usage}`"
 
 	@staticmethod
 	def registered_to_compendium(race: str, demon_name: str, player_name: str = "your") -> str:

@@ -8,7 +8,7 @@ from discord.ext import commands
 from entities.command_data import FUSION_COMMANDS, command_kwargs
 from entities.demon_data import TOO_WEAK_LEEWAY, DemonData
 from entities.fusion_data import FUSION_ACCIDENT_CHANCE, SpecialFusionShopData
-from helpers import checks, costs, encounter_utils, gets
+from helpers import checks, costs, encounter_utils, gets, utils
 from helpers.messages import FusionMsg
 from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
 from shared_enums import DemonRegistration, EmbedColours
@@ -38,9 +38,8 @@ class Fusion(commands.Cog):
 		# Using try, finally apparently runs finally even if an unhandled exception occurs.
 		try:
 			# Break into parts, return help message if invalid.
-			parts = tuple(input_str.split(";")) if input_str else None
-
-			if parts is None or len(parts) <= 1:
+			parts = utils.split_input_str(input_str, maximum=2)
+			if len(parts) < 2:
 				await MessageView.send(ctx.channel, FusionMsg.no_input_given(FUSION_COMMANDS["fuse"]), colour=self.col)
 				return
 
@@ -150,7 +149,6 @@ class Fusion(commands.Cog):
 		demons = []
 
 		for n in names:
-			n = n.strip().title()
 			d = await demon_queries.get_demon_by_name(player_id, server_id, n)
 
 			# Demon doesn't exist. Don't want to be specific to not give away unfound demons.
