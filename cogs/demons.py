@@ -17,7 +17,7 @@ class CustomisationCommands(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(DEMONS_COMMANDS, "demon_colour"))
-	async def demon_colour_command(self, ctx: commands.Context, *, input_str: str | None = None) -> None:
+	async def demon_colour_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
 
 		if input_str is None:
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(DEMONS_COMMANDS["demon_colour"]))
@@ -109,7 +109,7 @@ class CustomisationCommands(commands.Cog):
 			return
 
 		# Sanitise the message to make sure it's under the character limit and doesn't have evil things in it.
-		sanitised_greeting = format_utils.sanitise_greeting(greeting_string)
+		sanitised_greeting = format_utils.sanitise_input(greeting_string, GREETING_LENGTH)
 		if sanitised_greeting is None:
 			await MessageView.send(ctx.channel, CustomisationMsg.custom_greeting_not_valid(GREETING_LENGTH))
 			return

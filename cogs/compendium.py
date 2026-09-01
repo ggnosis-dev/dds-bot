@@ -74,7 +74,7 @@ class Compendium(commands.Cog):
 		# All success. Send a confirmation view with the cost.
 		message = CompendiumMsg.confirm_summon_cost(demon_name, cost)
 		confirmed = await ConfirmationView.send(ctx, message, player_id)
-		if confirmed in (False, None):
+		if not confirmed:
 			return
 
 		# Operations. Take cash, put demon in party and update stats.

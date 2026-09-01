@@ -41,7 +41,7 @@ class HelpOverwrite(commands.HelpCommand):
 			view = HelpView(entries, self.context.bot)
 			await channel.send(view=view)
 		except Exception as e:
-			print(f"ERROR: send_bot_help | {e}")
+			raise RuntimeError(f"send_bot_help | {e}")
 
 
 async def setup(client):

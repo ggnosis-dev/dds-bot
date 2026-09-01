@@ -121,7 +121,7 @@ class Fusion(commands.Cog):
 			colour=self.col,
 			ephemeral=True,
 		)
-		if confirmed in (False, None):
+		if not confirmed:
 			return
 
 		# Remove demons being fused from party.
@@ -233,7 +233,7 @@ class Fusion(commands.Cog):
 
 		# Send a confirmation view.
 		confirmed = await ConfirmationView.send(ctx, FusionMsg.confirm_fusion(cost), player_id, colour=self.col)
-		if confirmed in (False, None):
+		if not confirmed:
 			return
 
 		# COMMENCE FUSION.

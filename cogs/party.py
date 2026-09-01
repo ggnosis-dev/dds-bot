@@ -106,7 +106,7 @@ class PartyCommands(commands.Cog):
 			# Confirmation window.
 			message = PartyMsg.confirm_increase_party(number, cost)
 			confirmed = await ConfirmationView.send(ctx, message, p_data.player_id, confirm_label="Yes", deny_label="No")
-			if confirmed in (False, None):
+			if not confirmed:
 				return
 
 			# Increase slots and take cash.
