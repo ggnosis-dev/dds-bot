@@ -5,8 +5,6 @@ from typing import Generic, TypeVar, cast
 
 import discord
 
-from discord.ext import commands
-
 from entities.view_data import DEFAULT_PAGE_SIZE
 from shared_enums import EmbedColours
 
@@ -51,6 +49,18 @@ class MessageView(discord.ui.LayoutView):
 		view = cls(message, thumbnail=thumbnail, colour=colour)
 		return await destination.send(view=view)
 
+	@classmethod
+	async def reply(
+		cls,
+		interation: discord.Interaction,
+		message: str,
+		thumbnail: str | None = None,
+		colour: int = EmbedColours.DEFAULT.value,
+		ephemeral: bool = False,
+	):
+		view = cls(message, thumbnail=thumbnail, colour=colour)
+		await interation.response.send_message(view=view, ephemeral=ephemeral)
+
 
 class ConfirmationView(discord.ui.LayoutView):
 	def __init__(
@@ -87,7 +97,7 @@ class ConfirmationView(discord.ui.LayoutView):
 	@classmethod
 	async def send(
 		cls,
-		ctx: commands.Context | discord.Interaction,
+		destination: discord.abc.Messageable,
 		message: str,
 		exclusive_to: int,
 		confirm_label: str = "Confirm",
@@ -110,15 +120,39 @@ class ConfirmationView(discord.ui.LayoutView):
 			colour=colour,
 			timeout=timeout,
 		)
+		msg = await destination.send(view=view)
+		view.msg = msg
+		return await view.wait_for_response()
 
-		if isinstance(ctx, commands.Context):
-			msg = await ctx.send(view=view)
-		elif isinstance(ctx, discord.Interaction):
-			await ctx.response.send_message(view=view)
-			msg = await ctx.original_response()
-		else:
-			raise TypeError(f"ERROR: ctx was an unsupported type: {type(ctx)}")
-
+	@classmethod
+	async def reply(
+		cls,
+		interaction: discord.Interaction,
+		message: str,
+		exclusive_to: int,
+		confirm_label: str = "Confirm",
+		deny_label: str = "Deny",
+		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
+		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
+		thumbnail: str | None = None,
+		colour: int = EmbedColours.DEFAULT.value,
+		timeout: float = 20.0,
+		ephemeral: bool = False,
+	) -> bool | None:
+		"""Send the message and begin a wait for response timer."""
+		view = cls(
+			message,
+			exclusive_to,
+			confirm_label=confirm_label,
+			deny_label=deny_label,
+			confirm_colour=confirm_colour,
+			deny_colour=deny_colour,
+			thumbnail=thumbnail,
+			colour=colour,
+			timeout=timeout,
+		)
+		await interaction.response.send_message(view=view, ephemeral=ephemeral, delete_after=True)
+		msg = await interaction.original_response()
 		view.msg = msg
 		return await view.wait_for_response()
 

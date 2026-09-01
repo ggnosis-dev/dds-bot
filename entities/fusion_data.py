@@ -2,16 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from sqlite3 import Row
 
-
-@dataclass
-class FusionDemonData:
-	"""Data class for a demon's information."""
-
-	id: int
-	name: str
-	race_id: int
-	race: str
-	rank: int
+FUSION_ACCIDENT_CHANCE = 0.01
 
 
 ## FUSION RELATED.
@@ -23,10 +14,13 @@ class IngredientData:
 
 
 @dataclass
-class SpecialFusionData:
+class SpecialFusionShopData:
 	key: str
 	ingredients: tuple[IngredientData, ...]
-	fusion_demon_data: FusionDemonData
+	demon_id: int
+	name: str
+	race: str
+	rank: int
 
 
 ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis", "Gnome", "Salamander", "Sylph", "Undine"]
@@ -44,21 +38,7 @@ ELEMENT_PAIRS = {
 }
 
 
-def convert_row_to_fusion_demon_data(row: Row) -> FusionDemonData:
-	"""Convert retrieved DB row into a DemonData object."""
-	try:
-		return FusionDemonData(
-			id=row["id"],
-			name=row["name"],
-			race_id=row["race_id"],
-			race=row["race"].title(),
-			rank=row["rank"],
-		)
-	except Exception as e:
-		raise KeyError(f"ERROR: Problem when creating FusionDemonData | {e}")
-
-
-def convert_row_to_special_fusion_data(recipe_rows: list[Row], ingredient_rows: list[Row]) -> list[SpecialFusionData]:
+def convert_row_to_special_fusion_data(recipe_rows: list[Row], ingredient_rows: list[Row]) -> list[SpecialFusionShopData]:
 	try:
 		recipe_ingredients: dict[int, list[IngredientData]] = defaultdict(list)
 		for row in ingredient_rows:
@@ -74,14 +54,16 @@ def convert_row_to_special_fusion_data(recipe_rows: list[Row], ingredient_rows: 
 		for row in recipe_rows:
 			recipe_id = row["recipe_id"]
 			key = row["required_key"]
-			fd_data = convert_row_to_fusion_demon_data(row)
 			ings = tuple(recipe_ingredients[recipe_id])
 
 			all_recipes.append(
-				SpecialFusionData(
+				SpecialFusionShopData(
 					key=key,
 					ingredients=ings,
-					fusion_demon_data=fd_data,
+					demon_id=row["id"],
+					name=row["name"],
+					race=row["race"].title(),
+					rank=row["rank"],
 				)
 			)
 

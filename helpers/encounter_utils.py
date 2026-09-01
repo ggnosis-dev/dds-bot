@@ -5,7 +5,6 @@ import discord
 
 from entities.demon_data import TOO_WEAK_LEEWAY, DemonData
 from entities.encounter_data import JoinData, party_full_extra_responses
-from entities.fusion_data import FusionDemonData
 from entities.player_data import ENCOUNTER_WINDOW_HOURS
 from helpers.messages import EncountersMsg
 from queries import badge_queries, item_queries, player_demons_queries, player_queries, server_queries
@@ -162,7 +161,7 @@ async def get_num_available_for_encounters(server_id: int) -> int:
 async def grant_dupe_reward(
 	summoner_id: int,
 	server_id: int,
-	demon: DemonData | FusionDemonData,
+	demon: DemonData,
 ) -> str | None:
 
 	mag_bonus = None

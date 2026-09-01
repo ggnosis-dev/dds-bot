@@ -8,6 +8,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor.execute("DROP VIEW IF EXISTS demon_data_VIEW")
 	cursor.execute("DROP VIEW IF EXISTS demon_entry_VIEW")
 	cursor.execute("DROP VIEW IF EXISTS fusion_demon_data_VIEW")
+	cursor.execute("DROP VIEW IF EXISTS special_fusion_data_VIEW")
 
 	cursor.execute(
 		"""
@@ -39,11 +40,10 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 
 	cursor.execute(
 		"""
-			CREATE VIEW IF NOT EXISTS fusion_demon_data_VIEW AS
+			CREATE VIEW IF NOT EXISTS special_fusion_data_VIEW AS
 			SELECT
 				d.id,
 				d.name,
-				d.race_id,
 				r.name AS race,
 				d.rank,
 				d.prevent_spawn

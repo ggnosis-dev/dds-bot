@@ -1,10 +1,8 @@
-from entities.demon_data import TOO_WEAK_LEEWAY
+from entities.demon_data import TOO_WEAK_LEEWAY, DemonData, convert_row_to_demon_data
 from entities.fusion_data import (
 	ELEMENT_PAIRS,
 	ELEMENT_RACE,
-	FusionDemonData,
-	SpecialFusionData,
-	convert_row_to_fusion_demon_data,
+	SpecialFusionShopData,
 	convert_row_to_special_fusion_data,
 )
 from helpers.db import query_all, query_one
@@ -24,7 +22,7 @@ def get_fused_race(race_1: str, race_2: str) -> str | None:
 	return race_result[0] if race_result else None
 
 
-def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> FusionDemonData | None:
+async def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> DemonData | None:
 	fused_race = get_fused_race(race_1, race_2)
 
 	# Some races won't fuse together deliberately.
@@ -39,13 +37,13 @@ def get_fused_demon(race_1: str, race_2: str, average_rank: int) -> FusionDemonD
 	return get_closest_demon_in_race(fused_race, average_rank)
 
 
-def get_fuse_with_element(race: str, element: str, original_rank: int) -> FusionDemonData | None:
+async def get_fuse_with_element(race: str, element: str, original_rank: int) -> DemonData | None:
 	"""If the pair is a good one, get the next demon up in the race, otherwise next demon down."""
 	direction = 1 if race in ELEMENT_PAIRS[element] else -1
 	return get_next_demon_in_race(race, original_rank, direction)
 
 
-async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
+async def get_special_fusion_list(server_id: int) -> list[SpecialFusionShopData]:
 	recipe_rows = await get_unlocked_sp_fusions(server_id)
 
 	# Get all the recipe IDs in response.
@@ -56,7 +54,7 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionData]:
 		f"""
 			SELECT fi.recipe_id, v.*
 			FROM sp_fusion_ingredients fi
-			JOIN fusion_demon_data_VIEW v ON v.id = fi.demon_id
+			JOIN special_fusion_data_VIEW v ON v.id = fi.demon_id
 			WHERE fi.recipe_id IN ({gem_placeholders})
 		""",
 		tuple(recipe_ids),
@@ -76,7 +74,7 @@ async def get_unlocked_sp_fusions(server_id: int) -> list:
 			LEFT JOIN server_unlocks su
 				ON su.unlock_key = fr.required_key
 				AND su.server_id = ?
-			JOIN fusion_demon_data_VIEW v ON v.id = fr.result_demon_id
+			JOIN special_fusion_data_VIEW v ON v.id = fr.result_demon_id
 			WHERE fr.required_key IS NULL
 				OR su.unlock_key IS NOT NULL
 			ORDER BY v.race, v.name ASC
@@ -85,15 +83,21 @@ async def get_unlocked_sp_fusions(server_id: int) -> list:
 	)
 
 	if not recipe_rows:
-		raise RuntimeError("Error: Special Fusion list was not retrieved.")
+		raise RuntimeError("Special Fusion list was not retrieved.")
 
 	return recipe_rows
 
 
-def get_closest_demon_in_race(race: str, rank: int) -> FusionDemonData | None:
+def get_closest_demon_in_race(race: str, rank: int) -> DemonData:
 	row = query_one(
 		"""
-			SELECT * FROM fusion_demon_data_VIEW
+			SELECT
+				v.*,
+				pd.dupes,
+				pd.colour,
+				pd.greeting
+			FROM demon_data_VIEW v
+			JOIN player_demons pd ON v.id = pd.demon_id
 			WHERE race = UPPER(?)
 				AND prevent_spawn = 0
 			ORDER BY
@@ -104,12 +108,21 @@ def get_closest_demon_in_race(race: str, rank: int) -> FusionDemonData | None:
 		(race, rank),
 	)
 
-	return convert_row_to_fusion_demon_data(row) if row else None
+	if not row:
+		raise RuntimeError("Demon database was not retrieved.")
+
+	return convert_row_to_demon_data(row)
 
 
-def get_next_demon_in_race(race: str, rank: int, direction: int) -> FusionDemonData | None:
+def get_next_demon_in_race(race: str, rank: int, direction: int) -> DemonData | None:
 	query = f"""
-		SELECT * FROM fusion_demon_data_VIEW
+		SELECT
+			v.*,
+			pd.dupes,
+			pd.colour,
+			pd.greeting
+		FROM demon_data_VIEW v
+		JOIN player_demons pd ON v.id = pd.demon_id
 		WHERE race = UPPER(?) AND rank {">" if direction == 1 else "<"} ?
 		ORDER BY rank {"ASC" if direction == 1 else "DESC"}
 		LIMIT 1
@@ -120,22 +133,28 @@ def get_next_demon_in_race(race: str, rank: int, direction: int) -> FusionDemonD
 		(race, rank),
 	)
 
-	return convert_row_to_fusion_demon_data(row) if row else None
+	return convert_row_to_demon_data(row) if row else None
 
 
-def get_specifc_fusion_demon(name: str) -> FusionDemonData | None:
+def get_specifc_fusion_demon(name: str) -> DemonData | None:
 	row = query_one(
 		"""
-			SELECT * FROM fusion_demon_data_VIEW
+			SELECT
+				v.*,
+				pd.dupes,
+				pd.colour,
+				pd.greeting
+			FROM demon_data_VIEW v
+			JOIN player_demons pd ON v.id = pd.demon_id
 			WHERE name = ?
 		""",
 		(name,),
 	)
 
-	return convert_row_to_fusion_demon_data(row) if row else None
+	return convert_row_to_demon_data(row) if row else None
 
 
-def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> FusionDemonData | None:
+async def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> DemonData:
 	"""
 	Retrieve a random demon's data that is not currently in the player's party, from the database.
 	Range is between 1 and rank + 10.
@@ -145,12 +164,17 @@ def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> Fusio
 
 	row = query_one(
 		"""
-			SELECT v.* FROM fusion_demon_data_VIEW v
+			SELECT
+				v.*,
+				pd.dupes,
+				pd.colour,
+				pd.greeting
+			FROM demon_data_VIEW v
 			JOIN player_demons pd ON v.id = pd.demon_id
 				-- Scope to the player and server to avoid incoming from other servers.
-				AND pd.player_id = ?
+			WHERE pd.player_id = ?
 				AND pd.server_id = ?
-			WHERE v.rank BETWEEN 1 AND ?
+				AND v.rank BETWEEN 1 AND ?
 				AND v.prevent_spawn = 0
 				AND pd.in_party = 0
 			ORDER BY RANDOM()
@@ -159,4 +183,4 @@ def get_random_unowned_demon(player_id: int, server_id: int, rank: int) -> Fusio
 		(player_id, server_id, rank),
 	)
 
-	return convert_row_to_fusion_demon_data(row) if row is not None else None
+	return convert_row_to_demon_data(row)

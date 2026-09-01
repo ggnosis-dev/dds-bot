@@ -29,12 +29,13 @@ class Personality(Enum):
 
 
 class DemonRegistration(Enum):
-	IN_PARTY = 0
-	IN_COMP = 1
-	ON_LOAN = 2
-	UNREGISTERED = 3
-	PARTY_FULL = 4
-	TOO_WEAK = 5
+	IN_PARTY = auto()
+	IN_COMP = auto()
+	ON_LOAN = auto()
+	UNREGISTERED = auto()
+	LEADER = auto()
+	PARTY_FULL = auto()
+	TOO_WEAK = auto()
 
 
 class ResponseType(Enum):

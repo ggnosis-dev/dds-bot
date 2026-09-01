@@ -3,7 +3,7 @@ from typing import Any, Generic
 
 import discord
 
-from entities.fusion_data import SpecialFusionData
+from entities.fusion_data import SpecialFusionShopData
 from entities.item_data import ShopItemData
 from entities.view_data import SHOP_PAGE_SIZE
 from shared_enums import Banners, EmbedColours, Emotes
@@ -112,7 +112,7 @@ class RagsShopView(BaseShopView[ShopItemData]):
 		return container
 
 
-class SpecialFusionView(BaseShopView[SpecialFusionData]):
+class SpecialFusionView(BaseShopView[SpecialFusionShopData]):
 	def _build_layout(self) -> None:
 		"""Function to build Rag's Shop view layout."""
 
@@ -162,10 +162,9 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 	def _build_page_entry(
 		self,
 		container: discord.ui.Container,
-		entry: SpecialFusionData,
+		entry: SpecialFusionShopData,
 	) -> discord.ui.Container:
 		ing = entry.ingredients
-		d_data = entry.fusion_demon_data
 		ingredient_list = []
 
 		for i in ing:
@@ -179,7 +178,7 @@ class SpecialFusionView(BaseShopView[SpecialFusionData]):
 		button.callback = self._make_purchase_callback(entry)
 
 		new_section = discord.ui.Section(accessory=button)
-		new_section.add_item(discord.ui.TextDisplay(f"**{d_data.race} {d_data.name}** (Rank {d_data.rank})"))
+		new_section.add_item(discord.ui.TextDisplay(f"**{entry.race} {entry.name}** (Rank {entry.rank})"))
 		new_section.add_item(discord.ui.TextDisplay(f"-# **Required:** {' + '.join(ingredient_list)}"))
 
 		container.add_item(new_section)

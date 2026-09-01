@@ -1,5 +1,6 @@
 from entities.command_data import CommandData
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, DEFAULT_RACE_MULT_INCREMENT, DemonData
+from entities.fusion_data import IngredientData
 from helpers import format_utils
 from shared_enums import DemonRegistration, DupeReward, Emotes, Unicode
 
@@ -7,15 +8,19 @@ from shared_enums import DemonRegistration, DupeReward, Emotes, Unicode
 class GenericMsg:
 	@staticmethod
 	def not_in_party(demon_name: str) -> str:
-		return f"**{demon_name}** was not found in your party..."
+		return f"**{demon_name.title()}** could not be found in your party..."
 
 	@staticmethod
 	def not_in_comp(demon_name: str) -> str:
-		return f"The demon **{demon_name}** was not found in your compendium."
+		return f"The demon **{demon_name.title()}** was not found in your compendium."
 
 	@staticmethod
 	def currently_on_loan(demon_name: str) -> str:
 		return f"**{demon_name}** is currently being loaned to the Server Compendium..."
+
+	@staticmethod
+	def currently_leader(demon_name: str) -> str:
+		return f"**{demon_name}** is currently set as your leader. Use `>leader {{demon}}` to change your leader."
 
 	@staticmethod
 	def no_leader() -> str:
@@ -32,6 +37,19 @@ class GenericMsg:
 	@staticmethod
 	def no_input_given(command: CommandData) -> str:
 		return f"{command.help}\n\n-# `{command.usage}`"
+
+	@staticmethod
+	def registered_to_compendium(race: str, demon_name: str, player_name: str = "your") -> str:
+		return f"-# `> {race} {demon_name} has been registered to {player_name} compendium.`"
+
+	@staticmethod
+	def dupe_level_up(player_mention: str, demon: DemonData, dupe_message: str):
+		new_dupe_level = demon.dupes + 1
+		level_string = "MAX" if new_dupe_level == 5 else str(new_dupe_level)
+		return (
+			f"### {player_mention} {demon.race} {demon.name} has leveled up to {level_string}{Emotes.GEM.value}!"
+			f"\n{dupe_message}"
+		)
 
 
 class PartyMsg(GenericMsg):
@@ -210,3 +228,75 @@ class CustomisationMsg(GenericMsg):
 	def custom_greeting_updated(demon: DemonData, greeting: str) -> str:
 		formatted_greeting = format_utils.format_greeting(greeting, demon)
 		return f'**{demon.name}**\'s greeting has been updated to "{formatted_greeting}".'
+
+
+class FusionMsg(GenericMsg):
+	@staticmethod
+	def already_in_fusion() -> str:
+		return "You're already in the process of fusing..."
+
+	@staticmethod
+	def cant_fuse(demons: list[DemonData]) -> str:
+		d1, d2 = demons
+		return f"**{d1.race} {d1.name}** + **{d2.race} {d2.name}** = **Nothing!** So sorry about that champ!"
+
+	@staticmethod
+	def fusion_response(demons: list[DemonData], demon_result: DemonData) -> str:
+		d1, d2 = demons
+		return (
+			f"**{d1.race} {d1.name}** ({d1.rank})"
+			f" + **{d2.race} {d2.name}** ({d2.rank}) ="
+			f"\n### {demon_result.race} {demon_result.name} ({demon_result.rank})"
+			f"\n{Emotes.BLANK.value}"
+			"\n"
+		)
+
+	@staticmethod
+	def fusion_too_weak(strongest: int, leeway: int) -> str:
+		return (
+			"But you are too weak to control it..."
+			f"\n\n-# You can control up to {strongest}"
+			f" (Your strongest demon's rank + {leeway})."
+		)
+
+	@staticmethod
+	def fusion_already_in_party(demon_result: DemonData) -> str:
+		return (
+			f"**{demon_result.race} {demon_result.name}** can already be found in your party,"
+			" summoning it again will raise its level by 1 instead."
+		)
+
+	@staticmethod
+	def fusion_cost(cost: int) -> str:
+		return f"Fusing these demons will cost **{cost} MAG**."
+
+	@staticmethod
+	def fusion_not_enough_mag(cost: int, mag: int) -> str:
+		cost_string = FusionMsg.fusion_cost(cost)
+		return f"{cost_string} You need **{cost - mag}** more **MAG**!"
+
+	@staticmethod
+	def confirm_fusion(cost: int) -> str:
+		cost_string = FusionMsg.fusion_cost(cost)
+		return f"{cost_string} Do you wish to continue?"
+
+	@staticmethod
+	def fusion_completed(race: str, demon_name: str, is_accident: bool = False, new_to_comp: bool = False) -> str:
+		unexpected = "Hmm... It seems an unexpected demon was born... " if is_accident else ""
+		registered = FusionMsg.registered_to_compendium(race, demon_name) if new_to_comp else ""
+
+		return (
+			f"{unexpected}"
+			f"\n\n-# **{demon_name.capitalize()}**:"
+			f"\n-# I'm **{race} {demon_name}**. Well, it's nice to meet you."
+			f"\n\n{registered}"
+		)
+
+	@staticmethod
+	def confirm_special_fusion(race: str, name: str, ingredients: tuple[IngredientData, ...]) -> str:
+		ingredient_text = "".join(f"\n-# - {i.race} {i.name}" for i in ingredients)
+		return (
+			f"In order to summon **{race} {name}**, the following must be sacrificed:"
+			f"{ingredient_text}"
+			f"\n\nComplete the ritual?"
+		)
