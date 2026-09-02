@@ -6,8 +6,8 @@ from discord.ext import commands
 
 from entities.command_data import UTILITY_COMMANDS, command_kwargs
 from entities.demon_data import TOO_WEAK_LEEWAY
-from entities.player_data import DAILY_COOLDOWN
-from helpers import checks, encounter_utils, gets, utils
+from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW
+from helpers import checks, gets, utils
 from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
 from queries import currency_queries, player_queries, server_level_queries, server_queries
@@ -37,8 +37,7 @@ class Utility(commands.Cog):
 		daily_string = Messages.get_daily_available(time_until_daily)
 
 		# Get the time and the period where the current encounter window started.
-		current_window = encounter_utils.get_current_encounter_window()
-		time_until_encounter = utils.get_time_until(player_data.encounter_timer, current_window)
+		time_until_encounter = utils.get_time_until(player_data.encounter_timer, ENCOUNTER_WINDOW)
 		encounter_string = Messages.get_encounter_available(time_until_encounter)
 
 		# Get stats of the player and specific server ones.

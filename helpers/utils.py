@@ -24,13 +24,13 @@ def split_input_str(input_str: str | None, maximum: int = 2) -> tuple[str, ...]:
 	return tuple(parts)
 
 
-def get_time_until(timer: int, cooldown: int) -> tuple[int, ...] | None:
+def get_time_until(timer: int, duration: int) -> tuple[int, ...] | None:
 	time_now = int(time())
 	time_since = time_now - timer
 
-	# If still time, send a message with how long remaining.
-	if time_since < cooldown:
-		remaining = cooldown - time_since
+	# If still time, return how much time is left.
+	if time_since < duration:
+		remaining = duration - time_since
 		hours, remainder = divmod(remaining, 3600)
 		minutes, seconds = divmod(remainder, 60)
 		return hours, minutes, seconds

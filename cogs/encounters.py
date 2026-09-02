@@ -8,6 +8,7 @@ from discord.ext import commands
 
 from entities.command_data import ENCOUNTERS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
+from entities.player_data import ENCOUNTER_WINDOW
 from helpers import checks, encounter_utils, gets, utils
 from helpers.messages import EncountersMsg
 from queries import demon_queries, player_queries, server_level_queries, server_queries
@@ -21,14 +22,51 @@ class Encounters(commands.Cog):
 	def __init__(self, bot: commands.Bot):
 		self.bot = bot
 
+	@checks.in_set_channel()
+	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "encounter"))
+	async def encounter_demon_command(self, ctx: commands.Context) -> None:
+		"""Command to trigger a daily demon encounter."""
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_data = await player_queries.get_player(player_id, server_id)
+		set_channel = await server_queries.get_dedicated_channel(server_id)
+		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(set_channel) if set_channel else ctx.channel)
+
+		# If its the player's first encounter, send the tutorial one instead.
+		if player_data is None:
+			return await self._start_tutorial_encounter(send_to_channel, player_id, server_id, ctx.author.name)
+
+		# Check if player has to still wait for the encounter window.
+		time_until = utils.get_time_until(player_data.encounter_timer, ENCOUNTER_WINDOW)
+
+		# If encounter has already been made in this period, send a message with how long remaining.
+		if time_until is not None:
+			await MessageView.send(send_to_channel, EncountersMsg.encounter_cooldown(time_until))
+			return
+
+		# If encounter is available, calculate rank of demon then select a random one from it.
+		count, server_cap = await asyncio.gather(
+			encounter_utils.get_num_available_for_encounters(server_id),
+			server_level_queries.get_rank_cap(server_id),
+		)
+		average_rank = player_data.party_stats.average
+		demon = await demon_queries.get_demon_by_distribution(player_id, server_id, average_rank, server_cap)
+
+		# Get the current window so we enforce rolls reset on the hour.
+		current_window = encounter_utils.get_current_encounter_window()
+
+		# Start the encounter.
+		await asyncio.gather(
+			self._start_encounter(send_to_channel, demon, count, player_id),
+			# TODO: TEST CURRENT WINDOW BEING HERE, IT USED TO BE TIME NOW
+			player_queries.set_encounter_timer(player_id, server_id, current_window),
+		)
+
 	@checks.is_developer()
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "test_encounter"))
-	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None = None) -> None:
+	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None) -> None:
 		"""Command to start a test encounter with a random demon. Name can be provided."""
 		try:
-			if not isinstance(ctx.channel, discord.TextChannel):
-				raise RuntimeError("test_encounter_command | Could not find the channel to send the encounter to.")
-
 			player_id, server_id = gets.get_player_server_ids(ctx)
 
 			if name:
@@ -45,48 +83,9 @@ class Encounters(commands.Cog):
 		except Exception as e:
 			raise RuntimeError(f"test_encounter_command | {e}")
 
-	@checks.in_set_channel()
-	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "encounter"))
-	async def encounter_demon_command(self, ctx: commands.Context) -> None:
-		"""Command to trigger a daily demon encounter."""
-
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		player_data = await player_queries.get_player(player_id, server_id)
-		set_channel = await server_queries.get_dedicated_channel(server_id)
-		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(set_channel) if set_channel else ctx.channel)
-
-		# If its the player's first encounter, send the tutorial one instead.
-		if player_data is None:
-			return await self._start_tutorial_encounter(send_to_channel, player_id, server_id, ctx.author.name)
-
-		# Get the time and the period where the current encounter window started.
-		current_window = encounter_utils.get_current_encounter_window()
-		time_until = utils.get_time_until(player_data.encounter_timer, current_window)
-
-		# If encounter has already been made in this period, send a message with how long remaining.
-		if time_until is not None:
-			await MessageView.send(send_to_channel, EncountersMsg.encounter_cooldown(time_until))
-			return
-
-		# If encounter is available, calculate rank of demon then select a random one from it.
-		average_rank = player_data.party_stats.average
-
-		count, server_cap = await asyncio.gather(
-			encounter_utils.get_num_available_for_encounters(server_id),
-			server_level_queries.get_rank_cap(server_id),
-		)
-		demon = await demon_queries.get_demon_by_distribution(player_id, server_id, average_rank, server_cap)
-
-		# Start the encounter.
-		await asyncio.gather(
-			self._start_encounter(send_to_channel, demon, count, player_id),
-			# TODO: TEST CURRENT WINDOW BEING HERE, IT USED TO BE TIME NOW
-			player_queries.set_encounter_timer(player_id, server_id, current_window),
-		)
-
 	async def _start_encounter(
 		self,
-		send_to_channel: discord.TextChannel,
+		send_to_channel: discord.abc.Messageable,
 		demon_data: DemonData,
 		count: int,
 		summoner_id: int,
