@@ -6,7 +6,7 @@ from entities.comp_data import DemonEntry
 from entities.item_data import ItemEntry
 from entities.player_data import PartyStats
 from entities.server_data import ServerStats
-from entities.view_data import ColumnConfig
+from entities.view_data import DEFAULT_PAGE_SIZE, ColumnConfig
 from shared_enums import EmbedColours, Emotes, Unicode
 from views.common_view import BaseLayoutView, EntryT
 
@@ -16,30 +16,27 @@ class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 
 	def __init__(
 		self,
-		user_name: str,
 		entries: list[EntryT],
 		columns: list[ColumnConfig],
+		display_name: str,
+		*,
 		page: int = 1,
 		colour: int = EmbedColours.DEFAULT.value,
-		filtered_race: str = "all",
 	) -> None:
 		"""
 		Init for the base table view.
 
 		Args:
-			user_name (str): Name of the user we are looking at.
 			entries (list[EntryT]): List of a generic Entry Type.
 			columns (list[ColumnConfig]): List of columns to show.
+			display_name (str): Name to display on top.
 			page (int): Current page number of the view. Defaults to 1.
-			colour (int): Colour of the view's left side.
-			filtered_race (str): Race to filter the view by. Defaults to 'all'.
+			colour (int): Colour of the view's left side. Defaults to... DEFAULT.
 		"""
-		super().__init__(entries, page=page, colour=colour)
+		super().__init__(entries, page=page, colour=colour, page_size=DEFAULT_PAGE_SIZE)
 
-		self.user_name = user_name
 		self.columns = columns
-		self.filtered_race = filtered_race
-
+		self.display_name = display_name
 		self.refresh()
 
 	def _build_table_header(self, container: discord.ui.Container) -> discord.ui.Container:
@@ -75,10 +72,24 @@ class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 
 
 class BaseCompendiumView(BaseTableView[DemonEntry]):
+	"""Table view for listing demons with race selector/filters."""
+
+	def __init__(self, *args, filtered_race: str = "all", **kwargs) -> None:
+		"""
+		Args:
+			filtered_race (str): Race to filter the view by. Defaults to 'all'.
+		"""
+		self.filtered_race = filtered_race
+		super().__init__(*args, **kwargs)
+
 	class RaceSelect(discord.ui.Select):
 		"""Custom select menu for filtering demons by race."""
 
-		def __init__(self, races: list[str], selected: str) -> None:
+		def __init__(
+			self,
+			races: list[str],
+			selected: str,
+		) -> None:
 			options = [discord.SelectOption(label="All", value="all")]
 			sorted_races = sorted(races)
 
@@ -90,7 +101,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 		async def callback(self, interaction: discord.Interaction) -> None:
 			"""Callback for when a race is selected from the filter menu."""
 			view = cast(BaseCompendiumView, self.view)
-			view.filtered_race = self.values[0]
+			self.filtered_race = self.values[0]
 			view.page = 1
 			view.total_pages = 1
 			view.refresh()
@@ -186,7 +197,7 @@ class CompendiumView(BaseCompendiumView):
 		# Draw the info button next to the title.
 		info_button = self.InfoButton(self.show_info)
 		section = discord.ui.Section(accessory=info_button)
-		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Compendium"))
+		section.add_item(discord.ui.TextDisplay(f"### {self.display_name}'s Compendium"))
 		container.add_item(section)
 
 		if self.show_info:
@@ -216,10 +227,15 @@ class PartyView(BaseCompendiumView):
 	def __init__(
 		self,
 		*args,
-		selected_demon_id: int | None = None,
 		party_stats: PartyStats,
+		selected_demon_id: int | None = None,
 		**kwargs,
 	) -> None:
+		"""
+		Args:
+			party_stats (PartyStats): To display stats in the header.
+			selected_demon_id (int | None): Used to highlight the leader.
+		"""
 		self.selected_demon_id = selected_demon_id
 		self.party_stats = party_stats
 		super().__init__(*args, **kwargs)
@@ -265,7 +281,7 @@ class PartyView(BaseCompendiumView):
 		# Draw the info button next to the title.
 		info_button = self.InfoButton(self.show_info)
 		section = discord.ui.Section(accessory=info_button)
-		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Party"))
+		section.add_item(discord.ui.TextDisplay(f"### {self.display_name}'s Party"))
 		container.add_item(section)
 
 		if self.show_info:
@@ -312,6 +328,10 @@ class ServerCompendiumView(BaseCompendiumView):
 		server_stats: ServerStats,
 		**kwargs,
 	) -> None:
+		"""
+		Args:
+			server_stats (ServerStats): To display stats in the header.
+		"""
 		self.server_stats = server_stats
 		super().__init__(*args, **kwargs)
 
@@ -338,7 +358,7 @@ class ServerCompendiumView(BaseCompendiumView):
 		# Draw the info button next to the title.
 		info_button = self.InfoButton(self.show_info)
 		section = discord.ui.Section(accessory=info_button)
-		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Server Compendium"))
+		section.add_item(discord.ui.TextDisplay(f"### {self.display_name}'s Server Compendium"))
 		container.add_item(section)
 
 		if self.show_info:
@@ -373,6 +393,8 @@ class GemCollectionView(BaseTableView[ItemEntry]):
 		container = self._build_table_header(container)
 
 		for entry in page_entries:
+			if entry.quantity <= 0:
+				continue
 			container = self._build_page_entry(container, entry)
 		container = self._build_footer(container)
 
@@ -382,7 +404,7 @@ class GemCollectionView(BaseTableView[ItemEntry]):
 		# Draw the info button next to the title.
 		info_button = self.InfoButton(self.show_info)
 		section = discord.ui.Section(accessory=info_button)
-		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Gem Collection"))
+		section.add_item(discord.ui.TextDisplay(f"### {self.display_name}'s Gem Collection"))
 		container.add_item(section)
 
 		if self.show_info:
@@ -411,6 +433,8 @@ class InventoryView(BaseTableView[ItemEntry]):
 		container = self._build_header(container)
 		container = self._build_table_header(container)
 		for entry in page_entries:
+			if entry.quantity <= 0:
+				continue
 			container = self._build_page_entry(container, entry)
 		container = self._build_footer(container)
 
@@ -420,7 +444,7 @@ class InventoryView(BaseTableView[ItemEntry]):
 		# Draw the info button next to the title.
 		info_button = self.InfoButton(self.show_info)
 		section = discord.ui.Section(accessory=info_button)
-		section.add_item(discord.ui.TextDisplay(f"### {self.user_name}'s Item Inventory"))
+		section.add_item(discord.ui.TextDisplay(f"### {self.display_name}'s Item Inventory"))
 		container.add_item(section)
 
 		if self.show_info:

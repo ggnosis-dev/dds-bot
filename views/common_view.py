@@ -244,9 +244,9 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 
 		Args:
 			entries (list[EntryT]): List of a generic Entry Type.
-			page (int): Current page number of the view. Defaults to 1.
-			page_size (int): The number of entries to show on the page. Defaults to 10.
-			colour (int): Colour of the view's left side.
+			page (int): Page number of the view.
+			page_size (int): The number of entries to show on the page.
+			colour (int): Colour of the view's left side embed.
 		"""
 
 		# Run the standard layout view stuff.
@@ -258,6 +258,19 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		self.total_pages = 1
 		self.colour = colour
 		self.show_info: bool = False
+
+	@classmethod
+	async def send(cls, destination: discord.abc.Messageable, *args, **kwargs) -> discord.Message:
+		"""
+		Send a message to the destination channel.
+
+		Args:
+			destination: Where to send message to.
+			*args: Required arguments, including from child classes. e.g. BaseTableView adds columns and user_name.
+			**kwargs: Keyword/optional arguments, including from child classes. e.g. PartyView adds party_stats.
+		"""
+		view = cls(*args, **kwargs)
+		return await destination.send(view=view)
 
 	class PageButton(discord.ui.Button):
 		"""Custom button for navigating between pages."""
@@ -299,9 +312,24 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 			view.refresh()
 			await interaction.response.edit_message(view=view)
 
-	def refresh(self) -> None:
-		self.clear_items()
-		self._build_layout()
+	@abstractmethod
+	def _build_layout(self) -> None:
+		pass
+
+	@abstractmethod
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		pass
+
+	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
+		"""Footer shows number of pages and given there's more than one page, will create page navigation."""
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
+
+		if self.total_pages != 1:
+			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))
+			container.add_item(page_nav)
+
+		return container
 
 	def _get_page_entries(self) -> list[EntryT]:
 		"""
@@ -323,21 +351,6 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		"""Override for dedicated filters, such as Compendium's race filter."""
 		return self.entries
 
-	@abstractmethod
-	def _build_layout(self) -> None:
-		pass
-
-	@abstractmethod
-	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		pass
-
-	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
-		"""Footer shows number of pages and given there's more than one page, will create page navigation."""
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
-
-		if self.total_pages != 1:
-			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))
-			container.add_item(page_nav)
-
-		return container
+	def refresh(self) -> None:
+		self.clear_items()
+		self._build_layout()

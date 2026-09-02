@@ -28,21 +28,26 @@ class ServerCompendium(commands.Cog):
 			mentioned = mentioned.id if mentioned else None
 			need_gems = Columns.GEMS in columns
 
-			comp_list, stats = await asyncio.gather(
+			comp_entries, stats = await asyncio.gather(
 				server_demons_queries.check_server_compendium(server.id, mentioned, need_gems),
 				server_level_queries.get_server_status(server.id),
 			)
 
 			# Because the server COMP only stores user IDs, we need to retrieve their names through a cache lookup.
-			for entry in comp_list:
+			for entry in comp_entries:
 				if entry.owner_id is not None:
 					player = server.get_member(entry.owner_id)
 					entry.owner_name = player.display_name if player else "Unknown"
 
-			view = ServerCompendiumView(server.name, comp_list, columns, server_stats=stats)
-			await ctx.send(view=view)
+			await ServerCompendiumView.send(
+				ctx.channel,
+				comp_entries,
+				columns,
+				server.name,
+				server_stats=stats,
+			)
 		except Exception as e:
-			print(f"server_compendium.py | server_comp_command | {e}")
+			print(f"server_comp_command | {e}")
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "loan"))

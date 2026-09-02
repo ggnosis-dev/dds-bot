@@ -37,14 +37,21 @@ class PartyCommands(commands.Cog):
 			need_gems = Columns.GEMS in columns
 
 			player = mentioned if mentioned is not None else player
-			party_list, party_stats, sd_id = await asyncio.gather(
+
+			party_entries, party_stats, sd_id = await asyncio.gather(
 				player_demons_queries.check_party(player.id, server.id, need_gems),
 				player_demons_queries.get_party_stats(player.id, server.id),
 				player_demons_queries.get_selected_demon_id(player.id, server.id),
 			)
 
-			view = PartyView(player.name, party_list, columns, selected_demon_id=sd_id, party_stats=party_stats)
-			await ctx.send(view=view)
+			await PartyView.send(
+				ctx.channel,
+				party_entries,
+				columns,
+				player.name,
+				party_stats=party_stats,
+				selected_demon_id=sd_id,
+			)
 		except Exception as e:
 			raise RuntimeError(f"party_command | {e}")
 

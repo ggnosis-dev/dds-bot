@@ -106,8 +106,7 @@ class InventoryCommands(commands.Cog):
 			await MessageView.send(ctx.channel, ItemMsg.empty_inventory())
 			return
 
-		view = InventoryView(player.name, items, columns)
-		await ctx.send(view=view)
+		await InventoryView.send(ctx.channel, items, columns, player.name)
 
 
 class GemCommands(commands.Cog):
@@ -118,12 +117,11 @@ class GemCommands(commands.Cog):
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gems_command(self, ctx: commands.Context) -> None:
 		"""View player's current gems collection."""
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		collected_gems = await gem_queries.get_player_gems(player_id, server_id)
+		player, server = gets.get_player_server(ctx)
+		collected_gems = await gem_queries.get_player_gems(player.id, server.id)
 		columns = list(Columns.ITEM_DEFAULT)
 
-		view = GemCollectionView(ctx.author.name, collected_gems, columns)
-		await ctx.send(view=view)
+		await GemCollectionView.send(ctx.channel, collected_gems, columns, player.name)
 
 	@checks.has_profile()
 	@commands.Cog.listener()

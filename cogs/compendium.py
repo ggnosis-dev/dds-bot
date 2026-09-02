@@ -31,9 +31,14 @@ class Compendium(commands.Cog):
 
 		# Swap player to the mentioned player if it was provided.
 		player = mentioned if mentioned is not None else player
-		comp_list = await player_demons_queries.check_compendium(player.id, server.id, need_gems)
-		view = CompendiumView(player.name, comp_list, columns)
-		await ctx.send(view=view)
+		comp_entries = await player_demons_queries.check_compendium(player.id, server.id, need_gems)
+
+		await CompendiumView.send(
+			ctx.channel,
+			comp_entries,
+			columns,
+			player.name,
+		)
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "summon"))
