@@ -26,7 +26,7 @@ class Fusion(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(FUSION_COMMANDS, "fuse"))
-	async def fuse_command(self, ctx: commands.Context, *, input_str: str | None = None) -> None:
+	async def fuse_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
 
 		# Reminder first, then check for input lacking.
 		player_id, server_id = gets.get_player_server_ids(ctx)
