@@ -30,8 +30,8 @@ def check_server_exists(server_id: int) -> bool:
 	return response is not None
 
 
-async def set_dedicated_channel(server_id: int, channel_id: int) -> bool:
-	success = query_write(
+async def set_dedicated_channel(server_id: int, channel_id: int) -> None:
+	response = query_write(
 		"""
 			UPDATE servers SET dedicated_channel = ?
 			WHERE server_id = ?
@@ -39,7 +39,8 @@ async def set_dedicated_channel(server_id: int, channel_id: int) -> bool:
 		(channel_id, server_id),
 	)
 
-	return True if success else False
+	if response is None:
+		raise RuntimeError("Server didn't exist in server table despite existence check.")
 
 
 async def get_dedicated_channel(server_id: int) -> int | None:

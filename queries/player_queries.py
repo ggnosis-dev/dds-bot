@@ -1,3 +1,5 @@
+from time import time
+
 from entities.demon_data import DEFAULT_RACE_MULT_INCREMENT
 from entities.player_data import PlayerData, convert_row_to_player_data
 from helpers.db import query_one, query_write
@@ -59,7 +61,7 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 	"""
 	Get the properties of the player.
 	Returns:
-		PlayerData | None: A data class of player properties or None if non-existent.
+		PlayerData: A data class of player properties or None if non-existent.
 	"""
 
 	row = query_one(
@@ -77,20 +79,17 @@ async def get_player(player_id, server_id) -> PlayerData | None:
 	return convert_row_to_player_data(row, strongest)
 
 
-async def set_daily_timer(player_id: int, server_id: int, time: int) -> bool:
-	"""
-	Set the player's daily timer.
+async def set_daily_timer(player_id: int, server_id: int) -> bool:
+	"""Set the player's daily timer."""
+	time_now = int(time())
 
-	Returns:
-		bool: True if successful, False otherwise.
-	"""
 	rows_affected = query_write(
 		"""
 			UPDATE players
 			SET daily_timer = ?
 			WHERE player_id = ? AND server_id = ?
 		""",
-		(time, player_id, server_id),
+		(time_now, player_id, server_id),
 	)
 
 	return rows_affected > 0

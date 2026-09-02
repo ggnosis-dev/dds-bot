@@ -125,8 +125,9 @@ class CompendiumMsg(GenericMsg):
 
 class EncountersMsg(GenericMsg):
 	@staticmethod
-	def encounter_cooldown(hours: int, minutes: int, seconds: int) -> str:
-		return f"Encounter is on cooldown. Try again in **{hours}h**, **{minutes}m** and **{seconds}s**."
+	def encounter_cooldown(time_until: tuple[int, ...]) -> str:
+		h, m, s = time_until
+		return f"Encounter is on cooldown. Try again in **{h}h**, **{m}m** and **{s}s**."
 
 	@staticmethod
 	def introduction(player_name: str) -> str:
@@ -527,3 +528,47 @@ class ShopMsgs(GenericMsg):
 			ingredient_list.append(f"{i.race} {i.name}")
 
 		return f"-# **Required:** {' + '.join(ingredient_list)}"
+
+
+class UtilityMsgs(GenericMsg):
+	@staticmethod
+	def build_stuff_details(mag: int, encounter_string: str, daily_string: str, stats_string: str) -> str:
+		return f"MAG: **{mag}**\n\n{encounter_string}\n\n{daily_string}\n\n{stats_string}"
+
+	@staticmethod
+	def get_daily_available(time_until: tuple[int, ...] | None) -> str:
+		if time_until is None:
+			return "Daily is available!"
+		h, m, s = time_until
+		return f"Daily available in **{h}h**, **{m}m** and **{s}s**."
+
+	@staticmethod
+	def get_encounter_available(time_until: tuple[int, ...] | None) -> str:
+		if time_until is None:
+			return "Encounter is available!"
+		h, m, s = time_until
+		return f"Encounter available in **{h}h**, **{m}m** and **{s}s**."
+
+	@staticmethod
+	def get_encounter_stats(rank_cap: int, average_rank: int, strongest_rank: int, leeway: int):
+		return (
+			f"- Encounters can spawn up to **Rank {rank_cap}** (Server Cap)."
+			f"\n- Encounters are weighted to **Rank {average_rank}** (Your Party Average)."
+			f"\n- Encounters under **Rank {strongest_rank + leeway}** can be recruited"
+			f" (Your Strongest Demon + {leeway})."
+		)
+
+	@staticmethod
+	def discovered_mag(mag: int, total_mag: int) -> str:
+		return f"You've discovered a cluster of **{mag}** MAG! Your total is now **{total_mag}** MAG."
+
+	@staticmethod
+	def show_dedicated_channel(channel_id: int) -> str:
+		return (
+			f"Encounters are only appearing in <#{channel_id}>."
+			" You can update this by using `>set_channel {channel_name}`."
+		)
+
+	@staticmethod
+	def set_dedicated_channel(channel_id: int) -> str:
+		return f"Encounters will now only appear in <#{channel_id}>"

@@ -93,7 +93,7 @@ class PartyCommands(commands.Cog):
 			p_data = await get_player(pid, sid)
 
 			if p_data is None:
-				raise RuntimeError("increase_party_command | Player found but no data retrieved.")
+				raise RuntimeError("Player was not found despite existence check.")
 
 			party_cap = p_data.party_stats.cap
 			cost = party_slot_cost(party_cap, number)

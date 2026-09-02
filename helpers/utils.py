@@ -1,5 +1,7 @@
 import re
 
+from time import time
+
 from entities.command_data import INPUT_DIVIDER
 
 
@@ -20,3 +22,16 @@ def split_input_str(input_str: str | None, maximum: int = 2) -> tuple[str, ...]:
 	for i in range(parts_limit):
 		parts[i] = parts[i].strip().title()
 	return tuple(parts)
+
+
+def get_time_until(timer: int, cooldown: int) -> tuple[int, ...] | None:
+	time_now = int(time())
+	time_since = time_now - timer
+
+	# If still time, send a message with how long remaining.
+	if time_since < cooldown:
+		remaining = cooldown - time_since
+		hours, remainder = divmod(remaining, 3600)
+		minutes, seconds = divmod(remainder, 60)
+		return hours, minutes, seconds
+	return None

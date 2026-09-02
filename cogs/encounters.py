@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from typing import cast
 
@@ -9,8 +8,7 @@ from discord.ext import commands
 
 from entities.command_data import ENCOUNTERS_COMMANDS, command_kwargs
 from entities.demon_data import DemonData
-from entities.player_data import ENCOUNTER_WINDOW_HOURS
-from helpers import checks, encounter_utils, gets
+from helpers import checks, encounter_utils, gets, utils
 from helpers.messages import EncountersMsg
 from queries import demon_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
@@ -62,17 +60,12 @@ class Encounters(commands.Cog):
 			return await self._start_tutorial_encounter(send_to_channel, player_id, server_id, ctx.author.name)
 
 		# Get the time and the period where the current encounter window started.
-		now = int(time.time())
-		current_window = encounter_utils.get_current_encounter_window(now)
+		current_window = encounter_utils.get_current_encounter_window()
+		time_until = utils.get_time_until(player_data.encounter_timer, current_window)
 
 		# If encounter has already been made in this period, send a message with how long remaining.
-		if current_window < player_data.encounter_timer:
-			window_seconds = ENCOUNTER_WINDOW_HOURS * 3600
-			remaining = (current_window + window_seconds) - now
-			hours, remainder = divmod(remaining, 3600)
-			minutes, seconds = divmod(remainder, 60)
-
-			await MessageView.send(send_to_channel, EncountersMsg.encounter_cooldown(hours, minutes, seconds))
+		if time_until is not None:
+			await MessageView.send(send_to_channel, EncountersMsg.encounter_cooldown(time_until))
 			return
 
 		# If encounter is available, calculate rank of demon then select a random one from it.
@@ -87,7 +80,8 @@ class Encounters(commands.Cog):
 		# Start the encounter.
 		await asyncio.gather(
 			self._start_encounter(send_to_channel, demon, count, player_id),
-			player_queries.set_encounter_timer(player_id, server_id, now),
+			# TODO: TEST CURRENT WINDOW BEING HERE, IT USED TO BE TIME NOW
+			player_queries.set_encounter_timer(player_id, server_id, current_window),
 		)
 
 	async def _start_encounter(
