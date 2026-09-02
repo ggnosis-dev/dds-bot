@@ -5,7 +5,6 @@ from typing import Generic, TypeVar, cast
 
 import discord
 
-from entities.view_data import DEFAULT_PAGE_SIZE
 from shared_enums import EmbedColours
 
 
@@ -235,9 +234,10 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 	def __init__(
 		self,
 		entries: list[EntryT],
-		page: int = 1,
-		page_size: int = DEFAULT_PAGE_SIZE,
-		colour: int = EmbedColours.DEFAULT.value,
+		*,
+		page: int,
+		page_size: int,
+		colour: int,
 	) -> None:
 		"""
 		Init for the base table view.

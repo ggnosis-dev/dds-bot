@@ -1,3 +1,5 @@
+from random import choice
+
 from entities.badge_data import BadgeData
 from entities.command_data import CommandData
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, DEFAULT_RACE_MULT_INCREMENT, DemonData
@@ -261,7 +263,7 @@ class FusionMsg(GenericMsg):
 	def fusion_too_weak(strongest: int, leeway: int) -> str:
 		return (
 			"But you are too weak to control it..."
-			f"\n\n-# You can control up to {strongest}"
+			f"\n\n-# You can control up to {strongest + leeway}"
 			f" (Your strongest demon's rank + {leeway})."
 		)
 
@@ -458,3 +460,70 @@ class ServerCompendiumMsg(GenericMsg):
 			f"\n\nExperience to Next Level: **{stats.current_level_xp}** / **{stats.xp_required}**"
 			f"\n{progress_bar}"
 		)
+
+
+class ShopMsgs(GenericMsg):
+	@staticmethod
+	def not_enough_gems(item_name: str) -> str:
+		return f"You don't have enough gems to purchase **{item_name}**."
+
+	@staticmethod
+	def purchase_success(item_name: str) -> str:
+		return f"You have purchased a **{item_name}**!"
+
+	@staticmethod
+	def rags_dialogue() -> str:
+		options = [
+			"Mmmm... You smell strongly of gems. Welcome. I'll trade anything with you.",
+			"Anything I got, it's yours. For a small fee, of course.",
+			"Put your MAG away, I only believe in gemstones. What would you like?",
+		]
+
+		return f"-# **RAG:**\n-# {choice(options)}"
+
+	@staticmethod
+	def rags_info() -> str:
+		return (
+			"-# - Trade gemstones for incense that can be used to increase the rank of one of your demons."
+			"\n-# - Each demon requires an incense for their respective race."
+			# "\n-# - As the demon grows in strength, larger incense will be required. (NOT YET IMPLEMENTED)"
+		)
+
+	@staticmethod
+	def build_item_title(item_name: str, cost: dict[str, int]) -> str:
+		gem_amounts = []
+		for gem, amount in cost.items():
+			gem_amounts.append(f"{gem.title()} x{amount}")
+		return f"**{item_name}** - {', '.join(gem_amounts)}"
+
+	@staticmethod
+	def build_item_desc(desc: str) -> str:
+		return f"-# {desc}"
+
+	@staticmethod
+	def mido_dialogue() -> str:
+		options = [
+			"Welcome to the Cathedral of Shadows, where demons gather...",
+		]
+
+		return f"-# **MIDO:**\n-# {choice(options)}"
+
+	@staticmethod
+	def special_fusion_info() -> str:
+		return (
+			"-# - Perform a Special Fusion by sacrificing the necessary demons from your party."
+			"\n-# - Special Fusion Keys can be found by leveling up the server and through events."
+		)
+
+	@staticmethod
+	def build_sp_fusion_title(race: str, name: str, rank: int) -> str:
+		return f"**{race} {name}** (Rank {rank})"
+
+	@staticmethod
+	def build_sp_fusion_required(ingredients: tuple[IngredientData, ...]) -> str:
+		ingredient_list = []
+
+		for i in ingredients:
+			ingredient_list.append(f"{i.race} {i.name}")
+
+		return f"-# **Required:** {' + '.join(ingredient_list)}"

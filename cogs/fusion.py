@@ -53,91 +53,7 @@ class Fusion(commands.Cog):
 		"""Command to view the Rags Shop and trade gems for items."""
 		server_id = gets.get_server(ctx).id
 		entries = await fusion_queries.get_special_fusion_list(server_id)
-		view = SpecialFusionView(entries, self._purchase_callback, colour=self.col)
-		await ctx.send(view=view)
-
-	async def _purchase_callback(self, interaction, fusion_result: SpecialFusionShopData) -> None:
-		"""Callback for when an item purchase button is clicked."""
-
-		player_id = interaction.user.id
-		server_id = interaction.guild.id
-		ingredients = fusion_result.ingredients
-		demon = await demon_queries.get_demon_by_id(player_id, server_id, fusion_result.demon_id)
-		ing_text = ""
-
-		# Check if strong enough to summon it.
-		party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
-		if demon.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
-			message = FusionMsg.fusion_too_weak(party_stats.strongest, TOO_WEAK_LEEWAY)
-			await MessageView.reply(
-				interaction,
-				message,
-				colour=self.col,
-				ephemeral=True,
-			)
-			return
-
-		# CHeck if demon ingredients are in party.
-		for i in ingredients:
-			# Check if each demon is summoned to the party.
-			reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
-			if reg_status == DemonRegistration.ON_LOAN:
-				await MessageView.reply(interaction, FusionMsg.currently_on_loan(i.name), colour=self.col, ephemeral=True)
-				return
-
-			if reg_status == DemonRegistration.LEADER:
-				await MessageView.reply(interaction, FusionMsg.currently_leader(i.name), colour=self.col, ephemeral=True)
-				return
-
-			if reg_status != DemonRegistration.IN_PARTY:
-				await MessageView.reply(interaction, FusionMsg.not_in_party(i.name), colour=self.col, ephemeral=True)
-				return
-
-			ing_text += f"\n-# - {i.race} {i.name}"
-
-		dd = await demon_queries.get_design_data(demon.id)
-
-		# Check if demon is already summoned and warn that fusing will only add to its level.
-		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
-
-		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
-			await MessageView.reply(
-				interaction,
-				FusionMsg.fusion_already_in_party(demon),
-				thumbnail=dd.profile_img,
-				colour=self.col,
-			)
-
-		# Send confirmation
-		message = FusionMsg.confirm_special_fusion(demon.race, demon.name, ingredients)
-		confirmed = await ConfirmationView.reply(
-			interaction,
-			message,
-			exclusive_to=player_id,
-			confirm_label="Summon",
-			confirm_colour=discord.ButtonStyle.primary,
-			thumbnail=dd.profile_img,
-			colour=self.col,
-			ephemeral=True,
-		)
-		if not confirmed:
-			return
-
-		# Remove demons being fused from party.
-		for i in ingredients:
-			await player_demons_queries.set_demon_in_party(player_id, server_id, i.ing_id, set_in_party=False)
-
-		# Add to compendium.
-		new_to_comp = await player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
-
-		# Set in party and update party stats with length of ingredients minus one for the new demon.
-		await asyncio.gather(
-			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True),
-			player_demons_queries.update_party(player_id, server_id, party_add=len(ingredients) - 1),
-		)
-
-		# Send final message.
-		await MessageView.reply(interaction, FusionMsg.fusion_completed(demon.race, demon.name, new_to_comp=new_to_comp))
+		await SpecialFusionView.send(ctx.channel, entries, self._sp_fusion_purchase_callback, colour=self.col)
 
 	async def _fuse_demons(
 		self,
@@ -291,6 +207,85 @@ class Fusion(commands.Cog):
 
 		# Check if demon_result is the same, very rare but don't treat it like an accident in that case.
 		return og_demon if accident is None or og_demon.id == accident.id else accident
+
+	async def _sp_fusion_purchase_callback(self, interaction, fusion_result: SpecialFusionShopData) -> None:
+		"""Callback for when an item purchase button is clicked."""
+
+		player_id = interaction.user.id
+		server_id = interaction.guild.id
+		ingredients = fusion_result.ingredients
+		demon = await demon_queries.get_demon_by_id(player_id, server_id, fusion_result.demon_id)
+
+		# Check if strong enough to summon it.
+		party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
+		if demon.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
+			message = FusionMsg.fusion_too_weak(party_stats.strongest, TOO_WEAK_LEEWAY)
+			await MessageView.reply(
+				interaction,
+				message,
+				colour=self.col,
+				ephemeral=True,
+			)
+			return
+
+		# CHeck if demon ingredients are in party.
+		for i in ingredients:
+			# Check if each demon is summoned to the party.
+			reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, i.ing_id)
+			if reg_status == DemonRegistration.ON_LOAN:
+				await MessageView.reply(interaction, FusionMsg.currently_on_loan(i.name), colour=self.col, ephemeral=True)
+				return
+
+			if reg_status == DemonRegistration.LEADER:
+				await MessageView.reply(interaction, FusionMsg.currently_leader(i.name), colour=self.col, ephemeral=True)
+				return
+
+			if reg_status != DemonRegistration.IN_PARTY:
+				await MessageView.reply(interaction, FusionMsg.not_in_party(i.name), colour=self.col, ephemeral=True)
+				return
+
+		dd = await demon_queries.get_design_data(demon.id)
+
+		# Check if demon is already summoned and warn that fusing will only add to its level.
+		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
+		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
+			await MessageView.reply(
+				interaction,
+				FusionMsg.fusion_already_in_party(demon),
+				thumbnail=dd.profile_img,
+				colour=self.col,
+			)
+
+		# Send confirmation
+		message = FusionMsg.confirm_special_fusion(demon.race, demon.name, ingredients)
+		confirmed = await ConfirmationView.reply(
+			interaction,
+			message,
+			exclusive_to=player_id,
+			confirm_label="Summon",
+			confirm_colour=discord.ButtonStyle.primary,
+			thumbnail=dd.profile_img,
+			colour=self.col,
+			ephemeral=True,
+		)
+		if not confirmed:
+			return
+
+		# Remove demons being fused from party.
+		for i in ingredients:
+			await player_demons_queries.set_demon_in_party(player_id, server_id, i.ing_id, set_in_party=False)
+
+		# Add to compendium.
+		new_to_comp = await player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
+
+		# Set in party and update party stats with length of ingredients minus one for the new demon.
+		await asyncio.gather(
+			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True),
+			player_demons_queries.update_party(player_id, server_id, party_add=len(ingredients) - 1),
+		)
+
+		# Send final message.
+		await MessageView.reply(interaction, FusionMsg.fusion_completed(demon.race, demon.name, new_to_comp=new_to_comp))
 
 
 async def setup(bot: commands.Bot) -> None:
