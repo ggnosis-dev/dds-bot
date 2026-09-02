@@ -28,65 +28,27 @@ async def _release_demon_on_loan(server_id: int, demon_id: int) -> None:
 	)
 
 
-async def add_demon_to_server_compendium(
-	player_id: int,
-	server_id: int,
-	demon_id: int,
-) -> bool:
-	"""
-	Add a demon to the server's compendium and mark it on loan.
-
-	Args:
-		player_id (int): Player ID.
-		server_id (int): Server ID the player belongs to.
-		demon_id (int): Demon's ID.
-	Returns:
-		bool: True if the demon was added, False if it already exists.
-	"""
-	# Check if demon is already in the server's COMP.
-	exists_in_comp = query_one(
-		"""
-			SELECT 1 FROM server_demons
-			WHERE server_id = ? AND demon_id = ?
-		""",
-		(server_id, demon_id),
-	)
-
-	# Return early if demon is already in compendium to avoid dupes.
-	if exists_in_comp:
-		return False
-
-	# Insert reference to player's demon into the compendium.
-	query_write(
-		"""
-			INSERT INTO server_demons (player_id, server_id, demon_id)
-			VALUES (?, ?, ?)
-		""",
-		(player_id, server_id, demon_id),
-	)
-
-	# Update player's demon with the on loan flag.
-	await _set_demon_on_loan(player_id, server_id, demon_id)
-
-	return True
-
-
-async def replace_server_compendium_demon(player_id: int, server_id: int, demon_id: int) -> None:
-	"""Returns the original loaned demon to its original owner, then set new one."""
+async def new_add_demon_to_server_compendium(player_id: int, server_id: int, demon_id: int) -> bool:
 	# Release old loaned demon.
 	await _release_demon_on_loan(server_id, demon_id)
 
-	# Update compendium entry.
-	query_write(
+	# Insert new demon and on conflict, update it instead.
+	rows_affected = query_write(
 		"""
-			UPDATE server_demons SET player_id = ?
-			WHERE server_id = ? AND demon_id = ?
-		""",
+				INSERT INTO server_demons (player_id, server_id, demon_id)
+				VALUES (?, ?, ?)
+				ON CONFLICT (server_id, demon_id) DO
+					UPDATE SET player_id = excluded.player_id
+				WHERE server_id = excluded.server_id
+					AND demon_id = excluded.demon_id
+			""",
 		(player_id, server_id, demon_id),
 	)
 
-	# Set on loan on demon.
+	# Set on loan for the player's demon.
 	await _set_demon_on_loan(player_id, server_id, demon_id)
+
+	return rows_affected > 0
 
 
 async def return_server_comp_demon(server_id: int, demon_id: int) -> bool:
@@ -107,9 +69,9 @@ async def return_server_comp_demon(server_id: int, demon_id: int) -> bool:
 
 
 # --------- CHECKS --------- #
-async def get_single_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendiumDemon:
+async def get_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendiumDemon | None:
 	"""Check for a single loaned demon. This is used for comparison checks such as overwriting an existing loaned demon."""
-	response = query_one(
+	row = query_one(
 		"""
 			SELECT sd.*, pd.stored_rank FROM server_demons sd
 			JOIN player_demons pd
@@ -121,12 +83,14 @@ async def get_single_serv_comp_demon(server_id: int, demon_id: int) -> ServerCom
 		(server_id, demon_id),
 	)
 
-	sid, pid, did, rank = response
+	if row is None:
+		return None
+
 	return ServerCompendiumDemon(
-		server_id=sid,
-		player_id=pid,
-		demon_id=did,
-		stored_rank=rank,
+		server_id=row["server_id"],
+		player_id=row["player_id"],
+		demon_id=row["demon_id"],
+		stored_rank=row["stored_rank"],
 	)
 
 

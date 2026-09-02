@@ -1,6 +1,8 @@
+from entities.badge_data import BadgeData
 from entities.command_data import CommandData
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, DEFAULT_RACE_MULT_INCREMENT, DemonData
 from entities.fusion_data import IngredientData
+from entities.server_data import ServerStats
 from helpers import format_utils
 from shared_enums import DemonRegistration, DupeReward, Emotes, Unicode
 
@@ -340,3 +342,119 @@ class ItemMsg(GenericMsg):
 	@staticmethod
 	def found_gem(player_id, name: str, gem: str) -> str:
 		return f"<@{player_id}>, your **{name}** has found a **{gem.title()}**!"
+
+
+class ProfileMsg(GenericMsg):
+	@staticmethod
+	def no_badges() -> str:
+		return "You have no badges."
+
+	@staticmethod
+	def show_badges(badges: list[BadgeData]) -> str:
+		show_badges = ""
+		for b in badges:
+			show_badges += f"<:{b.name}:{b.emote_id}>"
+		return show_badges
+
+
+class ServerCompendiumMsg(GenericMsg):
+	@staticmethod
+	def already_loaning(name: str) -> str:
+		return f"You are already loaning **{name}**."
+
+	@staticmethod
+	def confirm_loan(race: str, name: str, stored_rank: int, server_name: str) -> str:
+		return (
+			f"Do you wish to loan your **{race} {name}** (Rank **{stored_rank}**)"
+			f" to **{server_name}'s Compendium**?\n\n"
+			f"-# You will not be able to use the demon again until they are retrieved."
+		)
+
+	@staticmethod
+	def someone_has_loaned(stored_owner: str, name: str, stored_rank: int, server_name: str) -> str:
+		return f"**{stored_owner}**'s **{name}** (Rank {stored_rank}) is already in {server_name}'s Compendium."
+
+	@staticmethod
+	def confirm_replace_loaned(stored_owner: str, name: str, server_name: str, player_rank: int, owner_rank: int) -> str:
+		return (
+			f"**{stored_owner}** is already loaning their **{name}** to **{server_name}'s Compendium**."
+			f"\nYour {name} is stronger ({player_rank} to {owner_rank})."
+			"\n-# Do you wish to replace it? The demon will be returned to its owner."
+			f"\n\n-# You will not be able to use the demon again until they are retrieved."
+		)
+
+	@staticmethod
+	def returned_to_owner(owner_name: str, demon_name: str) -> str:
+		return f"\n\n>`{owner_name}'s {demon_name} has been returned to its owner's COMP`"
+
+	@staticmethod
+	def loan_completed(race: str, name: str, stored_rank: int, server_name: str) -> str:
+		return (
+			f"Your **{race} {name}** (Rank {stored_rank})"
+			f" has been sacrificed to **{server_name}'s Compendium** for the time being."
+		)
+
+	@staticmethod
+	def not_found_on_loan(name: str) -> str:
+		return f"**{name}** was not found on loan..."
+
+	@staticmethod
+	def confirm_return(race: str, name: str, stored_rank: int, server_name: str) -> str:
+		return (
+			f"Are you sure you want to retrieve **{race} {name}** (Rank {stored_rank}) from **{server_name}'s Compendium**?"
+		)
+
+	@staticmethod
+	def return_completed(race: str, name: str) -> str:
+		return f"**{race} {name}** has been returned to you."
+
+	@staticmethod
+	def level_change_notif(rewards: set[str], server_name: str, old_level: int, new_level: int, stats: ServerStats) -> str:
+		if old_level < new_level:
+			message_string = f"{server_name.upper()} LEVELED UP FROM LEVEL **{old_level}** TO **{new_level}**!"
+		else:
+			rewards = ServerCompendiumMsg.adjust_level_desc(rewards)
+			message_string = f"{server_name.upper()} LEVELED DOWN FROM LEVEL **{old_level}** TO **{new_level}**..."
+
+		reward_list = ""
+		for r in rewards:
+			reward_list += f"\n-# - {r}"
+
+		stats_string = (
+			f"\nExperience required to next level: **{stats.xp_required}**"
+			f"\nTotal Server Experience: **{stats.total_xp}**"
+			f"\nEncounters can now appear up to Rank: **{stats.rank_cap}**"
+		)
+
+		return f"### {message_string}{stats_string}\n\n-# **New Rewards:**{reward_list}"
+
+	@staticmethod
+	def adjust_level_desc(level_desc: set[str]) -> set[str]:
+		"""Returning set means we will not double up on rewards. Won't just be a bunch of "Rank Cap Increased"'s"""
+		adjusted = set()
+
+		# Adjust descriptions in-place: replace 'Increased' with 'Decreased' in values
+		for d in level_desc:
+			if "Increased" in d:
+				d = d.replace("Increased", "Decreased")
+			elif "Unlocked" in d:
+				d = d.replace("Unlocked", "Locked")
+			adjusted.add(d)
+
+		return set(adjusted)
+
+	@staticmethod
+	def show_server_stats(server_name: str, stats: ServerStats) -> str:
+		progress_xp = int((stats.current_level_xp / stats.xp_required) * 10)
+		progress_bar = f"{Unicode.FILLED_CIRCLE.value} " * progress_xp + f"{Unicode.UNFILLED_CIRCLE.value} " * (
+			10 - progress_xp
+		)
+
+		return (
+			f"### {server_name}'s Server Statistics"
+			f"\n\nServer Level: **{stats.level}**"
+			f"\n\nMaximum Encounter Rank: **{stats.rank_cap}**"
+			f"\n\nTotal Experience: **{stats.total_xp}**"
+			f"\n\nExperience to Next Level: **{stats.current_level_xp}** / **{stats.xp_required}**"
+			f"\n{progress_bar}"
+		)

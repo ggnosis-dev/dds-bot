@@ -22,3 +22,8 @@ def get_player(ctx) -> Member:
 
 def get_server(ctx) -> Guild:
 	return typing.cast(Guild, ctx.guild)
+
+
+def get_server_name(ctx: commands.Context) -> str:
+	server = typing.cast(Guild, ctx.guild)
+	return server.name
