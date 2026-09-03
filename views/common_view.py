@@ -38,7 +38,7 @@ class MessageView(discord.ui.LayoutView):
 		return await destination.send(view=view)
 
 	@classmethod
-	async def reply(cls, interation: discord.Interaction, *args, ephemeral: bool = False, **kwargs):
+	async def reply(cls, interaction: discord.Interaction, *args, ephemeral: bool = False, **kwargs):
 		"""
 		Send a message response wrapped in an emebd type view.
 
@@ -49,7 +49,11 @@ class MessageView(discord.ui.LayoutView):
 			**kwargs: Keyword/optional arguments (see init).
 		"""
 		view = cls(*args, **kwargs)
-		await interation.response.send_message(view=view, ephemeral=ephemeral)
+
+		if interaction.response.is_done():
+			await interaction.followup.send(view=view, ephemeral=True)
+		else:
+			await interaction.response.send_message(view=view, ephemeral=ephemeral)
 
 	def _build_layout(self) -> None:
 		ui = discord.ui
@@ -124,8 +128,12 @@ class ConfirmationView(discord.ui.LayoutView):
 			**kwargs: Keyword/optional arguments (see init).
 		"""
 		view = cls(*args, **kwargs)
-		await interaction.response.send_message(view=view, ephemeral=ephemeral, delete_after=True)
-		msg = await interaction.original_response()
+
+		if interaction.response.is_done():
+			msg = await interaction.followup.send(view=view, ephemeral=True, wait=True)
+		else:
+			await interaction.response.send_message(view=view, ephemeral=ephemeral)
+			msg = await interaction.original_response()
 		view.msg = msg
 		return await view.wait_for_response()
 

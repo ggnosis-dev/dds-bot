@@ -244,11 +244,15 @@ class Fusion(commands.Cog):
 				await MessageView.reply(interaction, FusionMsg.not_in_party(i.name), colour=self.col, ephemeral=True)
 				return
 
+		# Len of ingredients minus 1 for the new demon.
+		party_num_to_remove = -(len(ingredients) - 1)
 		dd = await demon_queries.get_design_data(demon.id)
 
 		# Check if demon is already summoned and warn that fusing will only add to its level.
 		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
+			# Update party number as we are no longer adding a new demon.
+			party_num_to_remove = -(len(ingredients))
 			await MessageView.reply(
 				interaction,
 				FusionMsg.fusion_already_in_party(demon),
@@ -261,12 +265,11 @@ class Fusion(commands.Cog):
 		confirmed = await ConfirmationView.reply(
 			interaction,
 			message,
-			exclusive_to=player_id,
+			player_id,
 			confirm_label="Summon",
 			confirm_colour=discord.ButtonStyle.primary,
 			thumbnail=dd.profile_img,
 			colour=self.col,
-			ephemeral=True,
 		)
 		if not confirmed:
 			return
@@ -281,11 +284,18 @@ class Fusion(commands.Cog):
 		# Set in party and update party stats with length of ingredients minus one for the new demon.
 		await asyncio.gather(
 			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True),
-			player_demons_queries.update_party(player_id, server_id, party_add=len(ingredients) - 1),
+			player_demons_queries.update_party(player_id, server_id, party_add=party_num_to_remove),
 		)
 
 		# Send final message.
-		await MessageView.reply(interaction, FusionMsg.fusion_completed(demon.race, demon.name, new_to_comp=new_to_comp))
+		await MessageView.reply(
+			interaction,
+			FusionMsg.fusion_completed(demon.race, demon.name, new_to_comp=new_to_comp),
+			thumbnail=dd.profile_img,
+			colour=dd.colour,
+		)
+
+		# TODO: Add dupes.
 
 
 async def setup(bot: commands.Bot) -> None:

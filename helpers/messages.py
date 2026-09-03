@@ -296,7 +296,7 @@ class FusionMsg(GenericMsg):
 
 		return (
 			f"{unexpected}"
-			f"\n\n-# **{demon_name.capitalize()}**:"
+			f"\n\n-# **{demon_name.upper()}**:"
 			f"\n-# I'm **{race} {demon_name}**. Well, it's nice to meet you."
 			f"\n\n{registered}"
 		)

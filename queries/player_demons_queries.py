@@ -48,8 +48,6 @@ async def set_demon_in_party(player_id: int, server_id: int, demon_id: int, set_
 		(set_in_party, player_id, server_id, demon_id, set_in_party),
 	)
 
-	print(rows_affected)
-
 	return rows_affected > 0
 
 
