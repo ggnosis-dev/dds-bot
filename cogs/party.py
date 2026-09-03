@@ -80,7 +80,7 @@ class PartyCommands(commands.Cog):
 
 		# Send a confirmation view.
 		message = PartyMsg.confirm_release(demon_name)
-		result = await ConfirmationView.send(ctx, message, player_id, confirm_label="Yes", deny_label="No")
+		result = await ConfirmationView.send(ctx.channel, message, player_id, confirm_label="Yes", deny_label="No")
 		if result in (False, None):
 			return
 
@@ -112,7 +112,9 @@ class PartyCommands(commands.Cog):
 
 			# Confirmation window.
 			message = PartyMsg.confirm_increase_party(number, cost)
-			confirmed = await ConfirmationView.send(ctx, message, p_data.player_id, confirm_label="Yes", deny_label="No")
+			confirmed = await ConfirmationView.send(
+				ctx.channel, message, p_data.player_id, confirm_label="Yes", deny_label="No"
+			)
 			if not confirmed:
 				return
 

@@ -15,14 +15,41 @@ class MessageView(discord.ui.LayoutView):
 		self,
 		message: str,
 		*,
-		thumbnail: str | None,
-		colour: int,
+		thumbnail: str | None = None,
+		colour: int = EmbedColours.DEFAULT.value,
 	):
 		super().__init__()
 		self.message = message
 		self.thumbnail = thumbnail
 		self.colour = colour
 		self._build_layout()
+
+	@classmethod
+	async def send(cls, destination: discord.abc.Messageable, *args, **kwargs) -> discord.Message:
+		"""
+		Send a message wrapped in an emebd type view.
+
+		Args:
+			destination: Where to send message to.
+			*args: Required arguments (see init).
+			**kwargs: Keyword/optional arguments (see init).
+		"""
+		view = cls(*args, **kwargs)
+		return await destination.send(view=view)
+
+	@classmethod
+	async def reply(cls, interation: discord.Interaction, *args, ephemeral: bool = False, **kwargs):
+		"""
+		Send a message response wrapped in an emebd type view.
+
+		Args:
+			interaction (discord.Interaction): Initial interaction this will respond to.
+			*args: Required arguments (see init).
+			ephemeral (bool): Hides the view from other users.
+			**kwargs: Keyword/optional arguments (see init).
+		"""
+		view = cls(*args, **kwargs)
+		await interation.response.send_message(view=view, ephemeral=ephemeral)
 
 	def _build_layout(self) -> None:
 		ui = discord.ui
@@ -37,29 +64,6 @@ class MessageView(discord.ui.LayoutView):
 
 		self.add_item(container)
 
-	@classmethod
-	async def send(
-		cls,
-		destination: discord.abc.Messageable,
-		message: str,
-		thumbnail: str | None = None,
-		colour: int = EmbedColours.DEFAULT.value,
-	) -> discord.Message:
-		view = cls(message, thumbnail=thumbnail, colour=colour)
-		return await destination.send(view=view)
-
-	@classmethod
-	async def reply(
-		cls,
-		interation: discord.Interaction,
-		message: str,
-		thumbnail: str | None = None,
-		colour: int = EmbedColours.DEFAULT.value,
-		ephemeral: bool = False,
-	):
-		view = cls(message, thumbnail=thumbnail, colour=colour)
-		await interation.response.send_message(view=view, ephemeral=ephemeral)
-
 
 class ConfirmationView(discord.ui.LayoutView):
 	def __init__(
@@ -67,13 +71,13 @@ class ConfirmationView(discord.ui.LayoutView):
 		message: str,
 		exclusive_to: int,
 		*,
-		confirm_label: str,
-		deny_label: str,
-		confirm_colour: discord.ButtonStyle,
-		deny_colour: discord.ButtonStyle,
-		thumbnail: str | None,
-		colour: int,
-		timeout: float,
+		confirm_label: str = "Confirm",
+		deny_label: str = "Deny",
+		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
+		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
+		thumbnail: str | None = None,
+		colour: int = EmbedColours.DEFAULT.value,
+		timeout: float = 20.0,
 	) -> None:
 		super().__init__(timeout=timeout)
 
@@ -94,62 +98,32 @@ class ConfirmationView(discord.ui.LayoutView):
 		self._build_layout()
 
 	@classmethod
-	async def send(
-		cls,
-		destination: discord.abc.Messageable,
-		message: str,
-		exclusive_to: int,
-		confirm_label: str = "Confirm",
-		deny_label: str = "Deny",
-		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
-		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
-		thumbnail: str | None = None,
-		colour: int = EmbedColours.DEFAULT.value,
-		timeout: float = 20.0,
-	) -> bool | None:
-		"""Send the message and begin a wait for response timer."""
-		view = cls(
-			message,
-			exclusive_to,
-			confirm_label=confirm_label,
-			deny_label=deny_label,
-			confirm_colour=confirm_colour,
-			deny_colour=deny_colour,
-			thumbnail=thumbnail,
-			colour=colour,
-			timeout=timeout,
-		)
+	async def send(cls, destination: discord.abc.Messageable, *args, **kwargs) -> bool | None:
+		"""
+		Send a confirmation messages and begin a wait for response timer.
+
+		Args:
+			destination: Where to send message to.
+			*args: Required arguments (see init).
+			**kwargs: Keyword/optional arguments (see init).
+		"""
+		view = cls(*args, **kwargs)
 		msg = await destination.send(view=view)
 		view.msg = msg
 		return await view.wait_for_response()
 
 	@classmethod
-	async def reply(
-		cls,
-		interaction: discord.Interaction,
-		message: str,
-		exclusive_to: int,
-		confirm_label: str = "Confirm",
-		deny_label: str = "Deny",
-		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
-		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
-		thumbnail: str | None = None,
-		colour: int = EmbedColours.DEFAULT.value,
-		timeout: float = 20.0,
-		ephemeral: bool = False,
-	) -> bool | None:
-		"""Send the message and begin a wait for response timer."""
-		view = cls(
-			message,
-			exclusive_to,
-			confirm_label=confirm_label,
-			deny_label=deny_label,
-			confirm_colour=confirm_colour,
-			deny_colour=deny_colour,
-			thumbnail=thumbnail,
-			colour=colour,
-			timeout=timeout,
-		)
+	async def reply(cls, interaction: discord.Interaction, *args, ephemeral: bool = False, **kwargs) -> bool | None:
+		"""
+		Send a confirmation message as an interaction response and begin a wait for response timer.
+
+		Args:
+			interaction (discord.Interaction): Initial interaction this will respond to.
+			*args: Required arguments (see init).
+			ephemeral (bool): Hides the view from other users.
+			**kwargs: Keyword/optional arguments (see init).
+		"""
+		view = cls(*args, **kwargs)
 		await interaction.response.send_message(view=view, ephemeral=ephemeral, delete_after=True)
 		msg = await interaction.original_response()
 		view.msg = msg

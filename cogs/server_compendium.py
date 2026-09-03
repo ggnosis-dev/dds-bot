@@ -170,7 +170,6 @@ class ServerCompendium(commands.Cog):
 
 		# Get the stored demon, return if it's not owned or found.
 		stored_demon = await server_demons_queries.get_serv_comp_demon(server_id, demon.id)
-		print(stored_demon)
 		if stored_demon is None or player_id != stored_demon.player_id:
 			await MessageView.send(ctx.channel, Messages.not_found_on_loan(demon_name))
 			return
@@ -179,7 +178,7 @@ class ServerCompendium(commands.Cog):
 		confirmed = await ConfirmationView.send(
 			ctx.channel,
 			Messages.confirm_return(demon.race, demon.name, stored_demon.stored_rank, server_name),
-			exclusive_to=player_id,
+			player_id,
 			confirm_label="Yes",
 			deny_label="No",
 			colour=demon.design_data.colour,
