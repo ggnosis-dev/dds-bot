@@ -17,9 +17,10 @@ class HelpView(BaseLayoutView[dict]):
 	def __init__(
 		self,
 		entries: list[dict],
+		*,
 		bot: commands.Bot | commands.AutoShardedBot,
 		colour: int = EmbedColours.DEFAULT.value,
-	):
+	) -> None:
 		super().__init__(entries, page_size=HELP_PAGE_SIZE, colour=colour)
 
 		self.entries = entries

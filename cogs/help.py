@@ -38,8 +38,7 @@ class HelpOverwrite(commands.HelpCommand):
 				key=lambda item: item["name"],
 			)
 			channel = self.get_destination()
-			view = HelpView(entries, self.context.bot)
-			await channel.send(view=view)
+			await HelpView.send(channel, entries, bot=self.context.bot)
 		except Exception as e:
 			raise RuntimeError(f"send_bot_help | {e}")
 
