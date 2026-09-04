@@ -524,7 +524,8 @@ class EncounterViewFollowup(EncounterViewTemplate):
 
 	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
-		Extension of _make_dialogue_callback from the base view. Adds logic to handle disabling buttons after an interaction.
+		Extension of :meth:`EncounterViewTemplate._make_dialogue_callback` from the base view.
+		Adds logic to handle disabling buttons after an interaction.
 
 		Args:
 			reaction_data (ReactionData): Each button needs persistent reaction_data to determine its outcome.

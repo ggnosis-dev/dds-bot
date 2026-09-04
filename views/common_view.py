@@ -217,9 +217,9 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 		self,
 		entries: list[EntryT],
 		*,
-		page: int,
 		page_size: int,
-		colour: int,
+		page: int = 1,
+		colour: int = EmbedColours.DEFAULT.value,
 	) -> None:
 		"""
 		Init for the base table view.
