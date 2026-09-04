@@ -7,7 +7,6 @@ import discord
 from discord.ext import commands
 
 from entities.command_data import ENCOUNTERS_COMMANDS, command_kwargs
-from entities.demon_data import DemonData
 from entities.player_data import ENCOUNTER_WINDOW
 from helpers import checks, encounter_utils, gets, utils
 from helpers.messages import EncountersMsg
@@ -57,9 +56,8 @@ class Encounters(commands.Cog):
 
 		# Start the encounter.
 		await asyncio.gather(
-			self._start_encounter(send_to_channel, demon, count, player_id),
-			# TODO: TEST CURRENT WINDOW BEING HERE, IT USED TO BE TIME NOW
 			player_queries.set_encounter_timer(player_id, server_id, current_window),
+			EncounterViewInitial.start(send_to_channel, demon, player_id, count=count),
 		)
 
 	@checks.is_developer()
@@ -78,23 +76,10 @@ class Encounters(commands.Cog):
 				print(f"WARN: Demon {name} was None.")
 				return
 
-			await self._start_encounter(ctx.channel, d, 3, player_id)
+			await EncounterViewInitial.start(ctx.channel, d, player_id, count=3)
 
 		except Exception as e:
 			raise RuntimeError(f"test_encounter_command | {e}")
-
-	async def _start_encounter(
-		self,
-		send_to_channel: discord.abc.Messageable,
-		demon_data: DemonData,
-		count: int,
-		summoner_id: int,
-		exclusive_to: int | None = None,
-	) -> None:
-		"""Send an encounter to a channel. Optional exclusive_to player parameter."""
-		view = EncounterViewInitial(demon_data, summoner_id, count=count, user_exclusive_to=exclusive_to)
-		sent = await send_to_channel.send(view=view)
-		view.message = sent
 
 	async def _start_tutorial_encounter(
 		self,
@@ -104,20 +89,24 @@ class Encounters(commands.Cog):
 		player_name: str,
 	) -> None:
 		"""Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial."""
-		try:
-			if await player_queries.setup_player(player_id, server_id):
-				await MessageView.send(send_to_channel, EncountersMsg.introduction(player_name))
 
-				tut_demon = "pixie"
-				demon = await demon_queries.get_demon_by_name(player_id, server_id, tut_demon)
+		if await player_queries.setup_player(player_id, server_id):
+			await MessageView.send(send_to_channel, EncountersMsg.introduction(player_name))
 
-				if demon is None:
-					raise RuntimeError(f"_start_tutorial_encounter | Demon {tut_demon} was not found in the database.")
+			tut_demon = "pixie"
+			demon = await demon_queries.get_demon_by_name(player_id, server_id, tut_demon)
 
-				view = EncounterViewInitial(demon, player_id, user_exclusive_to=player_id, tutorial=True)
-				await send_to_channel.send(view=view)
-		except Exception as e:
-			raise RuntimeError(f"_start_tutorial_encounter | {e}")
+			if demon is None:
+				raise RuntimeError(f"Demon {tut_demon} was not found in the database.")
+
+			await EncounterViewInitial.start(
+				send_to_channel,
+				demon,
+				player_id,
+				count=1,
+				user_exclusive_to=player_id,
+				tutorial=True,
+			)
 
 
 async def setup(bot: commands.Bot) -> None:

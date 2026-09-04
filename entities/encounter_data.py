@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
-from shared_enums import Personality, ResponseType, Tone
+from shared_enums import Emotes, Personality, ResponseType, Tone
+
+BUTTON_EMOTES = (Emotes.ONE, Emotes.TWO, Emotes.THREE)
 
 
 @dataclass

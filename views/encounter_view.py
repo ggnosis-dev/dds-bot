@@ -5,9 +5,10 @@ from abc import ABC, abstractmethod
 import discord
 
 from entities.demon_data import DemonData
-from entities.encounter_data import AnswerData, ReactionData
-from helpers.encounter_utils import join_player_party
+from entities.encounter_data import BUTTON_EMOTES, AnswerData, ReactionData, TalkData
+from helpers import encounter_utils
 from helpers.format_utils import format_dialogue, format_greeting
+from helpers.messages import EncountersMsg as Messages
 from queries import player_demons_queries, talk_queries
 from shared_enums import DemonRegistration, Emotes, ResponseType, Unicode
 from views.common_view import MessageView
@@ -27,9 +28,10 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		self,
 		demon: DemonData,
 		summoner_id: int,
+		talk_data: TalkData,
+		*,
 		count: int = 1,
 		consecutive_bad_interactions: int = 0,
-		message: discord.Message | None = None,
 		tutorial: bool = False,
 	) -> None:
 		"""
@@ -37,12 +39,11 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		Args:
 			demon (DemonData): The encounter's demon information.
-			consecutive_bad_interactions (int, optional): The number of consecutive bad interactions
-				that have occurred in the encounter so far. Defaults to 0.
-			message (discord.Message | None, optional): Message the encounter is associated with,
-				used for editing the view on followups and when encounter finishes.
-			tutorial (bool, optional): Whether this encounter is a tutorial encounter, which has
-				different flee logic. Defaults to False.
+			summoner_id (int): Used to lock potential dupes to the player who summoned it.
+			message (discord.Message): Message the encounter is associated with, needed for editing and followups.
+			count (int): Number of recruitable demons in the one encounter.
+			consecutive_bad_interactions (int, optional): Threshold that dictates when a demon will flee.
+			tutorial (bool, optional): Whether to treat this as a tutorial encounter, which has different flee logic.
 		"""
 		super().__init__(timeout=ENCOUNTER_TIMEOUT)
 
@@ -50,13 +51,40 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		self.summoner_id = summoner_id
 		self.count = count
 		self.consecutive_bad_interactions = consecutive_bad_interactions
-		self.message = message
 		self.tutorial = tutorial
+		self.talk_data = talk_data
 
-		self.talk_data = talk_queries.get_talk_dialogue(demon.tone_type.value, demon.personality_type.value)
+		# Message gets set during start function.
+		self.message: discord.Message | None = None
+		# List of the view's option sections. Built in _build_option_buttons
+		self.option_sections: list = []
 
 		self.status_display: discord.ui.TextDisplay | None = None
 		self.parent_view: EncounterViewTemplate | None = None
+
+	@classmethod
+	async def start(
+		cls,
+		destination: discord.abc.Messageable,
+		demon: DemonData,
+		summoner_id: int,
+		*args,
+		**kwargs,
+	) -> discord.Message:
+		"""Send the encounter view. Builds talk data before initialising class fully. Assigns self.message."""
+		try:
+			# Retrieve the dialogue the demon will say.
+			talk_data = await talk_queries.get_talk_dialogue(demon.tone_type.value, demon.personality_type.value)
+
+			# Prepare the view.
+			view = cls(demon, summoner_id, talk_data, *args, **kwargs)
+
+			# Send the message and assign it.
+			message = await destination.send(view=view)
+			view.message = message
+			return message
+		except Exception as e:
+			raise RuntimeError(f"Encounter not sent. {e}")
 
 	@abstractmethod
 	def _build_layout(self, question: str, dialogue_options: tuple[AnswerData, ...]) -> None:
@@ -73,81 +101,83 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		"""Override in initial encounter views."""
 		pass
 
-	def _disable_buttons(self) -> None:
-		"""Helper function to disable all buttons in a view."""
-		for section in self._option_sections:
-			section.accessory.disabled = True
-
 	def _build_option_buttons(self, container: discord.ui.Container, answers: tuple[AnswerData, ...]) -> None:
 		"""
-		Build any dialogue option buttons into the container.
+		Build dialogue option sections into the container with its button and attached callback.
 
 		Args:
-		    container (discord.ui.Container): Container to add the buttons to.
-		    dialogue_options (list[dict]): List of dialogue options, where key is the button 'label'
-		        and value is 'response' that maps Personality types to ResponseType.
+			answers (tuple[AnswerData, ...]): Key is the button 'label' and value is a list of ReactionData.
 		"""
-		# Store dialogue options in the view to access them in the callbacks.
-		self._option_sections = []
-		button_emotes = [Emotes.ONE, Emotes.TWO, Emotes.THREE]
+		# List of the view's option sections. Initialised/Reinit here.
+		self.option_sections = []
 
-		# Enumerate for label and to filter on the right reaction data.
-		for i, option in enumerate(answers, 0):
+		# For each possible answer, add a section for it.
+		for i, answer in enumerate(answers, 0):
 			button = discord.ui.Button(
-				emoji=button_emotes[i].value,
+				emoji=BUTTON_EMOTES[i].value,
 				style=discord.ButtonStyle.grey,
 			)
 
 			# Callback should know data about the reaction.
-			reaction_data = option.reactions[0]
+			reaction_data = answer.reactions[0]
 			button.callback = self._make_dialogue_callback(reaction_data)
 
+			# Build section into the view.
 			new_section = discord.ui.Section(accessory=button)
-			new_section.add_item(discord.ui.TextDisplay(f"{option.label}"))
-
+			new_section.add_item(discord.ui.TextDisplay(f"{answer.label}"))
 			container.add_item(new_section)
-			self._option_sections.append(new_section)
+
+			# Store dialogue options to access them in the various callbacks.
+			self.option_sections.append(new_section)
+
+	def _disable_buttons(self) -> None:
+		"""Helper function to disable all buttons in a view."""
+		for section in self.option_sections:
+			section.accessory.disabled = True
 
 	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
-		Factory to create a dialogue button's callback for any given option index. Each button will
-		remember the reaction_data it corresponds to so we can determine the outcome of the encounter
-		based on personality and response.
+		Factory for dialogue button's callback.
 
-		Returns:
-		    Callable: The callback function for the dialogue option.
+		Args:
+			reaction_data (ReactionData): Each button needs persistent reaction_data to determine its outcome.
 		"""
 
 		async def callback(interaction: discord.Interaction) -> None:
 			"""
-			Callback function for when a dialogue option button is pressed. Determines the outcome
-			of encounter based on the demon's personality and the option's response type, then
-			updates accordingly.
+			Callback function for when a dialogue option button is pressed. Determines the outcome and updates accordingly.
 
 			Args:
-			    interaction (discord.Interaction): Discord interaction object from the button press.
+				interaction (discord.Interaction): Discord interaction object from the button press.
 			"""
-			# Get the answer at the given button index.
+			# Get the answer using the stored reaction data.
 			r_type = reaction_data.response_type
 			r_text = reaction_data.response
 
-			# Check the root's count.
+			# If there are no demons available in the count.
 			if self._root_view.count <= 0:
+				# Acknowledge the response.
 				await interaction.response.defer()
-				missed_encounter_view = MessageView(
-					"All of the available demons have left...",
+
+				# Tell player all demons are gone.
+				await MessageView.reply(
+					interaction,
+					Messages.all_demons_gone(),
 					colour=self.demon.design_data.colour,
+					ephemeral=True,
 				)
-				await interaction.followup.send(view=missed_encounter_view, ephemeral=True)
 				return
 
+			# If demons still available, check their response type to the answer.
 			match r_type:
 				case ResponseType.GOOD:
-					# Send ephemeral message that demon will join, edit the footer.
 					await self._encounter_successful(interaction, r_text)
+
 				case ResponseType.NEUTRAL | ResponseType.BAD:
+					# Bad count will be sent to followup views and become unique to each player after Initial.
 					new_bad_count = self.consecutive_bad_interactions + BAD_COUNT_INCREMENT[r_type]
 
+					# Flee or followup logic.
 					if new_bad_count >= FLEE_THRESHOLD and not self.tutorial:
 						await self._encounter_flee(interaction, r_text)
 					else:
@@ -155,158 +185,164 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		return callback
 
-	async def _encounter_successful(self, interaction: discord.Interaction, response: str) -> None:
+	async def _encounter_successful(self, interaction: discord.Interaction, demon_response: str) -> None:
 		"""
-		Handler for when an encounter is successful. Adds to party and comp, then sends an ephemeral
-		message confirming the demon has joined.
+		Adds to party and/or compendium, sends message confirming the demon has joined and tries to add dupe level.
 
 		Args:
-		    interaction (discord.Interaction): The Discord interaction object from the button press.
+			demon_response (str): What the demon will say back.
 		"""
-		user = interaction.user
-		join_data = await join_player_party(user, interaction.guild, self.demon)
+		join_data = await encounter_utils.join_player_party(interaction.user, interaction.guild, self.demon)
 
 		await asyncio.gather(
 			self._handle_demon_interacted(
 				interaction,
-				response,
+				demon_response,
 				join_data.status_message,
 				join_data.extra_response,
 			),
-			self._update_dupe_level(interaction, self.demon, join_data.dupe_message),
+			self._update_dupe_level(interaction, join_data.dupe_message),
 		)
 
-	async def _encounter_flee(self, interaction: discord.Interaction, response: str) -> None:
+	async def _encounter_flee(self, interaction: discord.Interaction, demon_response: str) -> None:
+		"""Sends an ephemeral message that the demon has fled and updates the status."""
+		status_message = Messages.demon_fled(self.demon.race, self.demon.name, interaction.user.name)
+		await self._handle_demon_interacted(interaction, demon_response, status_message)
+
+	async def _encounter_followup(self, interaction: discord.Interaction, demon_response: str, new_bad_count: int) -> None:
 		"""
-		Handler for when encounter flees. Sends an ephemeral message that the demon has fled and
-		updates the status.
+		Creates a new ephemeral message with new dialogue options. Occurs on responses that haven't hit the flee threshold.
 
 		Args:
-		    interaction (discord.Interaction): The Discord interaction object from the button press.
+			response (str): What the demon will say back.
+			new_bad_count (int): Unique bad count for the player to be passed into future views.
 		"""
-		await self._handle_demon_interacted(
-			interaction, response, f"> {self.demon.race} {self.demon.name} has fled from {interaction.user.name}..."
-		)
-
-	async def _encounter_followup(self, interaction: discord.Interaction, response: str, new_bad_count: int) -> None:
-		"""
-		Handler for when encounter needs a followup. This happens on neutral and on bad responses that haven't hit the flee
-		threshold. Creates a new ephemeral message with new dialogue options.
-
-		Args:
-		    interaction (discord.Interaction): The Discord interaction object from the button press.
-			response (str): The final outcome message of the previous interaction to send to the player.
-		"""
-
-		# For followup encounters, keep track of the parent view.
+		# For followup encounters, keep track of the parent view for its status updates.
 		parent_view = self._root_view
 
+		new_talk_data = await talk_queries.get_talk_dialogue(self.demon.tone_type.value, self.demon.personality_type.value)
+
+		# Build the followup view.
 		followup_view = EncounterViewFollowup(
 			self.demon,
 			self.summoner_id,
-			parent_view,
-			response,
-			consecutive_bad=new_bad_count,
+			new_talk_data,
+			consecutive_bad_interactions=new_bad_count,
+			demon_response=demon_response,
+			parent_view=parent_view,
 			tutorial=self.tutorial,
 		)
 
-		# On consecutive followups, we want to make sure buttons from the previous ones will get disabled.
+		# Before followups, we want to make sure buttons from this one will get disabled.
 		if isinstance(self, EncounterViewFollowup):
 			# Edit the existing ephemeral message to disable buttons, then send the next one.
 			await interaction.response.edit_message(view=self)
 			await interaction.followup.send(view=followup_view, ephemeral=True)
 		else:
-			# This is the initial view, which we don't want to edit in case someone else interacts with it.
+			# This is the initial view, which we don't want to edit in case someone ELSE interacts with it.
 			await interaction.response.send_message(view=followup_view, ephemeral=True)
 
 	async def _handle_demon_interacted(
 		self,
 		interaction: discord.Interaction,
-		response: str,
+		demon_response: str,
 		status_message: str,
 		extra_response: str | None = None,
 	) -> None:
 		"""
-		Handler for when an encounter has finished. Updates the status message and icon count, then
-		edits the original parent view message to reflect the outcome.
+		Updates the status message and icon count, then edits the initial view message to reflect the outcome.
 
 		Args:
-		    interaction (discord.Interaction): The Discord interaction object from the button press.
-		    status_message (str): Message to display in the status of the parent view after interaction.
+			demon_response (str): What the demon will say back in followup.
+			status_message (str): Message to display in the status of the parent view after interaction.
+			extra_response (str | None): Append an extra message if needed, such as a TOO WEAK message.
 		"""
-		# For finished encounters, update the parent_view if we've had a followup.
+		# Get parent view so we can update the INITIAL view in the event all count is gone.
 		parent_view = self._root_view
+
+		# Update the icon count to reflect that a demon has been interacted with.
 		parent_view._update_icon_count()
 
+		# status_display needs to be set first up (done in initial _build_layout).
 		if parent_view.status_display is not None:
 			parent_view.status_display.content = parent_view.status_display.content + f"\n-# `{status_message}`"
 
 		# Update the view messages with information.
 		if parent_view is not self:
-			# If this is a followup view, update the original message and the ephemeral one.
-			if parent_view.message is not None:
-				# Update the original message with the new view that has the updated icon count and status message.
-				await parent_view.message.edit(view=parent_view)
-			else:
-				# Should never happen.
-				print(f"WARN: parent_view.message is None for demon {self.demon.name}.")
-			await interaction.response.edit_message(view=self)
+			assert parent_view.message is not None, "Root view must use start() before followups can occur."
+
+			await asyncio.gather(
+				# Try update the original message with the updated icon count and status message.
+				parent_view.message.edit(view=parent_view),
+				# If a followup, edit message to show visible changes to button state.
+				interaction.response.edit_message(view=self),
+			)
+
 		else:
 			# Initial view finished without a followup.
 			await interaction.response.edit_message(view=parent_view)
 
 		# Send a final message to the user.
-		response = format_dialogue(response, self.demon)
+		demon_response = format_dialogue(demon_response, self.demon)
 
 		# Added on PARTY_FULL and TOO_WEAK.
 		if extra_response:
-			response += f"\n\n-# {extra_response}"
+			demon_response += f"\n\n-# {extra_response}"
 
-		msg = MessageView(
-			f"{response}\n\n-# `{status_message}`",
-			self.demon.design_data.encounter_img,
-			self.demon.design_data.colour,
+		# Build final message.
+		message = f"{demon_response}\n\n-# `{status_message}`"
+		await MessageView.reply(
+			interaction,
+			message,
+			thumbnail=self.demon.design_data.encounter_img,
+			colour=self.demon.design_data.colour,
+			ephemeral=True,
 		)
-		await interaction.followup.send(view=msg, ephemeral=True)
 
 	async def _update_dupe_level(
 		self,
 		interaction: discord.Interaction,
-		demon: DemonData,
 		dupe_message: str | None,
-	):
-		summoner_id = self.summoner_id
-		server_id = interaction.guild_id
+	) -> None:
+		"""Check if demon is summoned and grant level up if summoner ID matches interacting player ID."""
+		interacting_player_id = interaction.user.id
+		if self.summoner_id != interacting_player_id:
+			return
 
+		server_id = interaction.guild_id
 		if server_id is None:
 			raise RuntimeError("Server ID is None.")
 
-		reg_status = await player_demons_queries.check_demon_registration(summoner_id, server_id, demon.id)
-		summoned = reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN}
+		d = self.demon
 
-		if summoned:
-			# Add the message for duplicates if it's available.
-			if dupe_message:
-				player_mention = f"<@{summoner_id}>'s"
-				new_level = demon.dupes + 1
-				level_string = "MAX" if new_level == 5 else str(new_level)
+		# Check if demon is already summoned.
+		reg_status = await player_demons_queries.check_demon_registration(self.summoner_id, server_id, d.id)
+		is_summoned = reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}
 
-				msg = MessageView(
-					(
-						f"### {player_mention} {demon.race} {demon.name} has leveled up to"
-						f" {level_string}{Emotes.GEM.value}!"
-						f"\n{dupe_message}"
-					),
-					demon.design_data.profile_img,
-					demon.design_data.colour,
+		# Try applying dupe level.
+		if is_summoned:
+			dupe_message = await encounter_utils.grant_dupe_reward(self.summoner_id, server_id, d)
+
+			# Send dupe message if it exists.
+			if dupe_message is not None:
+				destination_channel = interaction.channel
+
+				assert isinstance(destination_channel, discord.abc.Messageable), (
+					"Interaction had to be in a channel already."
 				)
-				await interaction.followup.send(view=msg)
+
+				await MessageView.send(
+					destination_channel,
+					Messages.dupe_level_up(self.summoner_id, d, dupe_message),
+					thumbnail=d.design_data.profile_img,
+					colour=d.design_data.colour,
+				)
 
 
 class EncounterViewInitial(EncounterViewTemplate):
 	"""
-	Initial encounter view that will spawn with the demon. Has an icon display that represents the number of
-	interactions left and a status display that updates with each successful interaction. Once the icon count hits 0,
+	The first encounter view that will spawn with the demon and its data. Has an icon display that represents the number of
+	available demons recruitable and a status display that updates with each complete interaction. Once icon count hits 0,
 	the buttons are disabled.
 	"""
 
@@ -314,21 +350,14 @@ class EncounterViewInitial(EncounterViewTemplate):
 		self,
 		demon: DemonData,
 		summoner_id: int,
+		talk_data: TalkData,
+		*,
 		count: int = 1,
 		user_exclusive_to: int | None = None,
 		tutorial: bool = False,
 	) -> None:
-		"""
-		Init for the initial encounter view.
 
-		Args:
-		    demon (DemonData): The encounter's demon information.
-		    count (int, optional): The number of interactions before encounter ends. Defaults to 1.
-		    user_exclusive_to (int | None, optional): If set, only this user ID can interact with the encounter.
-		    tutorial (bool, optional): If set to True, the encounter can't be failed. Defaults to False.
-		"""
-		super().__init__(demon, summoner_id, count, tutorial=tutorial)
-
+		super().__init__(demon, summoner_id, talk_data, count=count, tutorial=tutorial)
 		self.user_exclusive_to = user_exclusive_to
 		self.parent_view = self
 
@@ -344,8 +373,8 @@ class EncounterViewInitial(EncounterViewTemplate):
 		buttons.
 
 		Args:
-		    message (str): The initial message to display from the demon.
-		    dialogue_options (list[dict]): List of dialogue options, where key is the button 'label' and value is
+			message (str): The initial message to display from the demon.
+			dialogue_options (list[dict]): List of dialogue options, where key is the button 'label' and value is
 				'response' that maps Personality types to ResponseType.
 		"""
 
@@ -384,7 +413,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		multiple interactions.
 
 		Returns:
-		    Callable: Callback function for the dialogue option logic for user exclusivity and multiple interactions.
+			Callable: Callback function for the dialogue option logic for user exclusivity and multiple interactions.
 		"""
 		# Explicitly build the callback, not just use super().
 		base_callback = EncounterViewTemplate._make_dialogue_callback(self, reaction_data)
@@ -395,7 +424,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 			the encounter, they are added to a set and prevented from interacting again.
 
 			Args:
-			    interaction (discord.Interaction): The Discord interaction object from the button press.
+				interaction (discord.Interaction): The Discord interaction object from the button press.
 			"""
 			user_id = interaction.user.id
 
@@ -435,35 +464,36 @@ class EncounterViewInitial(EncounterViewTemplate):
 
 class EncounterViewFollowup(EncounterViewTemplate):
 	"""
-	Followup encounter view that spawns on either a neutral or bad response. Similar layout to the initial but without
+	Followup encounter view that spawns if not yet reached flee threshold. Similar layout to the initial but without
 	icons, media gallery and status display footer. Does not need to know who interaction is exclusive to as it uses
-	ephemeral messages.
+	ephemeral messages. Defaults to 1 count now that it is separated.
 	"""
 
 	def __init__(
 		self,
 		demon: DemonData,
 		summoner_id: int,
+		talk_data: TalkData,
+		*,
+		consecutive_bad_interactions: int,
+		demon_response: str,
 		parent_view: EncounterViewTemplate,
-		response: str,
-		consecutive_bad: int,
 		tutorial: bool = False,
 	):
 		"""
 		Init for the followup encounter view.
 
 		Args:
-		    demon (DemonData): The encounter's demon information.
-		    parent_view (EncounterViewTemplate): Parent view that spawned this followup, used for updating status and
-				icon count on the original message.
-		    consecutive_bad (int): Number of consecutive bad interactions that have occurred in the encounter
-				so far, used for flee logic. Defaults to 0.
-		    tutorial (bool, optional): Whether this encounter is a tutorial encounter, which prevents encounter from
-				fleeing. Defaults to False.
+			consecutive_bad_interactions (int): Threshold that dictates when a demon will flee. Unique to interacting now.
+			demon_response (str): Dialogue delivered back from the demon from last option.
+			parent_view (EncounterViewTemplate): Parent view that spawned this one, needed for updates and edits to it.
+			tutorial (bool, optional): Whether to treat this as a tutorial encounter, which has different flee logic.
 		"""
-		super().__init__(demon, summoner_id, consecutive_bad_interactions=consecutive_bad, tutorial=tutorial)
+		super().__init__(
+			demon, summoner_id, talk_data, consecutive_bad_interactions=consecutive_bad_interactions, tutorial=tutorial
+		)
 
-		self.response = response
+		self.demon_response = demon_response
 		self.parent_view = parent_view
 		self.interacted = False
 
@@ -474,15 +504,14 @@ class EncounterViewFollowup(EncounterViewTemplate):
 		Function to build the view layout for the followup encounter.
 
 		Args:
-		    message (str): The initial message to display from the demon.
-		    dialogue_options (list[dict]): List of dialogue options, where key is the button 'label' and value is
-				'response' that maps Personality types to ResponseType.
+			question (str): Dialogue to display from the demon.
+			dialogue_options (tuple[AnswerData, ...]): Key is the button 'label' and value is a list of ReactionData.
 		"""
 		ui = discord.ui
 		container = ui.Container(accent_color=self.demon.design_data.colour)
 
 		question = format_dialogue(question, self.demon)
-		response = format_dialogue(self.response, self.demon)
+		response = format_dialogue(self.demon_response, self.demon)
 
 		section = ui.Section(accessory=ui.Thumbnail(media=self.demon.design_data.encounter_img))
 		section.add_item(ui.TextDisplay(f"{response}\n\n{question}"))
@@ -495,21 +524,17 @@ class EncounterViewFollowup(EncounterViewTemplate):
 
 	def _make_dialogue_callback(self, reaction_data: ReactionData):
 		"""
-		Extension of _make_dialogue_callback from the base view and adds a layer of logic to handle disabling buttons
-		after an interaction.
+		Extension of _make_dialogue_callback from the base view. Adds logic to handle disabling buttons after an interaction.
 
 		Args:
-		    option_index (int): Index of the dialogue option to create the callback for.
+			reaction_data (ReactionData): Each button needs persistent reaction_data to determine its outcome.
 		"""
 		base_callback = EncounterViewTemplate._make_dialogue_callback(self, reaction_data)
 
 		async def callback(interaction: discord.Interaction) -> None:
 			"""
-			Adds a layer of logic to disable buttons after an interaction so that the user can only interact with the
+			Adds logic to disable buttons after an interaction so that the user can only interact with the
 			followup once, preventing multiple interactions.
-
-			Args:
-			    interaction (discord.Interaction): The Discord interaction object from the button press.
 			"""
 			if self.interacted:
 				await interaction.response.defer()

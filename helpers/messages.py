@@ -214,6 +214,14 @@ class EncountersMsg(GenericMsg):
 			case _:
 				return None
 
+	@staticmethod
+	def demon_fled(race: str, name: str, player_name: str) -> str:
+		return f"> {race} {name} has fled from {player_name}..."
+
+	@staticmethod
+	def all_demons_gone() -> str:
+		return "All of the available demons have left..."
+
 
 class CustomisationMsg(GenericMsg):
 	@staticmethod
