@@ -47,14 +47,6 @@ class Fusion(commands.Cog):
 		finally:
 			self.players_in_fusion.discard(player_id)
 
-	@checks.has_profile()
-	@commands.command(**command_kwargs(FUSION_COMMANDS, "special_fusion"))
-	async def special_fusion_command(self, ctx: commands.Context) -> None:
-		"""Command to view the Rags Shop and trade gems for items."""
-		server_id = gets.get_server(ctx).id
-		entries = await fusion_queries.get_special_fusion_list(server_id)
-		await SpecialFusionView.send(ctx.channel, entries, self._sp_fusion_purchase_callback, colour=self.col)
-
 	async def _fuse_demons(
 		self,
 		ctx: commands.Context,
@@ -121,22 +113,17 @@ class Fusion(commands.Cog):
 
 		# Check if demon is already summoned and warn that fusing will only add to its level.
 		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_result.id)
-
-		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
+		is_summoned = result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}
+		if is_summoned:
+			# Append warning about demon already being in party.
 			message += FusionMsg.fusion_already_in_party(demon_result)
-			await MessageView.send(
-				ctx.channel,
-				message,
-				thumbnail=dd.profile_img,
-				colour=self.col,
-			)
-		else:
-			await MessageView.send(
-				ctx.channel,
-				FusionMsg.fusion_response(demons, demon_result),
-				thumbnail=dd.profile_img,
-				colour=self.col,
-			)
+
+		await MessageView.send(
+			ctx.channel,
+			message,
+			thumbnail=dd.profile_img,
+			colour=self.col,
+		)
 
 		# Check if player has enough mag to summon. Comes after confirmation view as player's may want to just see cost.
 		mag = await currency_queries.get_mag(player_id, server_id)
@@ -159,9 +146,26 @@ class Fusion(commands.Cog):
 		if is_fusion_accident:
 			demon_result = await self._try_fusion_accident(player_id, server_id, demon_result, demon_result.rank)
 
+		# Remove demons being fused from party.
+		await asyncio.gather(
+			player_demons_queries.set_demon_in_party(player_id, server_id, d1.id, set_in_party=False),
+			player_demons_queries.set_demon_in_party(player_id, server_id, d2.id, set_in_party=False),
+			player_demons_queries.update_party(player_id, server_id, party_add=-2),
+			currency_queries.update_mag(player_id, server_id, -cost),
+		)
+
 		# Try applying dupe level.
-		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
+		if is_summoned:
 			dupe_message = await encounter_utils.grant_dupe_reward(player_id, server_id, demon_result)
+
+			# Send dupe message if it exists.
+			if dupe_message is not None:
+				await MessageView.send(
+					ctx.channel,
+					FusionMsg.dupe_level_up(player_id, demon_result, dupe_message),
+					thumbnail=dd.profile_img,
+					colour=dd.colour,
+				)
 
 		# Unregistered or in Compendium.
 		else:
@@ -176,31 +180,13 @@ class Fusion(commands.Cog):
 				player_demons_queries.update_party(player_id, server_id),
 			)
 
-		# Remove demons being fused from party.
-		await asyncio.gather(
-			player_demons_queries.set_demon_in_party(player_id, server_id, d1.id, set_in_party=False),
-			player_demons_queries.set_demon_in_party(player_id, server_id, d2.id, set_in_party=False),
-			player_demons_queries.update_party(player_id, server_id, party_add=-2),
-			currency_queries.update_mag(player_id, server_id, -cost),
-		)
-
+		# Send final message.
 		await MessageView.send(
 			ctx.channel,
 			FusionMsg.fusion_completed(demon_result.race, demon_result.name, is_fusion_accident, new_to_comp),
-			dd.profile_img,
-			self.col,
+			thumbnail=dd.profile_img,
+			colour=dd.colour,
 		)
-
-		# Send dupe message if it exists (TODO: This code is reused from encounter_view)
-		if dupe_message is not None:
-			player_mention = f"<@{player_id}>'s"
-
-			await MessageView.send(
-				ctx.channel,
-				FusionMsg.dupe_level_up(player_mention, demon_result, dupe_message),
-				dd.profile_img,
-				dd.colour,
-			)
 
 	async def _try_fusion_accident(self, player_id: int, server_id: int, og_demon: DemonData, rank: int) -> DemonData:
 		accident = await fusion_queries.get_random_unowned_demon(player_id, server_id, rank)
@@ -208,17 +194,25 @@ class Fusion(commands.Cog):
 		# Check if demon_result is the same, very rare but don't treat it like an accident in that case.
 		return og_demon if accident is None or og_demon.id == accident.id else accident
 
+	@checks.has_profile()
+	@commands.command(**command_kwargs(FUSION_COMMANDS, "special_fusion"))
+	async def special_fusion_command(self, ctx: commands.Context) -> None:
+		"""Command to view the Rags Shop and trade gems for items."""
+		server_id = gets.get_server(ctx).id
+		entries = await fusion_queries.get_special_fusion_list(server_id)
+		await SpecialFusionView.send(ctx.channel, entries, self._sp_fusion_purchase_callback, colour=self.col)
+
 	async def _sp_fusion_purchase_callback(self, interaction, fusion_result: SpecialFusionShopData) -> None:
 		"""Callback for when an item purchase button is clicked."""
 
 		player_id = interaction.user.id
 		server_id = interaction.guild.id
 		ingredients = fusion_result.ingredients
-		demon = await demon_queries.get_demon_by_id(player_id, server_id, fusion_result.demon_id)
+		fused_demon = await demon_queries.get_demon_by_id(player_id, server_id, fusion_result.demon_id)
 
 		# Check if strong enough to summon it.
 		party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
-		if demon.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
+		if fused_demon.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
 			message = FusionMsg.fusion_too_weak(party_stats.strongest, TOO_WEAK_LEEWAY)
 			await MessageView.reply(
 				interaction,
@@ -246,22 +240,22 @@ class Fusion(commands.Cog):
 
 		# Len of ingredients minus 1 for the new demon.
 		party_num_to_remove = -(len(ingredients) - 1)
-		dd = await demon_queries.get_design_data(demon.id)
+		dd = await demon_queries.get_design_data(fused_demon.id)
+
+		# Start building the confirmation message.
+		message = FusionMsg.confirm_special_fusion(fused_demon.race, fused_demon.name, ingredients)
 
 		# Check if demon is already summoned and warn that fusing will only add to its level.
-		result_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
-		if result_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
+		fused_reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, fused_demon.id)
+		is_summoned = fused_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}
+		if is_summoned:
 			# Update party number as we are no longer adding a new demon.
 			party_num_to_remove = -(len(ingredients))
-			await MessageView.reply(
-				interaction,
-				FusionMsg.fusion_already_in_party(demon),
-				thumbnail=dd.profile_img,
-				colour=self.col,
-			)
 
-		# Send confirmation
-		message = FusionMsg.confirm_special_fusion(demon.race, demon.name, ingredients)
+			# Append warning message about demon already being in party.
+			message += FusionMsg.fusion_already_in_party(fused_demon)
+
+		# Send confirmation.
 		confirmed = await ConfirmationView.reply(
 			interaction,
 			message,
@@ -275,27 +269,50 @@ class Fusion(commands.Cog):
 			return
 
 		# Remove demons being fused from party.
+		tasks = []
 		for i in ingredients:
-			await player_demons_queries.set_demon_in_party(player_id, server_id, i.ing_id, set_in_party=False)
+			tasks.append(
+				asyncio.create_task(
+					player_demons_queries.set_demon_in_party(player_id, server_id, i.ing_id, set_in_party=False)
+				)
+			)
 
-		# Add to compendium.
-		new_to_comp = await player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank)
-
-		# Set in party and update party stats with length of ingredients minus one for the new demon.
+		# Set in party, update party stats and perform tasks.
 		await asyncio.gather(
-			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id, set_in_party=True),
+			player_demons_queries.set_demon_in_party(player_id, server_id, fused_demon.id, set_in_party=True),
 			player_demons_queries.update_party(player_id, server_id, party_add=party_num_to_remove),
+			*tasks,
+		)
+
+		# Add dupe level if already summoned.
+		if is_summoned:
+			dupe_message = None
+
+			# Try applying dupe level.
+			if fused_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}:
+				dupe_message = await encounter_utils.grant_dupe_reward(player_id, server_id, fused_demon)
+
+			# Send dupe message if it exists.
+			if dupe_message is not None:
+				await MessageView.send(
+					interaction.channel,
+					FusionMsg.dupe_level_up(player_id, fused_demon, dupe_message),
+					thumbnail=dd.profile_img,
+					colour=dd.colour,
+				)
+				return
+		# Add to compendium if not summoned.
+		new_to_comp = await player_demons_queries.add_demon_to_compendium(
+			player_id, server_id, fused_demon.id, fused_demon.rank
 		)
 
 		# Send final message.
 		await MessageView.reply(
 			interaction,
-			FusionMsg.fusion_completed(demon.race, demon.name, new_to_comp=new_to_comp),
+			FusionMsg.fusion_completed(fused_demon.race, fused_demon.name, new_to_comp=new_to_comp),
 			thumbnail=dd.profile_img,
 			colour=dd.colour,
 		)
-
-		# TODO: Add dupes.
 
 
 async def setup(bot: commands.Bot) -> None:

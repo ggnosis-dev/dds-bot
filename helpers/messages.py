@@ -51,11 +51,11 @@ class GenericMsg:
 		return f"-# `> {race} {demon_name} has been registered to {player_name} compendium.`"
 
 	@staticmethod
-	def dupe_level_up(player_mention: str, demon: DemonData, dupe_message: str):
+	def dupe_level_up(player_id: int, demon: DemonData, dupe_message: str):
 		new_dupe_level = demon.dupes + 1
 		level_string = "MAX" if new_dupe_level == 5 else str(new_dupe_level)
 		return (
-			f"### {player_mention} {demon.race} {demon.name} has leveled up to {level_string}{Emotes.GEM.value}!"
+			f"### <@{player_id}> {demon.race} {demon.name} has leveled up to {level_string}{Emotes.GEM.value}!"
 			f"\n{dupe_message}"
 		)
 
@@ -271,8 +271,8 @@ class FusionMsg(GenericMsg):
 	@staticmethod
 	def fusion_already_in_party(demon_result: DemonData) -> str:
 		return (
-			f"**{demon_result.race} {demon_result.name}** can already be found in your party,"
-			" summoning it again will raise its level by 1 instead."
+			f"-# __**NOTE**__: **{demon_result.race} {demon_result.name}** can already be found in your party,"
+			f" summoning it again will raise its level by 1{Emotes.GEM.value} instead."
 		)
 
 	@staticmethod
@@ -308,6 +308,7 @@ class FusionMsg(GenericMsg):
 			f"In order to summon **{race} {name}**, the following must be sacrificed:"
 			f"{ingredient_text}"
 			f"\n\nComplete the ritual?"
+			"\n\n"
 		)
 
 

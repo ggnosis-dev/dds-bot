@@ -42,8 +42,12 @@ class Compendium(commands.Cog):
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "summon"))
-	async def summon_command(self, ctx, *, demon_name) -> None:
+	async def summon_command(self, ctx: commands.Context, *, demon_name: str | None) -> None:
 		"""Command to summon a demon from the player's compendium into their party."""
+
+		if demon_name is None:
+			await MessageView.send(ctx.channel, CompendiumMsg.no_input_given(COMPENDIUM_COMMANDS["summon"]))
+			return
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		demon_name = demon_name.title()
@@ -93,8 +97,8 @@ class Compendium(commands.Cog):
 		await MessageView.send(
 			ctx.channel,
 			CompendiumMsg.summoned_to_party(demon.race, demon.name),
-			demon.design_data.profile_img,
-			demon.design_data.colour,
+			thumbnail=demon.design_data.profile_img,
+			colour=demon.design_data.colour,
 		)
 
 
