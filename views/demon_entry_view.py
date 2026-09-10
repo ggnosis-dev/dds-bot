@@ -2,9 +2,9 @@ import asyncio
 
 import discord
 
-from entities.demon_data import convert_row_to_demon_data
+from entities.demon_data import DemonData, convert_row_to_demon_data
 from helpers.db import query_all
-from shared_enums import EmbedColours
+from shared_enums import Emotes, Unicode
 
 
 class DemonEntryBrowser(discord.ui.LayoutView):
@@ -15,21 +15,22 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		player_id: int,
 		server_id: int,
 		ordered_demon_ids: tuple[int],
+		*,
+		shown_demon_id: int,
 	):
 		super().__init__()
 		self.player_id = player_id
 		self.server_id = server_id
 		self.ordered_dids = ordered_demon_ids
-		self.data_cache = {}
-
-		# self._build_layout()
+		self.shown_demon_id = shown_demon_id
+		self.data_cache: dict[int, DemonData] = {}
 
 	@classmethod
 	async def send(
 		cls,
 		destination: discord.abc.Messageable,
 		*args,
-		starting_demon_id: int,
+		shown_demon_id: int,
 		**kwargs,
 	) -> discord.Message:
 		"""
@@ -40,9 +41,13 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 			*args: Required arguments (see init).
 			**kwargs: Keyword/optional arguments (see init).
 		"""
-		view = cls(*args, **kwargs)
-		await view.get_demon_entries(starting_demon_id)
-		return await destination.send(view=view)
+		try:
+			view = cls(*args, shown_demon_id=shown_demon_id, **kwargs)
+			await view.get_demon_entries(shown_demon_id)
+			view._build_layout()
+			return await destination.send(view=view)
+		except Exception as e:
+			raise (e)
 
 	def _get_neighbouring_indexes(self, demon_id) -> tuple[int, int]:
 		demon_index = self._find_demon_index(demon_id)
@@ -95,15 +100,54 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 				self.data_cache[r["id"]] = convert_row_to_demon_data(r)
 				print(self.data_cache)
 
-	# def _build_layout(self) -> None:
-	# 	ui = discord.ui
-	# 	container = ui.Container(accent_color=self.colour)
+	def _build_layout(self) -> None:
+		# Get the currently shown demon's data.
+		shown_demon = self.data_cache[self.shown_demon_id]
+		design_data = shown_demon.design_data
 
-	# 	if self.thumbnail is not None:
-	# 		section = ui.Section(accessory=ui.Thumbnail(media=self.thumbnail))
-	# 		section.add_item(ui.TextDisplay(self.message))
-	# 		container.add_item(section)
-	# 	else:
-	# 		container.add_item(ui.TextDisplay(self.message))
+		ui = discord.ui
+		container = ui.Container(accent_color=design_data.colour)
 
-	# 	self.add_item(container)
+		# Thumbnail section.
+		section = ui.Section(accessory=ui.Thumbnail(media=design_data.profile_img))
+		section.add_item(
+			ui.TextDisplay(
+				f"{Emotes.BLANK.value}"
+				f"\n### {shown_demon.race} {shown_demon.name}"
+				f"\n-# Rank: **{shown_demon.rank}** (**{32}**) {Unicode.BULLET.value}"
+				f" Level: **{shown_demon.dupes}** {Emotes.GEM.value} {Unicode.BULLET.value}"
+				f" Recruited: **10/10/2025**"
+			)
+		)
+		container.add_item(section)
+
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		container.add_item(
+			ui.TextDisplay(
+				f"\n-# - Tone: {shown_demon.tone_type.name.title()}"
+				f"\n-# - Gems: {' & '.join(shown_demon.gems).title()}"
+				f"\n-# - Origin: {'Dictionnaire Infernal'}"
+				f"\n-# - Time Period: {'19th Century'}"
+			)
+		)
+
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		container.add_item(
+			ui.TextDisplay(
+				"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ligula ante, dapibus ac pretium eget, dictum sed eros. Vestibulum semper ut nibh quis tincidunt. Curabitur iaculis dui felis, maximus mollis nisi porttitor quis. Ut bibendum velit eros, in tincidunt felis imperdiet et. Aliquam erat volutpat. Curabitur eget pulvinar orci. In hac habitasse platea dictumst. Sed ac lacus sit amet nisi malesuada vulputate. Nam blandit non felis vitae egestas. Integer viverra condimentum enim, eu dignissim nisi gravida eget. Cras ultricies interdum magna, eget viverra mauris lobortis in. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nulla porttitor egestas ornare. Donec orci mauris, pharetra eget porttitor nec, malesuada eu turpis. "
+			)
+		)
+
+		# Add image.
+		container.add_item(
+			discord.ui.MediaGallery(
+				discord.MediaGalleryItem(
+					design_data.encounter_img,
+					description=shown_demon.name,
+				),
+			)
+		)
+
+		self.add_item(container)

@@ -131,7 +131,7 @@ class Compendium(commands.Cog):
 			server_id,
 			# (2, 3, 8, 10, 13, 15, 17, 18, 20),
 			(100, 15, 24, 33, 70, 7, 1, 34, 84, 88, 89, 105, 85),
-			starting_demon_id=15,
+			shown_demon_id=15,
 		)
 
 
