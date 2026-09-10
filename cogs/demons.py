@@ -2,7 +2,7 @@ import asyncio
 
 from discord.ext import commands
 
-from entities.command_data import DEMONS_COMMANDS, command_kwargs
+from entities.command_data import CUSTOMISATION_COMMANDS, command_kwargs
 from entities.demon_data import GREETING_LENGTH
 from helpers import checks, format_utils, gets, utils
 from helpers.messages import CustomisationMsg
@@ -16,14 +16,14 @@ class CustomisationCommands(commands.Cog):
 		self.bot = bot
 
 	@checks.has_profile()
-	@commands.command(**command_kwargs(DEMONS_COMMANDS, "demon_colour"))
+	@commands.command(**command_kwargs(CUSTOMISATION_COMMANDS, "demon_colour"))
 	async def demon_colour_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
 		"""Changes the embed colour of a player owned demon if unlocked. input_str structured like name; (opt) hex_code"""
 
 		# Get and validate player input.
 		parts = utils.split_input_str(input_str, maximum=2)
 		if len(parts) < 1:
-			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(DEMONS_COMMANDS["demon_colour"]))
+			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["demon_colour"]))
 			return
 		demon_name = parts[0]
 		player_id, server_id = gets.get_player_server_ids(ctx)
@@ -56,13 +56,13 @@ class CustomisationCommands(commands.Cog):
 		)
 
 	@checks.has_profile()
-	@commands.command(**command_kwargs(DEMONS_COMMANDS, "set_greeting"))
+	@commands.command(**command_kwargs(CUSTOMISATION_COMMANDS, "set_greeting"))
 	async def set_greeting_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
 
 		# Get and validate player input.
 		parts = utils.split_input_str(input_str, maximum=2)
 		if len(parts) < 1:
-			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(DEMONS_COMMANDS["set_greeting"]))
+			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["set_greeting"]))
 			return
 		demon_name = parts[0]
 		player_id, server_id = gets.get_player_server_ids(ctx)
@@ -105,7 +105,7 @@ class CustomisationCommands(commands.Cog):
 
 		# [r]/[R] and [d]/[D] are required so other player's can still see what it is.
 		if "[r]" not in greeting_string.lower() or "[d]" not in greeting_string.lower():
-			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(DEMONS_COMMANDS["set_greeting"]))
+			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["set_greeting"]))
 			return
 
 		# Sanitise the message to make sure it's under the character limit and doesn't have evil things in it.

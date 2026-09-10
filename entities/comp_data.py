@@ -40,6 +40,7 @@ class DemonEntry:
 
 def convert_row_to_list_demon_entries(rows: list[Row], need_gems: bool) -> list[DemonEntry]:
 	"""
+	TODO: Replace this with DemonData use.
 	Convert retrieved DB rows into list of DemonEntry.
 
 	Args:

@@ -456,17 +456,3 @@ async def get_demon_mag_mult(player_id: int, server_id: int, demon_id: int) -> f
 	)
 
 	return response[0] if response else 1
-
-
-def get_demon_dupes(player_id: int, server_id: int, demon_id: int) -> int:
-	response = query_one(
-		"""
-			SELECT dupes FROM player_demons
-			WHERE player_id = ?
-				AND server_id = ?
-				AND demon_id = ?
-		""",
-		(player_id, server_id, demon_id),
-	)
-
-	return response[0] if response else 0

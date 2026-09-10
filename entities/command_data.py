@@ -31,7 +31,7 @@ def command_kwargs(command_type: dict[str, CommandData], key: str):
 
 COG_DESCRIPTIONS = {
 	"Compendium": "Commands for viewing your registered demon collection",
-	"Demons": "Commands to view and customise the demons you own",
+	"Customisation": "Commands to customise the demons you own",
 	"Encounters": "Commands for encountering demons",
 	"Fusion": "Commands to fuse two or more demons together",
 	"Items": "Commands for the player's gems and item collections",
@@ -43,6 +43,12 @@ COG_DESCRIPTIONS = {
 }
 
 COMPENDIUM_COMMANDS = {
+	"entry": CommandData(
+		name="entry",
+		aliases=["en"],
+		help=("-# View the entry for a registered demon."),
+		usage=">entry | en {demon_name}",
+	),
 	"compendium": CommandData(
 		name="compendium",
 		aliases=["comp", "c"],
@@ -64,7 +70,7 @@ COMPENDIUM_COMMANDS = {
 	),
 }
 
-DEMONS_COMMANDS = {
+CUSTOMISATION_COMMANDS = {
 	"demon_colour": CommandData(
 		name="demon_colour",
 		aliases=["demon_color", "dc"],
