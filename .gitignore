@@ -209,6 +209,7 @@ __marimo__/
 # Added
 *.db
 *.DS_Store
+launch.json
 
 databases/
 data/
