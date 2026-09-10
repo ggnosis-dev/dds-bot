@@ -9,6 +9,7 @@ from helpers.messages import CompendiumMsg
 from queries import currency_queries, demon_queries, player_demons_queries
 from shared_enums import DemonRegistration
 from views.common_view import ConfirmationView, MessageView
+from views.demon_entry_view import DemonEntryBrowser
 from views.table_view import CompendiumView
 
 
@@ -99,6 +100,38 @@ class Compendium(commands.Cog):
 			CompendiumMsg.summoned_to_party(demon.race, demon.name),
 			thumbnail=demon.design_data.profile_img,
 			colour=demon.design_data.colour,
+		)
+
+	@checks.has_profile()
+	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "entry"))
+	async def entry_command(self, ctx: commands.Context, *, demon_name: str | None) -> None:
+		# if demon_name is None:
+		# 	await MessageView.send(ctx.channel, CompendiumMsg.no_input_given(COMPENDIUM_COMMANDS["entry"]))
+		# 	return
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		# demon_name = demon_name.title()
+		# demon_id = await demon_queries.get_demon_id_by_name(demon_name)
+		# reg_status = (
+		# 	await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+		# 	if demon_id is not None
+		# 	else DemonRegistration.UNREGISTERED
+		# )
+
+		# # If not in compendium or the demon at ID doesn't exist, send not in comp.
+		# if reg_status == DemonRegistration.UNREGISTERED:
+		# 	await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
+		# 	return
+
+		# 1. We want to get 3 entries, one before and one after for loading purposes.
+		# 2. Using the DemonData we have, fill in a new view of the demon.
+		await DemonEntryBrowser.send(
+			ctx.channel,
+			player_id,
+			server_id,
+			# (2, 3, 8, 10, 13, 15, 17, 18, 20),
+			(100, 15, 24, 33, 70, 7, 1, 34, 84, 88, 89, 105, 85),
+			starting_demon_id=15,
 		)
 
 

@@ -429,12 +429,8 @@ class EncounterViewInitial(EncounterViewTemplate):
 			user_id = interaction.user.id
 
 			# Check if user has already interacted.
-			if user_id in self.interacted_users:
-				await interaction.response.defer()
-				return
-
-			# If user isn't the one who the encounter is for (when option exists), exit early.
-			if self.user_exclusive_to and user_id != self.user_exclusive_to:
+			# Or if user isn't the one who the encounter is for (when option exists), exit early.
+			if user_id in self.interacted_users or self.user_exclusive_to and user_id != self.user_exclusive_to:
 				await interaction.response.defer()
 				return
 
