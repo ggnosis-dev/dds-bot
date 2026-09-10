@@ -14,7 +14,7 @@ from queries import currency_queries, player_queries, server_level_queries, serv
 from views.common_view import MessageView
 
 
-class Utility(commands.Cog):
+class PlayerUtil(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
@@ -87,6 +87,8 @@ class Utility(commands.Cog):
 		mag = await currency_queries.get_mag(player_id, server_id)
 		await MessageView.send(ctx.channel, Messages.discovered_mag(amount, mag))
 
+
+class ServerUtil(commands.Cog):
 	@checks.is_admin()
 	@checks.has_server_profile()
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "set_channel"))
@@ -116,6 +118,11 @@ class Utility(commands.Cog):
 			server_queries.set_dedicated_channel(server_id, channel_id),
 			MessageView.send(ctx.channel, Messages.set_dedicated_channel(channel_id)),
 		)
+
+
+class Utility(PlayerUtil, ServerUtil):
+	def __init__(self, bot):
+		self.bot = bot
 
 
 async def setup(bot: commands.Bot) -> None:
