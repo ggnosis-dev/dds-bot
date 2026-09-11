@@ -25,6 +25,9 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		self.shown_demon_id = shown_demon_id
 		self.data_cache: dict[int, DemonData] = {}
 
+		self.total_pages = len(ordered_demon_ids)
+		self.page = self._find_demon_index(shown_demon_id) + 1
+
 	@classmethod
 	async def send(
 		cls,
@@ -49,6 +52,34 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		except Exception as e:
 			raise (e)
 
+	class PageButton(discord.ui.Button):
+		"""Custom button for navigating between pages."""
+
+		def __init__(self, direction: str) -> None:
+			if direction == "prev":
+				super().__init__(label="<", style=discord.ButtonStyle.primary)
+			else:
+				super().__init__(label=">", style=discord.ButtonStyle.primary)
+
+		async def callback(self, interaction: discord.Interaction) -> None:
+			"""Callback for when a page navigation button is clicked. Allows wrapping around the pages."""
+
+			view = self.view
+			assert isinstance(view, DemonEntryBrowser), "Root view must use start() before followups can occur."
+
+			if self.label == "<":
+				view.page = view.total_pages if view.page <= 1 else view.page - 1
+			elif self.label == ">":
+				view.page = 1 if view.page >= view.total_pages else view.page + 1
+
+			await view.refresh()
+			await interaction.response.edit_message(view=view)
+
+	async def refresh(self) -> None:
+		await self.get_demon_entries(self.ordered_dids[self.page])
+		self.clear_items()
+		self._build_layout()
+
 	def _get_neighbouring_indexes(self, demon_id) -> tuple[int, int]:
 		demon_index = self._find_demon_index(demon_id)
 		list_length = len(self.ordered_dids)
@@ -70,6 +101,9 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		raise RuntimeError(f"demon_id {demon_id} not in ordered IDs")
 
 	async def get_demon_entries(self, demon_id):
+		# Assign demon_id to shown demon.
+		self.shown_demon_id = demon_id
+
 		prev_id, next_id = self._get_neighbouring_indexes(demon_id)
 
 		# If prev, next or the current id is not in the cache already, append it to fetch.
@@ -98,7 +132,6 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 
 			for r in rows:
 				self.data_cache[r["id"]] = convert_row_to_demon_data(r)
-				print(self.data_cache)
 
 	def _build_layout(self) -> None:
 		# Get the currently shown demon's data.
@@ -150,4 +183,17 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 			)
 		)
 
+		container = self._build_footer(container)
+
 		self.add_item(container)
+
+	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
+		"""Footer shows number of pages and given there's more than one page, will create page navigation."""
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
+
+		if self.total_pages != 1:
+			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))
+			container.add_item(page_nav)
+
+		return container
