@@ -105,33 +105,34 @@ class Compendium(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "entry"))
 	async def entry_command(self, ctx: commands.Context, *, demon_name: str | None) -> None:
-		# if demon_name is None:
-		# 	await MessageView.send(ctx.channel, CompendiumMsg.no_input_given(COMPENDIUM_COMMANDS["entry"]))
-		# 	return
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
-		# demon_name = demon_name.title()
-		# demon_id = await demon_queries.get_demon_id_by_name(demon_name)
-		# reg_status = (
-		# 	await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
-		# 	if demon_id is not None
-		# 	else DemonRegistration.UNREGISTERED
-		# )
+		demon_id = None
 
-		# # If not in compendium or the demon at ID doesn't exist, send not in comp.
-		# if reg_status == DemonRegistration.UNREGISTERED:
-		# 	await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
-		# 	return
+		if demon_name is not None:
+			demon_name = demon_name.title()
+			demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
-		# 1. We want to get 3 entries, one before and one after for loading purposes.
-		# 2. Using the DemonData we have, fill in a new view of the demon.
+			reg_status = (
+				await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+				if demon_id is not None
+				else DemonRegistration.UNREGISTERED
+			)
+
+			# If not in compendium or the demon at ID doesn't exist, send not in comp.
+			if reg_status == DemonRegistration.UNREGISTERED:
+				await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
+				return
+
+		entries = await player_demons_queries.get_demon_entries(player_id, server_id)
+
 		await DemonEntryBrowser.send(
 			ctx.channel,
 			player_id,
 			server_id,
-			# (2, 3, 8, 10, 13, 15, 17, 18, 20),
-			(100, 24, 33, 15, 70, 7, 1, 34, 84, 88, 89, 105, 85),
-			shown_demon_id=15,
+			entries,
+			# (100, 24, 33, 15, 70, 7, 1, 34, 84, 88, 89, 105, 85),
+			shown_demon_id=demon_id,
 		)
 
 

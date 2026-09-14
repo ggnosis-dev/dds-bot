@@ -16,24 +16,24 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		server_id: int,
 		ordered_demon_ids: tuple[int],
 		*,
-		shown_demon_id: int,
+		shown_demon_id: int | None = None,
 	):
 		super().__init__()
 		self.player_id = player_id
 		self.server_id = server_id
 		self.ordered_dids = ordered_demon_ids
-		self.shown_demon_id = shown_demon_id
+		self.shown_demon_id = shown_demon_id if shown_demon_id else ordered_demon_ids[0]
 		self.data_cache: dict[int, DemonData] = {}
 
 		self.total_pages = len(ordered_demon_ids)
-		self.page = self._find_demon_index(shown_demon_id) + 1
+		self.page = self._find_demon_index(self.shown_demon_id) + 1
 
 	@classmethod
 	async def send(
 		cls,
 		destination: discord.abc.Messageable,
 		*args,
-		shown_demon_id: int,
+		shown_demon_id: int | None = None,
 		**kwargs,
 	) -> discord.Message:
 		"""
@@ -46,7 +46,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		"""
 		try:
 			view = cls(*args, shown_demon_id=shown_demon_id, **kwargs)
-			await view.get_demon_entries(shown_demon_id)
+			await view.get_demon_entries(view.shown_demon_id)
 			view._build_layout()
 			return await destination.send(view=view)
 		except Exception as e:
@@ -72,11 +72,14 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 			elif self.label == ">":
 				view.page = 1 if view.page >= view.total_pages else view.page + 1
 
-			await view.refresh()
-			await interaction.response.edit_message(view=view)
+			await asyncio.gather(
+				view.refresh(),
+				interaction.response.edit_message(view=view),
+			)
 
 	async def refresh(self) -> None:
-		await self.get_demon_entries(self.ordered_dids[self.page])
+		# Minus 1 as page is not index.
+		await self.get_demon_entries(self.ordered_dids[self.page - 1])
 		self.clear_items()
 		self._build_layout()
 
@@ -146,9 +149,9 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		section.add_item(
 			ui.TextDisplay(
 				f"{Emotes.BLANK.value}"
-				f"\n### {shown_demon.race} {shown_demon.name}"
+				f"\n### `> {shown_demon.race} {shown_demon.name}`"
 				f"\n-# Rank: **{shown_demon.rank}** (**{32}**) {Unicode.BULLET.value}"
-				f" Level: **{shown_demon.dupes}** {Emotes.GEM.value} {Unicode.BULLET.value}"
+				f" Level: **{shown_demon.dupes}** {Emotes.GEM.value}{Unicode.BULLET.value}"
 				f" Recruited: **10/10/2025**"
 			)
 		)
@@ -167,11 +170,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-		container.add_item(
-			ui.TextDisplay(
-				"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ligula ante, dapibus ac pretium eget, dictum sed eros. Vestibulum semper ut nibh quis tincidunt. Curabitur iaculis dui felis, maximus mollis nisi porttitor quis. Ut bibendum velit eros, in tincidunt felis imperdiet et. Aliquam erat volutpat. Curabitur eget pulvinar orci. In hac habitasse platea dictumst. Sed ac lacus sit amet nisi malesuada vulputate. Nam blandit non felis vitae egestas. Integer viverra condimentum enim, eu dignissim nisi gravida eget. Cras ultricies interdum magna, eget viverra mauris lobortis in. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Nulla porttitor egestas ornare. Donec orci mauris, pharetra eget porttitor nec, malesuada eu turpis. "
-			)
-		)
+		container.add_item(ui.TextDisplay("Description Unavailable."))
 
 		# Add image.
 		container.add_item(

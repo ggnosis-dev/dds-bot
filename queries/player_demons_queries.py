@@ -189,6 +189,29 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 	return convert_row_to_list_demon_entries(rows, need_gems)
 
 
+async def get_demon_entries(user_id: int, server_id: int) -> list[int]:
+	"""
+	Query database for a list of IDs that the player has encountered.
+
+	Returns:
+		list[int]: List of demon IDs in the player's compendium.
+	"""
+	rows = query_all(
+		"""
+			SELECT pd.demon_id FROM player_demons pd
+			JOIN demons d ON pd.demon_id = d.id
+			JOIN races r ON d.race_id = r.id
+			WHERE pd.player_id = ? AND pd.server_id = ?
+			ORDER BY r.name ASC, d.rank ASC
+		""",
+		(user_id, server_id),
+	)
+
+	entry_ids = [row["demon_id"] for row in rows]
+
+	return entry_ids
+
+
 async def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:
 	"""
 	Set the selected demon for the player. The player's selected demon will hunt for their gem type,
