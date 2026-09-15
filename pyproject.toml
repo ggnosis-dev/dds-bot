@@ -1,15 +1,17 @@
-[tool.poetry]
+[project]
 name = "dds-bot"
 version = "0.8.0"
 description = ""
-authors = ["ggnosis-dev <ggnosis.var@pm.me>"]
+authors = [
+    { name = "ggnosis-dev", email = "<ggnosis.var@pm.me>" }
+]
 license = "GPL-3.0"
-
-[tool.poetry.dependencies]
-discord-py = "^2.7.1"
-python = "^3.14"
-numpy = "^2.5.2"
-python-dotenv = "^1.2.2"
+requires-python = ">=3.14"
+dependencies = [
+    "discord-py (>=2.7.1)",
+    "numpy (>=2.5.2)",
+    "python-dotenv (>=1.2.2)"
+]
 
 [dependency-groups]
 dev = [
