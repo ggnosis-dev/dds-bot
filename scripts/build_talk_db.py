@@ -2,7 +2,6 @@ import json
 import sqlite3
 
 from database_paths import PLAYERS_DB_PATH, TALK_JSON
-from queries.talk_queries import get_talk_dialogue
 from shared_enums import Personality, ResponseType, Tone
 
 
@@ -134,9 +133,3 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 		""",
 		r,
 	)
-
-try:
-	get_talk_dialogue(2, 2)
-except Exception as e:
-	print(f"ERROR: {e}")
-	raise RuntimeError(f"ERROR: {e}")
