@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import discord
 
@@ -122,7 +123,8 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 						v.*,
 						pd.dupes,
 						pd.colour,
-						pd.greeting
+						pd.greeting,
+						pd.date_met
 					FROM demon_data_VIEW v
 					JOIN player_demons pd
 						ON pd.demon_id = v.id
@@ -140,6 +142,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		# Get the currently shown demon's data.
 		shown_demon = self.data_cache[self.shown_demon_id]
 		design_data = shown_demon.design_data
+		date_met = time.strftime("%d-%b-%Y", time.gmtime(shown_demon.date_met))
 
 		ui = discord.ui
 		container = ui.Container(accent_color=design_data.colour)
@@ -152,7 +155,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 				f"\n### `> {shown_demon.race} {shown_demon.name}`"
 				f"\n-# Rank: **{shown_demon.rank}** (**{32}**) {Unicode.BULLET.value}"
 				f" Level: **{shown_demon.dupes}** {Emotes.GEM.value}{Unicode.BULLET.value}"
-				f" Recruited: **10/10/2025**"
+				f" Recruited: **{date_met}**"
 			)
 		)
 		container.add_item(section)

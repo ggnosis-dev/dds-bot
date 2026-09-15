@@ -1,3 +1,5 @@
+from time import time
+
 from entities.comp_data import DemonEntry, convert_row_to_demon_entry, convert_row_to_list_demon_entries
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, GREETING_LENGTH
 from entities.player_data import PartyStats
@@ -79,10 +81,10 @@ async def add_demon_to_compendium(player_id: int, server_id: int, demon_id: int,
 
 	query_write(
 		"""
-			INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank, in_party)
-			VALUES (?, ?, ?, ?, 0)
+			INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank, in_party, date_met)
+			VALUES (?, ?, ?, ?, 0, ?)
 		""",
-		(player_id, server_id, demon_id, demon_rank),
+		(player_id, server_id, demon_id, demon_rank, int(time())),
 	)
 
 	return True

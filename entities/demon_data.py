@@ -43,6 +43,7 @@ class DemonData:
 	gems: tuple[str, str]
 	design_data: DesignData
 	prevent_spawn: bool
+	date_met: int
 
 
 def convert_row_to_demon_data(row: Row) -> DemonData:
@@ -60,6 +61,7 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			gems=(row["gem_1"], row["gem_2"]),
 			design_data=convert_row_to_design_data(row),
 			prevent_spawn=row["prevent_spawn"],
+			date_met=row["date_met"],
 		)
 	except Exception as e:
 		raise KeyError(f"Problem when creating DemonData | {e}")
