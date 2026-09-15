@@ -42,6 +42,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			mag_mult		FLOAT DEFAULT 0,
 			colour 			INTEGER DEFAULT NULL,
 			greeting		TEXT DEFAULT NULL,
+			date_met		INTEGER DEFAULT NULL,
 			-- The same player ID could be on a different server ID with the same demon ID.
 			PRIMARY KEY (player_id, server_id, demon_id)
 			FOREIGN KEY (demon_id) REFERENCES demons (id)
