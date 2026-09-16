@@ -3,7 +3,7 @@ import time
 
 import discord
 
-from entities.demon_data import DemonData, convert_row_to_demon_data
+from entities.comp_data import DemonEntry, convert_row_to_demon_entry
 from helpers.db import query_all
 from shared_enums import Emotes, Unicode
 
@@ -24,7 +24,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		self.server_id = server_id
 		self.ordered_dids = ordered_demon_ids
 		self.shown_demon_id = shown_demon_id if shown_demon_id else ordered_demon_ids[0]
-		self.data_cache: dict[int, DemonData] = {}
+		self.data_cache: dict[int, DemonEntry] = {}
 
 		self.total_pages = len(ordered_demon_ids)
 		self.page = self._find_demon_index(self.shown_demon_id) + 1
@@ -121,6 +121,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 				f"""
 					SELECT
 						v.*,
+						pd.stored_rank,
 						pd.dupes,
 						pd.colour,
 						pd.greeting,
@@ -136,13 +137,19 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 			)
 
 			for r in rows:
-				self.data_cache[r["id"]] = convert_row_to_demon_data(r)
+				self.data_cache[r["id"]] = convert_row_to_demon_entry(r)
 
 	def _build_layout(self) -> None:
 		# Get the currently shown demon's data.
 		shown_demon = self.data_cache[self.shown_demon_id]
 		design_data = shown_demon.design_data
 		date_met = time.strftime("%d-%b-%Y", time.gmtime(shown_demon.date_met))
+
+		# Add a space in the hints for proper spacing with bullets.
+		stored_rank_hint = f" (**{shown_demon.stored_rank}**)" if shown_demon.stored_rank != shown_demon.initial_rank else ""
+		dupe_level_hint = (
+			f" Level: **{shown_demon.dupes}** {Emotes.GEM.value}{Unicode.BULLET.value}" if shown_demon.dupes > 0 else ""
+		)
 
 		ui = discord.ui
 		container = ui.Container(accent_color=design_data.colour)
@@ -153,27 +160,27 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 			ui.TextDisplay(
 				f"{Emotes.BLANK.value}"
 				f"\n### `> {shown_demon.race} {shown_demon.name}`"
-				f"\n-# Rank: **{shown_demon.rank}** (**{32}**) {Unicode.BULLET.value}"
-				f" Level: **{shown_demon.dupes}** {Emotes.GEM.value}{Unicode.BULLET.value}"
+				f"\n-# Rank: **{shown_demon.initial_rank}**{stored_rank_hint} {Unicode.BULLET.value}"
+				f"{dupe_level_hint}"
 				f" Recruited: **{date_met}**"
 			)
 		)
 		container.add_item(section)
 
+		# Infobox portion.
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-
 		container.add_item(
 			ui.TextDisplay(
-				f"\n-# - Tone: {shown_demon.tone_type.name.title()}"
+				f"\n-# - Tone: {shown_demon.tone_name.title()}"
 				f"\n-# - Gems: {' & '.join(shown_demon.gems).title()}"
-				f"\n-# - Origin: {'Dictionnaire Infernal'}"
-				f"\n-# - Time Period: {'19th Century'}"
+				f"\n-# - Origin: {shown_demon.origin or 'N/A.'}"
+				# f"\n-# - Time Period: {'19th Century'}"
 			)
 		)
 
+		# Description portion.
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-
-		container.add_item(ui.TextDisplay("Description Unavailable."))
+		container.add_item(ui.TextDisplay(f"{shown_demon.desc or 'No Description Available.'}"))
 
 		# Add image.
 		container.add_item(
@@ -192,7 +199,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
 		"""Footer shows number of pages and given there's more than one page, will create page navigation."""
 		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-		container.add_item(discord.ui.TextDisplay(f"-# Page {self.page} of {self.total_pages}"))
+		container.add_item(discord.ui.TextDisplay(f"-# Entry {self.page} of {self.total_pages}"))
 
 		if self.total_pages != 1:
 			page_nav = discord.ui.ActionRow(self.PageButton("prev"), self.PageButton("next"))

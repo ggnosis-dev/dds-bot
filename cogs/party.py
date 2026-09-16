@@ -189,7 +189,7 @@ class LeaderCommands(commands.Cog):
 		)
 
 		# Get gems player can get with demon. Needs demon first.
-		gems = await gem_queries.get_possible_gems(demon.race)
+		gems = await gem_queries.get_possible_gems(demon.race_id)
 
 		await MessageView.send(
 			ctx.channel,

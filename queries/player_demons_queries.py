@@ -1,13 +1,13 @@
 from time import time
 
-from entities.comp_data import DemonEntry, convert_row_to_demon_entry, convert_row_to_list_demon_entries
+from entities.comp_data import DemonTableRow, convert_row_to_demon_table_row, convert_row_to_demon_table_rows
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, GREETING_LENGTH
 from entities.player_data import PartyStats
 from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
 
 
-async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonEntry | None:
+async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonTableRow | None:
 	row = query_one(
 		"""
 			SELECT
@@ -25,7 +25,7 @@ async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) 
 	)
 
 	if row:
-		return convert_row_to_demon_entry(row)
+		return convert_row_to_demon_table_row(row)
 	return None
 
 
@@ -127,7 +127,7 @@ async def check_demon_registration(user_id: int, server_id: int, demon_id: int) 
 	return DemonRegistration.IN_COMP
 
 
-async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonEntry]:
+async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonTableRow]:
 	"""
 	Query the database for the player's current party. Joins the player_demons table with the demon database.
 
@@ -150,7 +150,7 @@ async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> 
 		(user_id, server_id),
 	)
 
-	return convert_row_to_list_demon_entries(rows, need_gems)
+	return await convert_row_to_demon_table_rows(rows, need_gems)
 
 
 async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -> int:
@@ -165,7 +165,7 @@ async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -
 	return response[0] if response else -1
 
 
-async def check_compendium(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonEntry]:
+async def check_compendium(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonTableRow]:
 	"""
 	Query the database for the player's encountered demons. Joins the player_demons table with the demon database.
 
@@ -188,7 +188,7 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 		(user_id, server_id),
 	)
 
-	return convert_row_to_list_demon_entries(rows, need_gems)
+	return await convert_row_to_demon_table_rows(rows, need_gems)
 
 
 async def get_demon_entries(user_id: int, server_id: int) -> list[int]:

@@ -8,13 +8,13 @@ GEM_EXP_MULTIPLIER = 0.1
 GEM_METER_FULL = 100
 
 
-async def get_possible_gems(race: str) -> tuple:
+async def get_possible_gems(race_id: int) -> tuple[str, str]:
 	response = query_all(
 		"""
 			SELECT gem_1, gem_2 FROM races
-			WHERE name = UPPER(?)
+			WHERE id = ?
 		""",
-		(race,),
+		(race_id,),
 	)
 
 	return tuple(response[0])

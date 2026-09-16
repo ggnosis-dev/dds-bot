@@ -21,8 +21,7 @@ async def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> Demo
 				v.*,
 				pd.dupes,
 				pd.colour,
-				pd.greeting,
-				pd.date_met
+				pd.greeting
 			FROM demon_data_VIEW v
 			LEFT JOIN player_demons pd
 				ON pd.demon_id = v.id
@@ -82,8 +81,7 @@ async def get_random_demon() -> DemonData:
 				v.*,
 				pd.dupes,
 				pd.colour,
-				pd.greeting,
-				pd.date_met
+				pd.greeting
 			FROM demon_data_VIEW v
 			LEFT JOIN player_demons pd
 				ON pd.demon_id = v.id
@@ -120,8 +118,7 @@ async def get_demon_by_distribution(
 				v.*,
 				pd.dupes,
 				pd.colour,
-				pd.greeting,
-				pd.date_met
+				pd.greeting
 			FROM demon_data_VIEW v
 			LEFT JOIN player_demons pd
 				ON pd.demon_id = v.id

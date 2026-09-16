@@ -2,7 +2,7 @@ from typing import Generic, cast
 
 import discord
 
-from entities.comp_data import DemonEntry
+from entities.comp_data import DemonTableRow
 from entities.item_data import ItemEntry
 from entities.player_data import PartyStats
 from entities.server_data import ServerStats
@@ -71,7 +71,7 @@ class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		return container
 
 
-class BaseCompendiumView(BaseTableView[DemonEntry]):
+class BaseCompendiumView(BaseTableView[DemonTableRow]):
 	"""Table view for listing demons with race selector/filters."""
 
 	def __init__(self, *args, filtered_race: str = "all", **kwargs) -> None:
@@ -123,7 +123,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 		race_select = self.RaceSelect(list(races), selected=self.filtered_race)
 		return discord.ui.ActionRow(race_select)
 
-	def _get_filtered_entries(self) -> list[DemonEntry]:
+	def _get_filtered_entries(self) -> list[DemonTableRow]:
 		"""Filter entries by the race select dropdown."""
 
 		page_entries = []
@@ -140,7 +140,7 @@ class BaseCompendiumView(BaseTableView[DemonEntry]):
 	def _build_page_entry(
 		self,
 		container: discord.ui.Container,
-		entry: DemonEntry,
+		entry: DemonTableRow,
 		emote_override: Emotes | None = None,
 	) -> discord.ui.Container:
 		tab = "\u2003"

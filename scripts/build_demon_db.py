@@ -35,6 +35,9 @@ for race_json in DEMONS_DIR.glob("*.json"):
 
 		demon_data.append(demon)
 
+		# if entry["name"] == "Ukobach":
+
+
 with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	cursor = conn.cursor()
 
@@ -46,17 +49,25 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 	# Create demon table.
 	cursor.execute("""
 		CREATE TABLE IF NOT EXISTS demons (
-			id INTEGER PRIMARY KEY,
-			name TEXT NOT NULL,
-			race_id INTEGER NOT NULL,
-			rank INTEGER NOT NULL,
-			tone INTEGER NOT NULL,
-			personality INTEGER NOT NULL,
-			prevent_spawn INTEGER DEFAULT 0,
-			profile_img TEXT,
-			encounter_img TEXT,
+			id 				INTEGER PRIMARY KEY,
+			name 			TEXT NOT NULL,
+			race_id 		INTEGER NOT NULL,
+			rank 			INTEGER NOT NULL,
+			tone 			INTEGER NOT NULL,
+			personality		INTEGER NOT NULL,
+			prevent_spawn	INTEGER DEFAULT 0,
+			profile_img 	TEXT,
+			encounter_img	TEXT,
 			UNIQUE (race_id, name),
 			FOREIGN KEY (race_id) REFERENCES races (id)
+		)
+	""")
+
+	cursor.execute("""
+		CREATE TABLE IF NOT EXISTS demon_entries (
+			demon_id 		INTEGER NOT NULL REFERENCES demons(id),
+			desc 			TEXT NOT NULL,
+			origin			TEXT NOT NULL
 		)
 	""")
 

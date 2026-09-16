@@ -29,6 +29,7 @@ with sqlite3.connect(PLAYERS_DB_PATH) as conn:
 			CREATE VIEW IF NOT EXISTS demon_entry_VIEW AS
 			SELECT
 				d.id,
+				d.race_id,
 				d.name,
 				d.rank,
 				d.tone,

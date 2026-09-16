@@ -1,4 +1,4 @@
-from entities.comp_data import DemonEntry, ServerCompendiumDemon, convert_row_to_list_demon_entries
+from entities.comp_data import DemonTableRow, ServerCompendiumDemon, convert_row_to_demon_table_rows
 from helpers.db import query_all, query_one, query_write
 
 
@@ -94,7 +94,9 @@ async def get_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendium
 	)
 
 
-async def check_server_compendium(server_id: int, owner_id: int | None = None, need_gems: bool = False) -> list[DemonEntry]:
+async def check_server_compendium(
+	server_id: int, owner_id: int | None = None, need_gems: bool = False
+) -> list[DemonTableRow]:
 	"""Retrieve list of the demons currently in the server COMP."""
 	# If an owner_id is provided, we will only check WHERE that player's ID is found.
 	params = (server_id, owner_id) if owner_id else (server_id,)
@@ -118,4 +120,4 @@ async def check_server_compendium(server_id: int, owner_id: int | None = None, n
 		params,
 	)
 
-	return convert_row_to_list_demon_entries(rows, need_gems)
+	return await convert_row_to_demon_table_rows(rows, need_gems)
