@@ -26,10 +26,10 @@ class TalkData:
 
 @dataclass
 class JoinData:
-	# registration: DemonRegistration
+	already_summoned: bool
 	status_message: str
 	extra_response: str | None
-	dupe_message: str | None
+	# dupe_message: str | None
 
 
 party_full_extra_responses = {

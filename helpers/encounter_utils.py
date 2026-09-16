@@ -49,28 +49,30 @@ async def join_player_party(
 	gems_to_add = 0
 	gem_name = ""
 	extra_response = None
-	dupe_message = None
+	already_summoned = False
 	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
 
 	# Check if party's strongest member is TOO_WEAK.
-	if party_stats.strongest < demon.rank - TOO_WEAK_LEEWAY:
+	if party_stats.strongest <= demon.rank - TOO_WEAK_LEEWAY:
 		reg_status = DemonRegistration.TOO_WEAK
 
 	else:
 		reg_status = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
-
-		# If no room in party AND the demon isn't already in there, assign PARTY_FULL.
-		if party_stats.size >= party_stats.cap and reg_status not in {
+		already_summoned = reg_status in {
 			DemonRegistration.IN_PARTY,
 			DemonRegistration.ON_LOAN,
 			DemonRegistration.LEADER,
-		}:
+		}
+
+		# If no room in party AND the demon isn't already in there, assign PARTY_FULL.
+		# If the demon is summoned, we won't add anything to party (thus staying same size) except a duplicate level.
+		if party_stats.size >= party_stats.cap and not already_summoned:
 			reg_status = DemonRegistration.PARTY_FULL
 
 	match reg_status:
 		case DemonRegistration.UNREGISTERED:
 			# Add demon to COMP.
-			asyncio.gather(
+			await asyncio.gather(
 				player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank),
 				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
 				player_demons_queries.update_party(player.id, server_id),
@@ -82,20 +84,16 @@ async def join_player_party(
 
 		case DemonRegistration.IN_COMP:
 			# Only add demon to player's party, has been obtained before.
-			asyncio.gather(
+			await asyncio.gather(
 				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
 				player_demons_queries.update_party(player.id, server_id),
 				player_demons_queries.update_party_average(player.id, server_id),
 			)
 
-		case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
+		case DemonRegistration.IN_PARTY | DemonRegistration.LEADER | DemonRegistration.ON_LOAN:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
-
-			gem_name, dupe_message = await asyncio.gather(
-				add_gem(player.id, server_id, demon.gems, gems_to_add),
-				grant_dupe_reward(player.id, server_id, demon),
-			)
+			gem_name = await add_gem(player.id, server_id, demon.gems, gems_to_add)
 
 		case DemonRegistration.PARTY_FULL:
 			extra_response = party_full_extra_responses[demon.tone_type]
@@ -116,9 +114,9 @@ async def join_player_party(
 	status_message = EncountersMsg.get_status_message(reg_status, demon, player.name, mag_to_add, gems_to_add, gem_name)
 
 	return JoinData(
+		already_summoned,
 		status_message,
 		extra_response,
-		dupe_message,
 	)
 
 

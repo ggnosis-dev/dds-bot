@@ -92,7 +92,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		pass
 
 	@property
-	def _root_view(self) -> "EncounterViewTemplate":
+	def _root_view(self) -> EncounterViewTemplate:
 		"""Helper property to get the parent view that has the icon count and status display."""
 		parent = self.parent_view or self
 		return parent
@@ -201,8 +201,11 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 				join_data.status_message,
 				join_data.extra_response,
 			),
-			self._update_dupe_level(interaction, join_data.dupe_message),
 		)
+
+		# If this was the user who commenced summon AND the demon was already summoned.
+		if self.summoner_id == interaction.user.id and join_data.already_summoned:
+			await self._update_dupe_level(interaction)
 
 	async def _encounter_flee(self, interaction: discord.Interaction, demon_response: str) -> None:
 		"""Sends an ephemeral message that the demon has fled and updates the status."""
@@ -302,12 +305,8 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 	async def _update_dupe_level(
 		self,
 		interaction: discord.Interaction,
-		dupe_message: str | None,
 	) -> None:
 		"""Check if demon is summoned and grant level up if summoner ID matches interacting player ID."""
-		interacting_player_id = interaction.user.id
-		if self.summoner_id != interacting_player_id:
-			return
 
 		server_id = interaction.guild_id
 		if server_id is None:
