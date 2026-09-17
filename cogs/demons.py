@@ -121,10 +121,10 @@ class CustomisationCommands(commands.Cog):
 		)
 
 
-class Demons(CustomisationCommands):
+class Customisation(CustomisationCommands):
 	def __init__(self, bot):
 		self.bot = bot
 
 
 async def setup(bot: commands.Bot) -> None:
-	await bot.add_cog(Demons(bot))
+	await bot.add_cog(Customisation(bot))

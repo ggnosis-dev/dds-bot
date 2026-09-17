@@ -581,3 +581,11 @@ class UtilityMsgs(GenericMsg):
 	@staticmethod
 	def set_dedicated_channel(channel_id: int) -> str:
 		return f"Encounters will now only appear in <#{channel_id}>"
+
+	@staticmethod
+	def updated_demon_entry(demon_name: str, data_added: dict) -> str:
+		data_list = ""
+		for key, val in data_added.items():
+			data_list += f"\n`{key}`: {val}"
+
+		return f"Demon Entry for {demon_name} updated to:{data_list}"

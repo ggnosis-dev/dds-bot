@@ -295,4 +295,9 @@ UTILITY_COMMANDS = {
 		help="-# Check statistics and timers for the player.",
 		usage=">stuff | st",
 	),
+	"update_entry": CommandData(
+		name="update_entry",
+		help="-# **Developer Only**. Update entry's `desc` and/or `origin` for a demon which appear in the entry browser.",
+		usage=">update_entry {name} | {column} | {data} | {opt: column} | {opt: data}",
+	),
 }

@@ -11,16 +11,24 @@ def get_hex_colour(hex_string: str) -> int:
 	return int(match.group(1), 16) if match else 0
 
 
-def split_input_str(input_str: str | None, maximum: int = 2) -> tuple[str, ...]:
+def split_input_str(
+	input_str: str | None,
+	maximum: int = 2,
+	divider: str = INPUT_DIVIDER,
+	do_title: bool = True,
+) -> tuple[str, ...]:
 	if input_str is None:
 		return ()
 
-	parts = input_str.split(INPUT_DIVIDER, maximum)
+	parts = input_str.split(divider, maximum)
 
 	# Don't loop through everything because we'll just be throwing it out.
 	parts_limit = min(len(parts), maximum)
 	for i in range(parts_limit):
-		parts[i] = parts[i].strip().title()
+		parts[i] = parts[i].strip()
+
+		if do_title:
+			parts[i] = parts[i].title()
 	return tuple(parts)
 
 

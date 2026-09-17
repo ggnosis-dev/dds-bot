@@ -1,7 +1,7 @@
 from numpy.random import triangular
 
 from entities.demon_data import DemonData, DesignData, convert_row_to_demon_data, convert_row_to_design_data
-from helpers.db import query_all, query_one
+from helpers.db import query_all, query_one, query_write
 
 
 async def get_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonData:
@@ -184,3 +184,32 @@ async def get_design_data(demon_id: int, player_id: int = 0, server_id: int = 0)
 	)
 
 	return convert_row_to_design_data(row)
+
+
+# ------ DEV ONLY ------ #
+async def insert_entry_data(demon_id: int, data_to_add: dict) -> bool:
+	print(f"Trying to add: {data_to_add}")
+	check_columns = set(data_to_add) - {"desc", "origin"}
+	if check_columns or not data_to_add:
+		# Columns are either unusual names or data is blank.
+		return False
+
+	columns = list(data_to_add.keys())
+	data = list(data_to_add.values())
+
+	col_list = ", ".join(["demon_id"] + columns)
+	placeholders = ", ".join(["?"] * (len(columns) + 1))
+	update = ", ".join(f"{col} = excluded.{col}" for col in columns)
+
+	query_write(
+		f"""
+			INSERT OR IGNORE INTO demon_entries
+				({col_list})
+			VALUES
+				({placeholders})
+			ON CONFLICT(demon_id) DO UPDATE SET
+				{update}
+		""",
+		(demon_id, *data),
+	)
+	return True

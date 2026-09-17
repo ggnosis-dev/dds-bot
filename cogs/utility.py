@@ -10,7 +10,7 @@ from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW
 from helpers import checks, gets, utils
 from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
-from queries import currency_queries, player_queries, server_level_queries, server_queries
+from queries import currency_queries, demon_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
 
 
@@ -77,18 +77,11 @@ class PlayerUtil(commands.Cog):
 			MessageView.send(ctx.channel, message),
 		)
 
-	@checks.is_developer()
-	@commands.command(**command_kwargs(UTILITY_COMMANDS, "give_mag"))
-	async def give_mag_command(self, ctx: commands.Context, amount: int) -> None:
-		"""Add MAG to self for testing."""
-
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		await currency_queries.update_mag(player_id, server_id, amount)
-		mag = await currency_queries.get_mag(player_id, server_id)
-		await MessageView.send(ctx.channel, Messages.discovered_mag(amount, mag))
-
 
 class ServerUtil(commands.Cog):
+	def __init__(self, bot):
+		self.bot = bot
+
 	@checks.is_admin()
 	@checks.has_server_profile()
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "set_channel"))
@@ -120,7 +113,53 @@ class ServerUtil(commands.Cog):
 		)
 
 
-class Utility(PlayerUtil, ServerUtil):
+class DevUtil(commands.Cog):
+	def __init__(self, bot):
+		self.bot = bot
+
+	@checks.is_developer()
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "give_mag"))
+	async def give_mag_command(self, ctx: commands.Context, amount: int) -> None:
+		"""Add MAG to self for testing."""
+
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		await currency_queries.update_mag(player_id, server_id, amount)
+		mag = await currency_queries.get_mag(player_id, server_id)
+		await MessageView.send(ctx.channel, Messages.discovered_mag(amount, mag))
+
+	@checks.is_developer()
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "update_entry"))
+	async def update_entry_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
+
+		parts = utils.split_input_str(input_str, maximum=5, divider="|", do_title=False)
+		print(len(parts))
+
+		# Mod 2 being 1 implies we're missing data.
+		if len(parts) < 3 or len(parts) % 2 == 0:
+			await MessageView.send(ctx.channel, Messages.no_input_given(UTILITY_COMMANDS["update_entry"]))
+			return
+
+		demon_name = parts[0]
+		data_to_add = {parts[1]: parts[2]}
+
+		if len(parts) > 3:
+			data_to_add[parts[3]] = parts[4]
+
+		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
+		if demon_id is None:
+			await MessageView.send(ctx.channel, Messages.not_in_comp(demon_name))
+			return
+
+		success = await demon_queries.insert_entry_data(demon_id, data_to_add)
+
+		if not success:
+			await MessageView.send(ctx.channel, Messages.no_input_given(UTILITY_COMMANDS["update_entry"]))
+			return
+
+		await MessageView.send(ctx.channel, Messages.updated_demon_entry(demon_name, data_to_add))
+
+
+class Utility(DevUtil, PlayerUtil, ServerUtil):
 	def __init__(self, bot):
 		self.bot = bot
 
