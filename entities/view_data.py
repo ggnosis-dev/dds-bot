@@ -27,6 +27,7 @@ class Columns:
 	NAME = ColumnConfig(key="name", label="Name", width=18, header_tabs=6)
 	EXP = ColumnConfig(key="initial_rank", label="Exp", width=3, header_tabs=2, align=">")
 	STORED_RANK = ColumnConfig(key="stored_rank", label="Rank", width=3, header_tabs=4, align=">")
+	DUPES = ColumnConfig(key="dupes", label=f"{Emotes.GEM.value}", width=3, header_tabs=2, align=">")
 	OWNER = ColumnConfig(key="owner_name", label="Owner", width=12, header_tabs=3)
 	GEMS = ColumnConfig(key="gems", label="Gemstone", width=12, header_tabs=3)
 	TONE = ColumnConfig(key="tone_name", label="Tone", width=12, header_tabs=3)
@@ -56,11 +57,15 @@ def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) 
 			digits = "".join(ch for ch in arg if ch.isdigit())
 			mentioned = server.get_member(int(digits)) if digits else None
 
+		elif "dupes".startswith(arg):
+			if Columns.DUPES not in column_layout:
+				column_layout.append(Columns.DUPES)
+
 		elif "experience".startswith(arg):
 			if Columns.EXP not in column_layout:
 				column_layout.append(Columns.EXP)
 
-		elif "gemstones".startswith(arg):
+		elif "gems".startswith(arg):
 			if Columns.GEMS not in column_layout:
 				column_layout.append(Columns.GEMS)
 

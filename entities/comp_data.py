@@ -26,6 +26,7 @@ class DemonTableRow:
 	stored_rank: int
 	# Potential columns.
 	initial_rank: int = 0
+	dupes: int = 0
 	tone_name: str | None = None
 	gems: tuple[str, str] | None = None
 	on_loan: bool = False
@@ -130,6 +131,7 @@ def convert_row_to_demon_table_row(raw_row: Row | dict) -> DemonTableRow:
 			race=row["race"].title(),
 			initial_rank=row["rank"],
 			stored_rank=row["stored_rank"],
+			dupes=row.get("dupes", 0),
 			gems=row.get("gems"),
 			tone_name=Tone(row["tone"]).name,
 			on_loan=row.get("on_loan", False),

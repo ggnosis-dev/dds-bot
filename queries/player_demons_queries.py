@@ -14,7 +14,8 @@ async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) 
 				v.*,
 				pd.on_loan,
 				pd.stored_rank,
-				pd.in_party
+				pd.in_party,
+				pd.dupes
 			FROM demon_entry_VIEW v
 			JOIN player_demons pd ON pd.demon_id = v.id
 			WHERE pd.player_id = ?
@@ -140,7 +141,8 @@ async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> 
 				v.*,
 				pd.on_loan,
 				pd.stored_rank,
-				pd.in_party
+				pd.in_party,
+				pd.dupes
 			FROM demon_entry_VIEW v
 			JOIN player_demons pd ON pd.demon_id = v.id
 				AND pd.player_id = ? AND pd.server_id = ?
@@ -179,7 +181,8 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 				v.*,
 				pd.on_loan,
 				pd.stored_rank,
-				pd.in_party
+				pd.in_party,
+				pd.dupes
 			FROM demon_entry_VIEW v
 			LEFT JOIN player_demons pd ON pd.demon_id = v.id
 				AND pd.player_id = ? AND pd.server_id = ?

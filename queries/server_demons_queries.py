@@ -104,7 +104,16 @@ async def check_server_compendium(
 
 	rows = query_all(
 		f"""
-			SELECT d.id, d.name, r.name AS race, d.rank, d.tone, pd.stored_rank, pd.player_id AS owner_id
+			SELECT
+				d.id,
+				d.race_id,
+				d.name,
+				r.name AS race,
+				d.rank,
+				d.tone,
+				pd.stored_rank,
+				pd.dupes,
+				pd.player_id AS owner_id
 			FROM demons d
 			JOIN races r ON d.race_id = r.id
 			LEFT JOIN server_demons sd

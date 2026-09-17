@@ -1,4 +1,4 @@
-from typing import Generic, cast
+from typing import cast
 
 import discord
 
@@ -11,7 +11,7 @@ from shared_enums import EmbedColours, Emotes, Unicode
 from views.common_view import BaseLayoutView, EntryT
 
 
-class BaseTableView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
+class BaseTableView(BaseLayoutView[EntryT], discord.ui.LayoutView):
 	"""Custom view for displaying things in a table format."""
 
 	def __init__(
