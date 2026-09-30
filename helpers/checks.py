@@ -60,7 +60,7 @@ def has_profile():
 		if ctx.guild is None:
 			raise RuntimeError("ERROR: Server ID could not be determined.")
 
-		has_profile = player_queries.check_player_exists(ctx.author.id, ctx.guild.id)
+		has_profile = await player_queries.check_player_exists(ctx.author.id, ctx.guild.id)
 		if not has_profile:
 			raise ProfileSetupCheck("You don't have a profile set up yet! Use `>encounter` to get you set up!")
 
@@ -74,10 +74,10 @@ def has_server_profile():
 		if ctx.guild is None:
 			raise RuntimeError("ERROR: Server ID could not be determined.")
 
-		has_serv_profile = server_queries.check_server_exists(ctx.guild.id)
+		has_serv_profile = await server_queries.check_server_exists(ctx.guild.id)
 
 		if not has_serv_profile:
-			server_queries.update_server_in_db(ctx.guild.id)
+			await server_queries.update_server_in_db(ctx.guild.id)
 
 		return True
 

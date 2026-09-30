@@ -1,7 +1,7 @@
 from helpers.db import query_one, query_write
 
 
-def update_server_in_db(server_id: int) -> bool:
+async def update_server_in_db(server_id: int) -> bool:
 	"""Update a server's data in the database."""
 	rows_affected = query_write(
 		"""
@@ -15,7 +15,7 @@ def update_server_in_db(server_id: int) -> bool:
 	return rows_affected > 0
 
 
-def check_server_exists(server_id: int) -> bool:
+async def check_server_exists(server_id: int) -> bool:
 	"""
 	Check if a server exists in the database.
 	"""
