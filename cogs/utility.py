@@ -4,10 +4,10 @@ import discord
 
 from discord.ext import commands
 
+from entities import tutorial_data
 from entities.command_data import UTILITY_COMMANDS, command_kwargs
 from entities.demon_data import TOO_WEAK_LEEWAY
 from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW
-from entities.tutorial_data import TUTORIAL_STEPS
 from helpers import checks, gets, utils
 from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
@@ -81,72 +81,108 @@ class PlayerUtil(commands.Cog):
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "tutorial"))
 	async def tutorial_command(self, ctx: commands.Context) -> None:
 		"""Tutorial is not blocked by needing a profile."""
-		# Get IDs
-		# Get tutorial progress using IDs <- should return a TutorialStep object.
 		# Build tutorial view using TutorialStep object.
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		step, task_mask = await player_queries.get_tutorial_progress(player_id, server_id)
 
-		current_step = TUTORIAL_STEPS[step]
+		current_step = tutorial_data.TUTORIAL_STEPS[step]
 
 		task_list = ""
 		for task_id, task in current_step.desc_tasks.items():
-			done = bool(task_mask & 1 << (task_id - 1))
+			# e.g. 6 == 0b011 (task 1 and 2 done).
+			# 6 & (1 << (2 - 1))) where 2 is task 2.
+			# 0b011 & 0b010 == 0b010 == 2 = truthy
+			done = bool(task_mask & (1 << (task_id - 1)))
 			task_list += f"\n- {'~~' if done else ''}{task.name}{'~~' if done else ''}\n-# {task.hint}"
 
 		await ctx.send(
 			f"{step} | {format(task_mask, 'b')}\nDesc: {current_step.desc_step}\nReward: {current_step.reward_text}\n{task_list}"
 		)
 
-	# This will only trigger if a COMMAND is run.
-	# We could do a players check for if the tutorial is incomplete here.
-	@commands.Cog.listener()
-	# There's also a on_command we could try.
-	async def on_command_completion(self, ctx) -> None:
+	async def process_tutorial_task(
+		self, player_id: int, server_id: int, event: tutorial_data.TutorialEvent, channel
+	) -> None:
+		"""
+		Check for tutorial triggers.
+		This will only trigger if a COMMAND is run, so no need to worry about junk attempts.
+		"""
 		# If tutorial is complete, don't do anything else.
-		player_id, server_id = gets.get_player_server_ids(ctx)
-		tutorial_complete = await player_queries.check_tutorial_complete(player_id, server_id)
-		if tutorial_complete:
+		if await player_queries.check_tutorial_complete(player_id, server_id):
 			return
 
+		# Get the tutorial step they are on and the task bitmask.
+		# Bitmask structured like 010 where 1 indicates task in that position (i.e. task 2) has been completed.
 		step_id, task_mask = await player_queries.get_tutorial_progress(player_id, server_id)
-		step = TUTORIAL_STEPS[step_id]
+		step = tutorial_data.TUTORIAL_STEPS[step_id]
 		new_mask = task_mask
 
 		for task_id, task in step.desc_tasks.items():
+			# Bit manipulation, takes 1 and slides its bit left by task_id - 1 places.
+			# Task 1: 000 << (1 - 1) = 0b001 -> 1
+			# Task 2: 000 << (2 - 1) = 0b010 -> 2
 			bit = 1 << (task_id - 1)
+
+			# Bitwise AND check to skip if already done.
+			# 101 & 010 = 0b000 -> 0 -> falsy
+			# 110 & 010 = 0b010 -> 2 -> truthy
 			if task_mask & bit:
 				continue
 
-			if await task.check(ctx):
-				new_mask |= bit
-				await ctx.send(f"COMPLETED {task.name}")
+			if task.check is not None and await task.check(event):
+				# Bitwise OR compare numbers. 0 | 0 = 0
+				new_mask = new_mask | bit
+				await channel.send(f"COMPLETED {task.name}")
 
 		# Nothing changed.
 		if new_mask == task_mask:
 			return
 
+		# Essentially, want to get the number of tasks, then minus one bit to get the full mask:
+		# (1 << 3) - 1 where 3 is num of tasks.
+		# 0b1000 - 0b1 == 8 - 1 == 7 or 0b111
 		full_mask = (1 << len(step.desc_tasks)) - 1
+
 		if new_mask == full_mask:
 			await step.on_complete(player_id, server_id)
-			await ctx.send(f"STEP COMPLETED! Reward: {step.reward_text}")
+			await channel.send(f"STEP COMPLETED! Reward: {step.reward_text}")
 			await player_queries.next_tutorial_step(player_id, server_id)
 			return
 
 		await player_queries.set_tutorial_mask(player_id, server_id, new_mask)
 
-		# opt 1: ping DB for player_id, server_id, task (JSON).
-		# Doing this would make it required for us to do a JSON convert every time a command is done.
-		# Readable but very taxing.
+	@commands.Cog.listener()
+	async def on_command_completion(self, ctx: commands.Context) -> None:
+		assert ctx.command is not None, "Run command check should only occur in on_command_completion."
 
-		# opt 2: ping DB for ID, step and task bitmask if tutorial not complete (signify step as -1 in table?).
-		# for example, get back step 2 with bitmask, e.g. 00101
-		# Jump to switch for step 2, if command was <> update task bitmask, e.g. 01101.
-		# Understandable if explained, which I tend to overdo anyway lmao
+		player_id, server_id = gets.get_player_server_ids(ctx)
+		command_args = tutorial_data.get_command_args(ctx)
+		event = tutorial_data.TutorialEvent(
+			kind="command",
+			name=ctx.command.name,
+			args=command_args,
+		)
 
-		# If update occurred, announce tutorial task complete.
+		await self.process_tutorial_task(
+			player_id,
+			server_id,
+			event,
+			ctx.channel,
+		)
 
-		# TODO: This should all be a reusable function so it can be called elsewhere (for hitting specific requirements)
+	@commands.Cog.listener()
+	async def on_tutorial_trigger(self, interaction: discord.Interaction, trigger: str) -> None:
+		player_id, server_id = gets.get_player_server_ids(interaction)
+		event = tutorial_data.TutorialEvent(
+			kind="trigger",
+			name=trigger,
+		)
+
+		await self.process_tutorial_task(
+			player_id,
+			server_id,
+			event,
+			interaction.channel,
+		)
 
 
 class ServerUtil(commands.Cog):

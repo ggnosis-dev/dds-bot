@@ -75,6 +75,7 @@ class ConfirmationView(discord.ui.LayoutView):
 		message: str,
 		exclusive_to: int,
 		*,
+		trigger_id: str | None = None,
 		confirm_label: str = "Confirm",
 		deny_label: str = "Deny",
 		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
@@ -87,6 +88,8 @@ class ConfirmationView(discord.ui.LayoutView):
 
 		self.message = message
 		self.exclusive_to = exclusive_to
+
+		self.trigger_id = trigger_id
 		self.confirm_label = confirm_label
 		self.deny_label = deny_label
 		self.confirm_colour = confirm_colour
@@ -205,6 +208,10 @@ class ConfirmationView(discord.ui.LayoutView):
 			view._disable_buttons()
 
 			await interaction.response.edit_message(view=view)
+
+			if view.trigger_id is not None:
+				# Calls on_tutorial_trigger (discord.py prefixes the on_).
+				interaction.client.dispatch("tutorial_trigger", interaction, view.trigger_id)
 
 
 EntryT = TypeVar("EntryT")

@@ -1,6 +1,6 @@
 import typing
 
-from discord import Guild, Member
+from discord import Guild, Interaction, Member
 from discord.ext import commands
 
 
@@ -10,14 +10,19 @@ def get_player_server(ctx: commands.Context) -> tuple:
 	return player, server
 
 
-def get_player_server_ids(ctx: commands.Context) -> tuple:
+def get_player_server_ids(ctx: commands.Context | Interaction) -> tuple:
 	player = get_player(ctx)
 	server = get_server(ctx)
 	return player.id, server.id
 
 
-def get_player(ctx) -> Member:
-	return typing.cast(Member, ctx.author)
+def get_player(ctx: commands.Context | Interaction) -> Member:
+	if isinstance(ctx, commands.Context):
+		author = ctx.author
+	elif isinstance(ctx, Interaction):
+		author = ctx.user
+
+	return typing.cast(Member, author)
 
 
 def get_server(ctx) -> Guild:

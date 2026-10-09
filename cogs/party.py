@@ -113,7 +113,7 @@ class PartyCommands(commands.Cog):
 			# Confirmation window.
 			message = PartyMsg.confirm_increase_party(number, cost)
 			confirmed = await ConfirmationView.send(
-				ctx.channel, message, p_data.player_id, confirm_label="Yes", deny_label="No"
+				ctx.channel, message, p_data.player_id, trigger_id="increase_party", confirm_label="Yes", deny_label="No"
 			)
 			if not confirmed:
 				return
