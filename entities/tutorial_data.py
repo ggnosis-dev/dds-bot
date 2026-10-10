@@ -45,9 +45,10 @@ def get_command_args(ctx: commands.Context) -> tuple[str, ...]:
 	# Find the ctx index first so we can start directly after it.
 	ctx_index = ctx.args.index(ctx)
 	args = ctx.args[ctx_index + 1 :]
+	kwargs = list(ctx.kwargs.values())
 
 	# Return lowercase.
-	return tuple(str(arg).lower() for arg in args)
+	return tuple(str(arg).lower() for arg in args + kwargs)
 
 
 def ran_command(name: str) -> TaskCheck:
