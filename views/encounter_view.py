@@ -192,7 +192,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		Args:
 			demon_response (str): What the demon will say back.
 		"""
-		join_data = await encounter_utils.join_player_party(interaction.user, interaction.guild, self.demon)
+		join_data = await encounter_utils.join_player_party(interaction, self.demon)
 
 		await asyncio.gather(
 			self._handle_demon_interacted(

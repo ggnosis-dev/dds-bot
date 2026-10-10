@@ -30,8 +30,7 @@ def get_current_encounter_window() -> int:
 
 
 async def join_player_party(
-	player: discord.User | discord.Member,
-	server: discord.Guild | None,
+	interaction: discord.Interaction,
 	demon: DemonData,
 ) -> JoinData:
 	"""
@@ -41,7 +40,8 @@ async def join_player_party(
 	Returns:
 		JoinData: Messages and responses to be passed on related to joining.
 	"""
-	server_id = server.id if server else None
+	player_id = interaction.user.id
+	server_id = interaction.guild.id if interaction.guild else None
 
 	if server_id is None:
 		raise RuntimeError("Server ID is None.")
@@ -50,14 +50,14 @@ async def join_player_party(
 	gem_name = ""
 	extra_response = None
 	already_summoned = False
-	party_stats = await player_demons_queries.get_party_stats(player.id, server_id)
+	party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
 
 	# Check if party's strongest member is TOO_WEAK.
 	if party_stats.strongest <= demon.rank - TOO_WEAK_LEEWAY:
 		reg_status = DemonRegistration.TOO_WEAK
 
 	else:
-		reg_status = await player_demons_queries.check_demon_registration(player.id, server_id, demon.id)
+		reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
 		already_summoned = reg_status in {
 			DemonRegistration.IN_PARTY,
 			DemonRegistration.ON_LOAN,
@@ -73,45 +73,51 @@ async def join_player_party(
 		case DemonRegistration.UNREGISTERED:
 			# Add demon to COMP.
 			await asyncio.gather(
-				player_demons_queries.add_demon_to_compendium(player.id, server_id, demon.id, demon.rank),
-				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
-				player_demons_queries.update_party(player.id, server_id),
-				player_demons_queries.update_party_average(player.id, server_id),
+				player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank),
+				player_demons_queries.set_demon_in_party(player_id, server_id, demon.id),
+				player_demons_queries.update_party(player_id, server_id),
+				player_demons_queries.update_party_average(player_id, server_id),
 			)
 
 			if party_stats.size < 1:
-				await player_demons_queries.set_selected_demon(player.id, server_id, demon.id)
+				await player_demons_queries.set_selected_demon(player_id, server_id, demon.id)
 
 		case DemonRegistration.IN_COMP:
 			# Only add demon to player's party, has been obtained before.
 			await asyncio.gather(
-				player_demons_queries.set_demon_in_party(player.id, server_id, demon.id),
-				player_demons_queries.update_party(player.id, server_id),
-				player_demons_queries.update_party_average(player.id, server_id),
+				player_demons_queries.set_demon_in_party(player_id, server_id, demon.id),
+				player_demons_queries.update_party(player_id, server_id),
+				player_demons_queries.update_party_average(player_id, server_id),
 			)
 
 		case DemonRegistration.IN_PARTY | DemonRegistration.LEADER | DemonRegistration.ON_LOAN:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
-			gem_name = await add_gem(player.id, server_id, demon.gems, gems_to_add)
+			gem_name = await add_gem(player_id, server_id, demon.gems, gems_to_add)
 
 		case DemonRegistration.PARTY_FULL:
 			extra_response = party_full_extra_responses[demon.tone_type]
 			gems_to_add = _gems_for_rank(demon.rank)
-			gem_name = await add_gem(player.id, server_id, demon.gems, gems_to_add)
+			gem_name = await add_gem(player_id, server_id, demon.gems, gems_to_add)
 
 		case DemonRegistration.TOO_WEAK:
 			extra_response = "TOO WEAK"
 
 	race_mult, demon_mult = await asyncio.gather(
-		player_queries.get_race_mag_mult(player.id, server_id, demon.race_id),
-		player_demons_queries.get_demon_mag_mult(player.id, server_id, demon.id),
+		player_queries.get_race_mag_mult(player_id, server_id, demon.race_id),
+		player_demons_queries.get_demon_mag_mult(player_id, server_id, demon.id),
 	)
 
 	mag_mult = _get_mag_multipler(reg_status, race_mult, demon_mult)
 	mag_to_add = int(demon.rank * 10 * mag_mult)
-	await update_mag(player.id, server_id, mag_to_add)
-	status_message = EncountersMsg.get_status_message(reg_status, demon, player.name, mag_to_add, gems_to_add, gem_name)
+	await update_mag(player_id, server_id, mag_to_add)
+	status_message = EncountersMsg.get_status_message(
+		reg_status, demon, interaction.user.name, mag_to_add, gems_to_add, gem_name
+	)
+
+	# Check tutorial if gems were added.
+	if gems_to_add > 0:
+		interaction.client.dispatch("tutorial_trigger", interaction, "encounter_gem")
 
 	return JoinData(
 		already_summoned,

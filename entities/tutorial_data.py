@@ -4,7 +4,7 @@ from functools import partial
 
 from discord.ext import commands
 
-from queries import currency_queries
+from queries import currency_queries, gem_queries
 
 
 @dataclass
@@ -76,6 +76,11 @@ def ran_trigger(name: str) -> TaskCheck:
 	return check
 
 
+async def gem_reward(player_id, server_id, gem_dict):
+	for name, qty in gem_dict.items():
+		await gem_queries.add_gem(player_id, server_id, gems=(name,), number=qty)
+
+
 TUTORIAL_STEPS = {
 	1: TutorialStep(
 		desc_step="Welcome to the DDS-Net!",
@@ -111,8 +116,11 @@ TUTORIAL_STEPS = {
 			),
 			2: TutorialTask(
 				name="Compendium",
-				hint="Use `>compendium` to see every demon you've registered.",
-				check=ran_command("compendium"),
+				hint=(
+					"Use `>compendium gems` to see every demon you've registered and the usually hidden gem column"
+					" (these can be used with similar views like `>party` and there are more hidden columns available)."
+				),
+				check=ran_command_with_argument("compendium", ("gems",)),
 			),
 			3: TutorialTask(
 				name="View Entry",
@@ -124,47 +132,57 @@ TUTORIAL_STEPS = {
 				hint="Use `>increase_party` to increase the number of party slots you have.",
 				check=ran_trigger("increase_party"),
 			),
-			5: TutorialTask(
-				name="I'm Putting Together a Team",
-				hint="Register 5 demons to your Compendium.",
-				check=ran_command("help"),
-			),
+			# 5: TutorialTask(
+			# 	name="I'm Putting Together a Team",
+			# 	hint="Register 5 demons to your Compendium.",
+			# 	check=ran_command("help"),
+			# ),
 		},
 		reward_text="Amethyst x2, Agate x1",
-		# Partial takes function and prefills args that will now only need the remaining update_mag args.
-		on_complete=partial(currency_queries.update_mag, amount=500),
+		on_complete=partial(gem_reward, gem_dict={"AMETHYST": 2, "AGATE": 1}),
 	),
-	4: TutorialStep(
+	3: TutorialStep(
 		desc_step="Gemstones",
 		desc_tasks={
 			1: TutorialTask(
-				name="Fairy Incense",
-				hint="Use `>rags` to visit Rag's Jewelry and purchase a Fairy Incense.",
-				check=ran_command("rags"),
+				name="Check Gems",
+				hint="Use `>gems` to see your gem collection.",
+				check=ran_command("gems"),
 			),
 			2: TutorialTask(
-				name="Use the Incense",
-				hint="Use `>use` to use a useful incense on Fairy Pixie.",
-				check=None,
+				name="Fairy Incense",
+				hint="Use `>rags` to visit Rag's Jewelry and purchase a Fairy Incense.",
+				check=ran_trigger("rags_fairy"),
 			),
 			3: TutorialTask(
-				name="Leader",
-				hint="Use `>leader` to change who hunts for gemstones.",
-				check=None,
+				name="Use the Incense",
+				hint="Use `>use Fairy Incense; <name>` to use a useful incense on a useful Fairy.",
+				check=ran_trigger("used_fairy_incense"),
 			),
 			4: TutorialTask(
-				name="Show Gem Column",
-				hint="Use `>party gems` to see an extra column in the party view.",
-				check=None,
+				name="Leader",
+				hint="Use `>leader` to change who hunts for gemstones.",
+				check=ran_trigger("leader_set"),
 			),
 			5: TutorialTask(
 				name="Find a Gem",
 				hint="Have an encounter gift you a gem.",
-				check=None,
+				check=ran_trigger("encounter_gem"),
 			),
 		},
 		reward_text="500 MAG",
-		# Partial takes function and prefills args that will now only need the remaining update_mag args.
+		on_complete=partial(currency_queries.update_mag, amount=500),
+	),
+	4: TutorialStep(
+		desc_step="End",
+		desc_tasks={
+			1: TutorialTask(
+				name="I'm Just Being Lazy and not protecting against key overflow",
+				hint="No really, I should just do that...",
+				check=ran_command("give_mag"),
+			),
+		},
+		reward_text="End of Tutorial",
 		on_complete=partial(currency_queries.update_mag, amount=500),
 	),
 }

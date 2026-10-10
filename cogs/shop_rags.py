@@ -36,6 +36,9 @@ class Shop(commands.Cog):
 			return
 		await MessageView.reply(interaction, Messages.purchase_success(item_data.name), ephemeral=True)
 
+		if item_data.name.lower() == "fairy incense":
+			interaction.client.dispatch("tutorial_trigger", interaction, "rags_fairy")
+
 
 async def setup(bot: commands.Bot) -> None:
 	await bot.add_cog(Shop(bot))

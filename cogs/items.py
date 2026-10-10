@@ -87,6 +87,10 @@ class InventoryCommands(commands.Cog):
 			dd = await demon_queries.get_design_data(demon_id)
 			message = ItemMsg.use_item_completed(player_id, item_name, demon_name, number_to_use * INCENSE_RANK_INCREASE)
 			await MessageView.send(ctx.channel, message, thumbnail=dd.profile_img, colour=dd.colour)
+
+			# Tutorial Trigger.
+			if item_name.lower() == "fairy incense":
+				ctx.bot.dispatch("tutorial_trigger", ctx, "used_fairy_incense")
 			return
 
 		# Second, non-UX check of not in inventory message if used_item fails (usually from double command running).

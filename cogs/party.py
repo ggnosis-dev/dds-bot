@@ -171,6 +171,7 @@ class LeaderCommands(commands.Cog):
 			player_demons_queries.set_selected_demon(player_id, server_id, demon_id),
 			MessageView.send(ctx.channel, message, thumbnail=dd.profile_img, colour=dd.colour),
 		)
+		ctx.bot.dispatch("tutorial_trigger", ctx, "leader_set")
 
 	async def _check_leader(self, ctx: commands.Context) -> None:
 		"""Check stats of the current leader."""

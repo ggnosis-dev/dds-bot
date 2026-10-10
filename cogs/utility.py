@@ -96,7 +96,8 @@ class PlayerUtil(commands.Cog):
 			task_list += f"\n- {'~~' if done else ''}{task.name}{'~~' if done else ''}\n-# {task.hint}"
 
 		await ctx.send(
-			f"{step} | {format(task_mask, 'b')}\nDesc: {current_step.desc_step}\nReward: {current_step.reward_text}\n{task_list}"
+			f"{step} | {format(task_mask, 'b')}\nDesc: {current_step.desc_step}"
+			f"\nReward: {current_step.reward_text}\n{task_list}"
 		)
 
 	async def process_tutorial_task(
@@ -170,18 +171,19 @@ class PlayerUtil(commands.Cog):
 		)
 
 	@commands.Cog.listener()
-	async def on_tutorial_trigger(self, interaction: discord.Interaction, trigger: str) -> None:
-		player_id, server_id = gets.get_player_server_ids(interaction)
-		event = tutorial_data.TutorialEvent(
-			kind="trigger",
-			name=trigger,
-		)
+	async def on_tutorial_trigger(
+		self,
+		source: commands.Context | discord.Interaction,
+		trigger: str,
+	) -> None:
+		player_id, server_id = gets.get_player_server_ids(source)
+		event = tutorial_data.TutorialEvent(kind="trigger", name=trigger)
 
 		await self.process_tutorial_task(
 			player_id,
 			server_id,
 			event,
-			interaction.channel,
+			source.channel,
 		)
 
 
