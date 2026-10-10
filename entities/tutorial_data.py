@@ -4,7 +4,7 @@ from functools import partial
 
 from discord.ext import commands
 
-from queries import currency_queries, gem_queries
+from queries import currency_queries, gem_queries, player_demons_queries
 
 
 @dataclass
@@ -29,11 +29,14 @@ class TutorialEvent:
 	# "command" or "trigger"
 	kind: str
 	name: str
+	player_id: int
+	server_id: int
 	args: tuple[str, ...] | None = None
 
 
 # Get command context and return bool if task completed.
 TaskCheck = Callable[[TutorialEvent], Awaitable[bool]]
+QueryCheck = Callable[[int, int], Awaitable[bool]]
 
 
 def get_command_args(ctx: commands.Context) -> tuple[str, ...]:
@@ -76,11 +79,64 @@ def ran_trigger(name: str) -> TaskCheck:
 	return check
 
 
-async def gem_reward(player_id, server_id, gem_dict):
+def check_using_query(query: QueryCheck, allowed_commands: tuple[str, ...]) -> TaskCheck:
+	async def check(event: TutorialEvent) -> bool:
+		# Prevent spamming ourselves with checks every command.
+		if event.name not in allowed_commands:
+			return False
+
+		return await query(event.player_id, event.server_id)
+
+	return check
+
+
+def party_average_check(target: int) -> QueryCheck:
+	async def query(player_id: int, server_id: int) -> bool:
+		stats = await player_demons_queries.get_party_stats(player_id, server_id)
+		return stats.average >= target
+
+	return query
+
+
+def party_size_check(target: int) -> QueryCheck:
+	async def query(player_id: int, server_id: int) -> bool:
+		stats = await player_demons_queries.get_party_stats(player_id, server_id)
+		return stats.size >= target
+
+	return query
+
+
+def gem_amount_check(target: int) -> QueryCheck:
+	async def query(player_id: int, server_id: int) -> bool:
+		gems = await gem_queries.get_player_gems(player_id, server_id)
+		return len(gems) >= target
+
+	return query
+
+
+async def give_gem_reward(player_id, server_id, gem_dict):
 	for name, qty in gem_dict.items():
 		await gem_queries.add_gem(player_id, server_id, gems=(name,), number=qty)
 
 
+###
+# Steps:
+# 1. Very Basics. Help, Encounter and Views.
+# 2. Get some demons
+# 3. Loaning and Server Compendium
+# 4. Learn about Gems
+#
+
+# 			3: TutorialTask(
+# 	name="Increase Party Slots",
+# 	hint="Use `>increase_party` to increase the number of party slots you have.",
+# 	check=ran_trigger("increase_party"),
+# ),
+# 5: TutorialTask(
+# 	name="I'm Putting Together a Team",
+# 	hint="Register 5 demons to your Compendium.",
+# 	check=ran_command("help"),
+# ),
 TUTORIAL_STEPS = {
 	1: TutorialStep(
 		desc_step="Welcome to the DDS-Net!",
@@ -91,63 +147,81 @@ TUTORIAL_STEPS = {
 				check=ran_command("encounter"),
 			),
 			2: TutorialTask(
-				name="Joining the DDS-Net",
-				hint="Use `>tutorial` to see... Well, this helpful page!",
-				check=ran_command("tutorial"),
+				name='Think This Legally has to be Called "Party Time"',
+				hint="Use `>party` to see the demons you've collected so far.",
+				check=ran_command("party"),
 			),
 			3: TutorialTask(
+				name="Compendium",
+				hint=("Use `>compendium` to see every demon you've registered."),
+				check=ran_command("compendium"),
+			),
+			4: TutorialTask(
+				name="View Pixie's Entry",
+				hint="Use `>entry Pixie` to view details about your registered demons.",
+				check=ran_command_with_argument("entry", ("pixie",)),
+			),
+			5: TutorialTask(
+				name="Daily MAG",
+				hint="Use `>daily` to get some daily MAG. It is one of the main forms of currency.",
+				check=ran_command("daily"),
+			),
+			6: TutorialTask(
 				name="Hee-Huh?",
 				hint="Use `>help` to see a helpful list of commands.",
 				check=ran_command("help"),
 			),
 		},
-		reward_text="500 MAG",
+		reward_text="100 MAG",
 		# Partial takes function and prefills args that will now only need the remaining update_mag args.
-		# 500 MAG is enough to do >increase_party.
-		on_complete=partial(currency_queries.update_mag, amount=500),
+		on_complete=partial(currency_queries.update_mag, amount=100),
 	),
 	2: TutorialStep(
-		desc_step="Registration Complete! Teaching Fundamentals",
+		desc_step="Server Compendium",
 		desc_tasks={
 			1: TutorialTask(
-				name='Think This Legally has to be Called "Party Time"',
-				hint="Use `>party` to see the demons you've collected so far.",
-				check=ran_command("party"),
+				name="I'm Putting Together a Team",
+				hint="Register 3 demons to your Compendium then run `>party`.",
+				check=check_using_query(party_average_check(3), ("party",)),
 			),
 			2: TutorialTask(
-				name="Compendium",
+				name="Loan Something to the Server Compendium",
 				hint=(
-					"Use `>compendium gems` to see every demon you've registered and the usually hidden gem column"
-					" (these can be used with similar views like `>party` and there are more hidden columns available)."
+					"Try to `>loan <name>` a demon to the Server's Compendium. Loaning will help raise the maximum rank"
+					" (Server Cap) that encounters can spawn at for everyone."
 				),
-				check=ran_command_with_argument("compendium", ("gems",)),
+				check=ran_command("loan"),
 			),
 			3: TutorialTask(
-				name="View Entry",
-				hint="Use `>entry` to view details about your registered demons.",
-				check=ran_command("entry"),
+				name="View Server Compendium",
+				hint="Use `>server_compendium` to view every demon that is currently being loaned by players.",
+				check=ran_command("server_compendium"),
 			),
 			4: TutorialTask(
-				name="Increase Party Slots",
-				hint="Use `>increase_party` to increase the number of party slots you have.",
-				check=ran_trigger("increase_party"),
+				name="Raise Party Average to 5 then run stuff command",
+				hint=(
+					"Encounters are weighted to spawn demons at the Party's Average Rank."
+					" Add demons to your party until your Party Average is 5 then run the `>stuff` command."
+				),
+				check=check_using_query(party_average_check(5), ("stuff",)),
 			),
-			# 5: TutorialTask(
-			# 	name="I'm Putting Together a Team",
-			# 	hint="Register 5 demons to your Compendium.",
-			# 	check=ran_command("help"),
-			# ),
+			5: TutorialTask(
+				name="Server Stats",
+				hint="Use `>server_stats` to view details about the server.",
+				check=ran_command("server_stats"),
+			),
 		},
 		reward_text="Amethyst x2, Agate x1",
-		on_complete=partial(gem_reward, gem_dict={"AMETHYST": 2, "AGATE": 1}),
+		# Gems to get a Fairy Incense.
+		on_complete=partial(give_gem_reward, gem_dict={"AMETHYST": 2, "AGATE": 1}),
 	),
 	3: TutorialStep(
 		desc_step="Gemstones",
 		desc_tasks={
 			1: TutorialTask(
-				name="Check Gems",
-				hint="Use `>gems` to see your gem collection.",
-				check=ran_command("gems"),
+				name="Have 5 Unique Gems",
+				hint="Have 5 unique gems in your collection, then run `>gems`.",
+				check=check_using_query(gem_amount_check(5), ("gems",)),
 			),
 			2: TutorialTask(
 				name="Fairy Incense",
@@ -174,6 +248,31 @@ TUTORIAL_STEPS = {
 		on_complete=partial(currency_queries.update_mag, amount=500),
 	),
 	4: TutorialStep(
+		desc_step="Increasing Capabilities",
+		desc_tasks={
+			1: TutorialTask(
+				name="I'm Putting Together a Team",
+				hint="Register 10 demons to your Compendium then run `>party`.",
+				check=check_using_query(party_average_check(10), ("party",)),
+			),
+			2: TutorialTask(
+				name="Views with Extra Columns",
+				hint=(
+					"Use `>party tone` to see the usually hidden tone column.  These can be used with similar views like"
+					" `>compendium` and there are other hidden columns available (see `>help`)."
+				),
+				check=ran_command_with_argument("party", ("tone",)),
+			),
+			3: TutorialTask(
+				name="Increase Party Slots",
+				hint="Use `>increase_party` to increase the number of party slots you have.",
+				check=ran_trigger("increase_party"),
+			),
+		},
+		reward_text="500 MAG",
+		on_complete=partial(currency_queries.update_mag, amount=500),
+	),
+	5: TutorialStep(
 		desc_step="End",
 		desc_tasks={
 			1: TutorialTask(

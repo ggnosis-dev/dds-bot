@@ -158,8 +158,10 @@ class PlayerUtil(commands.Cog):
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		command_args = tutorial_data.get_command_args(ctx)
 		event = tutorial_data.TutorialEvent(
-			kind="command",
-			name=ctx.command.name,
+			"command",
+			ctx.command.name,
+			player_id,
+			server_id,
 			args=command_args,
 		)
 
@@ -177,7 +179,7 @@ class PlayerUtil(commands.Cog):
 		trigger: str,
 	) -> None:
 		player_id, server_id = gets.get_player_server_ids(source)
-		event = tutorial_data.TutorialEvent(kind="trigger", name=trigger)
+		event = tutorial_data.TutorialEvent("trigger", trigger, player_id, server_id)
 
 		await self.process_tutorial_task(
 			player_id,

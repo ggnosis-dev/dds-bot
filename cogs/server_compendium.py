@@ -94,7 +94,7 @@ class ServerCompendium(commands.Cog):
 			stored_owner = await self.bot.fetch_user(stored_demon.player_id)
 			design_data = await demon_queries.get_design_data(demon_id, stored_demon.player_id, server_id)
 
-			# If weaker, send message about it and return.
+			# If player demon is weaker, send message about it and return.
 			if player_demon.stored_rank <= stored_demon.stored_rank:
 				await MessageView.send(
 					ctx.channel,
