@@ -13,6 +13,7 @@ from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
 from queries import currency_queries, demon_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
+from views.goal_view import GoalView
 
 
 class PlayerUtil(commands.Cog):
@@ -84,21 +85,7 @@ class PlayerUtil(commands.Cog):
 		# Build tutorial view using TutorialStep object.
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		step, task_mask = await player_queries.get_tutorial_progress(player_id, server_id)
-
-		current_step = tutorial_data.TUTORIAL_STEPS[step]
-
-		task_list = ""
-		for task_id, task in current_step.desc_tasks.items():
-			# e.g. 6 == 0b011 (task 1 and 2 done).
-			# 6 & (1 << (2 - 1))) where 2 is task 2.
-			# 0b011 & 0b010 == 0b010 == 2 = truthy
-			done = bool(task_mask & (1 << (task_id - 1)))
-			task_list += f"\n- {'~~' if done else ''}{task.name}{'~~' if done else ''}\n-# {task.hint}"
-
-		await ctx.send(
-			f"{step} | {format(task_mask, 'b')}\nDesc: {current_step.desc_step}"
-			f"\nReward: {current_step.reward_text}\n{task_list}"
-		)
+		await GoalView.send(ctx.channel, step, task_mask)
 
 	async def process_tutorial_task(
 		self, player_id: int, server_id: int, event: tutorial_data.TutorialEvent, channel
@@ -157,36 +144,14 @@ class PlayerUtil(commands.Cog):
 
 		player_id, server_id = gets.get_player_server_ids(ctx)
 		command_args = tutorial_data.get_command_args(ctx)
-		event = tutorial_data.TutorialEvent(
-			"command",
-			ctx.command.name,
-			player_id,
-			server_id,
-			args=command_args,
-		)
-
-		await self.process_tutorial_task(
-			player_id,
-			server_id,
-			event,
-			ctx.channel,
-		)
+		event = tutorial_data.TutorialEvent("command", ctx.command.name, player_id, server_id, args=command_args)
+		await self.process_tutorial_task(player_id, server_id, event, ctx.channel)
 
 	@commands.Cog.listener()
-	async def on_tutorial_trigger(
-		self,
-		source: commands.Context | discord.Interaction,
-		trigger: str,
-	) -> None:
+	async def on_tutorial_trigger(self, source: commands.Context | discord.Interaction, trigger: str) -> None:
 		player_id, server_id = gets.get_player_server_ids(source)
 		event = tutorial_data.TutorialEvent("trigger", trigger, player_id, server_id)
-
-		await self.process_tutorial_task(
-			player_id,
-			server_id,
-			event,
-			source.channel,
-		)
+		await self.process_tutorial_task(player_id, server_id, event, source.channel)
 
 
 class ServerUtil(commands.Cog):

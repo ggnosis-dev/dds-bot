@@ -120,24 +120,6 @@ async def give_gem_reward(player_id, server_id, gem_dict):
 		await gem_queries.add_gem(player_id, server_id, gems=(name,), number=qty)
 
 
-###
-# Steps:
-# 1. Very Basics. Help, Encounter and Views.
-# 2. Get some demons
-# 3. Loaning and Server Compendium
-# 4. Learn about Gems
-#
-
-# 			3: TutorialTask(
-# 	name="Increase Party Slots",
-# 	hint="Use `>increase_party` to increase the number of party slots you have.",
-# 	check=ran_trigger("increase_party"),
-# ),
-# 5: TutorialTask(
-# 	name="I'm Putting Together a Team",
-# 	hint="Register 5 demons to your Compendium.",
-# 	check=ran_command("help"),
-# ),
 TUTORIAL_STEPS = {
 	1: TutorialStep(
 		desc_step="Welcome to the DDS-Net!",
@@ -148,7 +130,7 @@ TUTORIAL_STEPS = {
 				check=ran_command("encounter"),
 			),
 			2: TutorialTask(
-				name='Think This Legally has to be Called "Party Time"',
+				name="Party",
 				hint="Use `>party` to see the demons you've collected so far.",
 				check=ran_command("party"),
 			),
