@@ -172,7 +172,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		container.add_item(section)
 
 		# Infobox portion.
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
 		container.add_item(
 			ui.TextDisplay(
 				f"\n-# - Tone: {shown_demon.tone_name.title()}"
@@ -183,13 +183,13 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		)
 
 		# Description portion.
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
 		container.add_item(ui.TextDisplay(f"{shown_demon.desc or 'No Description Available.'}"))
 
-		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.small))
 		# Add image.
 		container.add_item(
-			discord.ui.MediaGallery(
+			ui.MediaGallery(
 				discord.MediaGalleryItem(
 					design_data.encounter_img,
 					description=shown_demon.name,
