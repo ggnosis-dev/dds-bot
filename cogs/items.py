@@ -38,7 +38,7 @@ class InventoryCommands(commands.Cog):
 		number_to_use = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 1
 		if number_to_use <= 0:
 			number_to_use = 1
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		item_id = await item_queries.get_item_id_by_name(item_name)
 
 		# Check if item is valid.
@@ -101,7 +101,7 @@ class InventoryCommands(commands.Cog):
 	async def item_inventory_command(self, ctx: commands.Context) -> None:
 		"""View player's item inventory."""
 
-		player, server = gets.get_player_server(ctx)
+		player, server = gets.get_user_server(ctx)
 		items = await item_queries.get_player_inventory(player.id, server.id)
 		columns = list(Columns.ITEM_DEFAULT)
 		columns.append(Columns.DESC)
@@ -121,7 +121,7 @@ class GemCommands(commands.Cog):
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gems_command(self, ctx: commands.Context) -> None:
 		"""View player's current gems collection."""
-		player, server = gets.get_player_server(ctx)
+		player, server = gets.get_user_server(ctx)
 		collected_gems = await gem_queries.get_player_gems(player.id, server.id)
 		columns = list(Columns.ITEM_DEFAULT)
 
@@ -145,7 +145,7 @@ class GemCommands(commands.Cog):
 			if ctx.valid:
 				return
 
-			player_id, server_id = gets.get_player_server_ids(ctx)
+			player_id, server_id = gets.get_user_server_ids(ctx)
 			selected_demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 			if selected_demon_id is None:

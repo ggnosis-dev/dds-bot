@@ -26,7 +26,7 @@ class Encounters(commands.Cog):
 	async def encounter_demon_command(self, ctx: commands.Context) -> None:
 		"""Command to trigger a daily demon encounter."""
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		player_data = await player_queries.get_player(player_id, server_id)
 		set_channel = await server_queries.get_dedicated_channel(server_id)
 		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(set_channel) if set_channel else ctx.channel)
@@ -65,7 +65,7 @@ class Encounters(commands.Cog):
 	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None) -> None:
 		"""Command to start a test encounter with a random demon. Name can be provided."""
 		try:
-			player_id, server_id = gets.get_player_server_ids(ctx)
+			player_id, server_id = gets.get_user_server_ids(ctx)
 
 			if name:
 				d = await demon_queries.get_demon_by_name(player_id, server_id, name)

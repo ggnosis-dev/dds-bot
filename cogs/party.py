@@ -28,7 +28,7 @@ class PartyCommands(commands.Cog):
 		"""Command to display a player's current party."""
 
 		try:
-			player, server = gets.get_player_server(ctx)
+			player, server = gets.get_user_server(ctx)
 			mentioned = None
 			columns = list(Columns.PLAYER_DEFAULT)
 
@@ -60,7 +60,7 @@ class PartyCommands(commands.Cog):
 	async def release_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		"""Command to release a demon from the player's party."""
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
@@ -96,7 +96,7 @@ class PartyCommands(commands.Cog):
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "increase_party"))
 	async def increase_party_command(self, ctx: commands.Context, number: int = 1) -> None:
 		try:
-			pid, sid = gets.get_player_server_ids(ctx)
+			pid, sid = gets.get_user_server_ids(ctx)
 			p_data = await get_player(pid, sid)
 
 			if p_data is None:
@@ -145,7 +145,7 @@ class LeaderCommands(commands.Cog):
 
 	async def _select_demon_to_lead(self, ctx: commands.Context, demon_name: str) -> None:
 		"""Select a demon to lead your party."""
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
@@ -175,7 +175,7 @@ class LeaderCommands(commands.Cog):
 
 	async def _check_leader(self, ctx: commands.Context) -> None:
 		"""Check stats of the current leader."""
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
 
 		# This should never happen.

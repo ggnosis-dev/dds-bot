@@ -57,7 +57,7 @@ class ServerCompendium(commands.Cog):
 			await MessageView.send(ctx.channel, Messages.no_input_given(SERVER_COMPENDIUM_COMMANDS["loan"]))
 			return
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		server_name = gets.get_server_name(ctx)
 		demon_name = demon_name.title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
@@ -159,7 +159,7 @@ class ServerCompendium(commands.Cog):
 			await MessageView.send(ctx.channel, Messages.no_input_given(SERVER_COMPENDIUM_COMMANDS["loan"]))
 			return
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		server_name = gets.get_server_name(ctx)
 		demon_name = demon_name.title()
 		demon = await demon_queries.get_demon_by_name(player_id, server_id, demon_name)

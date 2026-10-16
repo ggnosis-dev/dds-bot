@@ -29,7 +29,7 @@ class Fusion(commands.Cog):
 	async def fuse_command(self, ctx: commands.Context, *, input_str: str | None) -> None:
 
 		# Reminder first, then check for input lacking.
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		if player_id in self.players_in_fusion:
 			await MessageView.send(ctx.channel, FusionMsg.already_in_fusion())
 			return

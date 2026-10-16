@@ -22,7 +22,7 @@ class Compendium(commands.Cog):
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "compendium"))
 	async def compendium_command(self, ctx: commands.Context, *args: str) -> None:
 		"""Command to display a player's seen demons which is stored in their compendium."""
-		player, server = gets.get_player_server(ctx)
+		player, server = gets.get_user_server(ctx)
 		columns = list(Columns.COMP_DEFAULT)
 		mentioned = None
 
@@ -50,7 +50,7 @@ class Compendium(commands.Cog):
 			await MessageView.send(ctx.channel, CompendiumMsg.no_input_given(COMPENDIUM_COMMANDS["summon"]))
 			return
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_name = demon_name.title()
 		demon = await demon_queries.get_demon_by_name(player_id, server_id, demon_name)
 
@@ -106,7 +106,7 @@ class Compendium(commands.Cog):
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "entry"))
 	async def entry_command(self, ctx: commands.Context, *, demon_name: str | None) -> None:
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_id = None
 
 		if demon_name is not None:

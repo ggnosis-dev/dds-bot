@@ -26,7 +26,7 @@ class CustomisationCommands(commands.Cog):
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["demon_colour"]))
 			return
 		demon_name = parts[0]
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
 		# Check if demon is valid. If it is, still check registration as to not reveal demons player haven't seen yet.
@@ -65,7 +65,7 @@ class CustomisationCommands(commands.Cog):
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["set_greeting"]))
 			return
 		demon_name = parts[0]
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
 		reg_status = (

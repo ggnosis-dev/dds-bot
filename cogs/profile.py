@@ -15,7 +15,7 @@ class Profile(commands.Cog):
 	async def badges_command(self, ctx: commands.Context) -> None:
 		"""Show obtained badges."""
 
-		player_id, _server_id = gets.get_player_server_ids(ctx)
+		player_id, _server_id = gets.get_user_server_ids(ctx)
 		badges = await badge_queries.get_all_demon_badges(player_id)
 		message = ProfileMsg.show_badges(badges) if len(badges) >= 0 else ProfileMsg.no_badges()
 		await ctx.send(message)

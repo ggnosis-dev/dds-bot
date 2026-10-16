@@ -4,19 +4,19 @@ from discord import Guild, Interaction, Member
 from discord.ext import commands
 
 
-def get_player_server(ctx: commands.Context) -> tuple:
-	player = get_player(ctx)
+def get_user_server(ctx: commands.Context) -> tuple:
+	player = get_user(ctx)
 	server = get_server(ctx)
 	return player, server
 
 
-def get_player_server_ids(ctx: commands.Context | Interaction) -> tuple:
-	player = get_player(ctx)
+def get_user_server_ids(ctx: commands.Context | Interaction) -> tuple:
+	player = get_user(ctx)
 	server = get_server(ctx)
 	return player.id, server.id
 
 
-def get_player(ctx: commands.Context | Interaction) -> Member:
+def get_user(ctx: commands.Context | Interaction) -> Member:
 	if isinstance(ctx, commands.Context):
 		author = ctx.author
 	elif isinstance(ctx, Interaction):

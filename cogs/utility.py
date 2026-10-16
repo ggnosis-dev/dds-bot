@@ -25,9 +25,9 @@ class PlayerUtil(commands.Cog):
 	async def stuff_command(self, ctx: commands.Context) -> None:
 		"""Command to view MAG, daily timer, all that jazz."""
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		user_id, server_id = gets.get_user_server_ids(ctx)
 		player_data, server_data = await asyncio.gather(
-			player_queries.get_player(player_id, server_id),
+			player_queries.get_player(user_id, server_id),
 			server_level_queries.get_server_status(server_id),
 		)
 
@@ -55,7 +55,7 @@ class PlayerUtil(commands.Cog):
 	async def daily_command(self, ctx: commands.Context) -> None:
 		"""Command to get some free MAG every, however many hours."""
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		player_data = await player_queries.get_player(player_id, server_id)
 
 		if player_data is None:
@@ -83,7 +83,7 @@ class PlayerUtil(commands.Cog):
 	async def tutorial_command(self, ctx: commands.Context) -> None:
 		"""Tutorial is not blocked by needing a profile."""
 		# Build tutorial view using TutorialStep object.
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		step, task_mask = await player_queries.get_tutorial_progress(player_id, server_id)
 		await GoalView.send(ctx.channel, step, task_mask)
 
@@ -142,14 +142,14 @@ class PlayerUtil(commands.Cog):
 	async def on_command_completion(self, ctx: commands.Context) -> None:
 		assert ctx.command is not None, "Run command check should only occur in on_command_completion."
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		command_args = tutorial_data.get_command_args(ctx)
 		event = tutorial_data.TutorialEvent("command", ctx.command.name, player_id, server_id, args=command_args)
 		await self.process_tutorial_task(player_id, server_id, event, ctx.channel)
 
 	@commands.Cog.listener()
 	async def on_tutorial_trigger(self, source: commands.Context | discord.Interaction, trigger: str) -> None:
-		player_id, server_id = gets.get_player_server_ids(source)
+		player_id, server_id = gets.get_user_server_ids(source)
 		event = tutorial_data.TutorialEvent("trigger", trigger, player_id, server_id)
 		await self.process_tutorial_task(player_id, server_id, event, source.channel)
 
@@ -198,7 +198,7 @@ class DevUtil(commands.Cog):
 	async def give_mag_command(self, ctx: commands.Context, amount: int) -> None:
 		"""Add MAG to self for testing."""
 
-		player_id, server_id = gets.get_player_server_ids(ctx)
+		player_id, server_id = gets.get_user_server_ids(ctx)
 		await currency_queries.update_mag(player_id, server_id, amount)
 		mag = await currency_queries.get_mag(player_id, server_id)
 		await MessageView.send(ctx.channel, Messages.discovered_mag(amount, mag))
