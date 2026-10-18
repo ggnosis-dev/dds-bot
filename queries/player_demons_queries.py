@@ -7,7 +7,9 @@ from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
 
 
-async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) -> DemonTableRow | None:
+async def get_player_demon_by_id(player_id: int, demon_id: int) -> DemonTableRow | None:
+	"""Get a player's demon data by its ID."""
+
 	row = query_one(
 		"""
 			SELECT
@@ -18,51 +20,39 @@ async def get_player_demon_by_id(player_id: int, server_id: int, demon_id: int) 
 				pd.dupes
 			FROM demon_entry_VIEW v
 			JOIN player_demons pd ON pd.demon_id = v.id
-			WHERE pd.player_id = ?
-				AND pd.server_id = ?
-				AND pd.demon_id = ?
+			WHERE pd.player_id = ? AND pd.demon_id = ?
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
-
-	if row:
-		return convert_row_to_demon_table_row(row)
-	return None
+	return convert_row_to_demon_table_row(row) if row else None
 
 
-async def set_demon_in_party(player_id: int, server_id: int, demon_id: int, set_in_party: bool = True) -> bool:
+async def set_demon_in_party(player_id: int, demon_id: int, set_in_party: bool = True) -> bool:
 	"""
 	Manage whether to add or remove a demon from a player's party.
 
 	Args:
-		player_id (int): Player ID.
-		server_id (int): Server ID the player belongs to.
-		demon_id (int): Demon's ID.
 		party_add (bool): True to add to party, False to remove from party.
 	Returns:
 		bool: True if the demon's status was updated, False otherwise.
 	"""
+
 	rows_affected = query_write(
 		"""
 			UPDATE player_demons
 			SET in_party = ?
-			WHERE player_id = ? AND server_id = ? AND demon_id = ? AND in_party != ?
+			WHERE player_id = ? AND demon_id = ? AND in_party != ?
 		""",
-		(set_in_party, player_id, server_id, demon_id, set_in_party),
+		(set_in_party, player_id, demon_id, set_in_party),
 	)
 
 	return rows_affected > 0
 
 
-async def add_demon_to_compendium(player_id: int, server_id: int, demon_id: int, demon_rank: int) -> bool:
+async def add_demon_to_compendium(player_id: int, demon_id: int, demon_rank: int) -> bool:
 	"""
 	Add a demon to the player's compendium if it doesn't already exist.
 
-	Args:
-		player_id (int): Player ID.
-		server_id (int): Server ID the player belongs to.
-		demon_id (int): Demon's ID.
-		demon_rank (int): Demon's rank.
 	Returns:
 		bool: True if the demon was added, False if it already exists.
 	"""
@@ -71,9 +61,9 @@ async def add_demon_to_compendium(player_id: int, server_id: int, demon_id: int,
 	exists_in_comp = query_one(
 		"""
 			SELECT 1 FROM player_demons
-			WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			WHERE player_id = ? AND demon_id = ?
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
 
 	# Return early if demon is already in compendium to avoid dupes.
@@ -82,59 +72,58 @@ async def add_demon_to_compendium(player_id: int, server_id: int, demon_id: int,
 
 	query_write(
 		"""
-			INSERT INTO player_demons (player_id, server_id, demon_id, stored_rank, in_party, date_met)
-			VALUES (?, ?, ?, ?, 0, ?)
+			INSERT INTO player_demons (player_id, demon_id, stored_rank, in_party, date_met)
+			VALUES (?, ?, ?, 0, ?)
 		""",
-		(player_id, server_id, demon_id, demon_rank, int(time())),
+		(player_id, demon_id, demon_rank, int(time())),
 	)
 
 	return True
 
 
-async def check_demon_registration(user_id: int, server_id: int, demon_id: int) -> DemonRegistration:
+async def check_demon_registration(player_id: int, demon_id: int) -> DemonRegistration:
 	"""
 	Check a demon's current state of registration for a specific player.
 
 	Returns:
 		DemonRegistration: Enum indicating the demon's registration status. IN_PARTY, IN_COMP, ON_LOAN, LEADER, UNREGISTERED.
 	"""
-	response = query_one(
+
+	row = query_one(
 		"""
-			SELECT pd.in_party, pd.on_loan, p.selected_demon_id FROM player_demons pd
+			SELECT pd.in_party, pd.on_loan, p.selected_demon_id
+			FROM player_demons pd
 			JOIN players p ON p.player_id = pd.player_id
-				AND p.server_id = pd.server_id
-			WHERE pd.player_id = ?
-				AND pd.server_id = ?
-				AND pd.demon_id = ?
+			WHERE pd.player_id = ? AND pd.demon_id = ?
 		""",
-		(user_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
 
-	if response is None:
+	if row is None:
 		return DemonRegistration.UNREGISTERED
 
-	in_party = response[0]
-	on_loan = response[1]
-	leader = response[2]
-
-	if leader == demon_id:
+	if row["selected_demon_id"] == demon_id:
 		return DemonRegistration.LEADER
 
-	if on_loan:
+	if row["on_loan"]:
 		return DemonRegistration.ON_LOAN
 
-	if in_party:
+	if row["in_party"]:
 		return DemonRegistration.IN_PARTY
+
 	return DemonRegistration.IN_COMP
 
 
-async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonTableRow]:
+async def check_party(player_id: int, need_gems: bool = False) -> list[DemonTableRow]:
 	"""
 	Query the database for the player's current party. Joins the player_demons table with the demon database.
 
+	Args:
+		need_gems (bool): Default False. Set True if gem column is needed which will assign gems using a cache method.
 	Returns:
 		list[dict]: List of demons in the player's party. Includes ID, name, race and stored_rank.
 	"""
+
 	rows = query_all(
 		"""
 			SELECT
@@ -145,35 +134,39 @@ async def check_party(user_id: int, server_id: int, need_gems: bool = False) -> 
 				pd.dupes
 			FROM demon_entry_VIEW v
 			JOIN player_demons pd ON pd.demon_id = v.id
-				AND pd.player_id = ? AND pd.server_id = ?
+				AND pd.player_id = ?
 			WHERE pd.in_party = 1
 			ORDER BY v.race ASC, v.id ASC
 		""",
-		(user_id, server_id),
+		(player_id,),
 	)
 
 	return await convert_row_to_demon_table_rows(rows, need_gems)
 
 
-async def get_player_demon_rank(player_id: int, server_id: int, demon_id: int) -> int:
-	response = query_one(
+async def get_player_demon_rank(player_id: int, demon_id: int) -> int:
+	"""Get a stored demon's rank, mainly for use when hunting gems."""
+	row = query_one(
 		"""
 			SELECT stored_rank FROM player_demons
-			WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			WHERE player_id = ? AND demon_id = ?
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
 
-	return response[0] if response else -1
+	return row[0] if row else -1
 
 
-async def check_compendium(user_id: int, server_id: int, need_gems: bool = False) -> list[DemonTableRow]:
+async def check_compendium(player_id: int, need_gems: bool = False) -> list[DemonTableRow]:
 	"""
 	Query the database for the player's encountered demons. Joins the player_demons table with the demon database.
 
+	Args:
+		need_gems (bool): Default False. Set True if gem column is needed which will assign gems using a cache method.
 	Returns:
 		list[DemonEntry]: List of demons in the player's compendium.
 	"""
+
 	# Use LEFT JOIN to get all demons. stored_rank will be NULL if player hasn't encountered them.
 	rows = query_all(
 		"""
@@ -185,75 +178,73 @@ async def check_compendium(user_id: int, server_id: int, need_gems: bool = False
 				pd.dupes
 			FROM demon_entry_VIEW v
 			LEFT JOIN player_demons pd ON pd.demon_id = v.id
-				AND pd.player_id = ? AND pd.server_id = ?
+				AND pd.player_id = ?
 			ORDER BY v.race ASC, v.id ASC
 		""",
-		(user_id, server_id),
+		(player_id,),
 	)
 
 	return await convert_row_to_demon_table_rows(rows, need_gems)
 
 
-async def get_demon_entries(user_id: int, server_id: int) -> list[int]:
+async def get_demon_entries(player_id: int) -> list[int]:
 	"""
 	Query database for a list of IDs that the player has encountered.
 
 	Returns:
 		list[int]: List of demon IDs in the player's compendium.
 	"""
+
 	rows = query_all(
 		"""
 			SELECT pd.demon_id FROM player_demons pd
 			JOIN demons d ON pd.demon_id = d.id
 			JOIN races r ON d.race_id = r.id
-			WHERE pd.player_id = ? AND pd.server_id = ?
+			WHERE pd.player_id = ?
 			ORDER BY r.name ASC, d.rank ASC
 		""",
-		(user_id, server_id),
+		(player_id,),
 	)
 
 	entry_ids = [row["demon_id"] for row in rows]
-
 	return entry_ids
 
 
-async def set_selected_demon(player_id: int, server_id: int, demon_id: int) -> None:
+async def set_selected_demon(player_id: int, demon_id: int) -> None:
 	"""
 	Set the selected demon for the player. The player's selected demon will hunt for their gem type,
 	and have other uses in the future.
 	"""
+
 	query_write(
 		"""
 			UPDATE players
 			SET selected_demon_id = ?
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ?
 		""",
-		(demon_id, player_id, server_id),
+		(demon_id, player_id),
 	)
 
 
-async def get_selected_demon_id(player_id: int, server_id: int) -> int | None:
+async def get_selected_demon_id(player_id: int) -> int | None:
 	"""
 	Get the player's selected demon ID.
 
-	Args:
-		player_id (int): Player ID.
-		server_id (int): Server ID the player belongs to.
 	Returns:
 		int | None: The selected demon's ID if it exists, otherwise None.
 	"""
-	response = query_one(
+
+	row = query_one(
 		"""
 			SELECT selected_demon_id FROM players
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ?
 		""",
-		(player_id, server_id),
+		(player_id,),
 	)
+	return row[0] if row else None
 
-	return response[0] if response else None
 
-
-async def update_party(player_id: int, server_id: int, party_add: int = 1) -> bool:
+async def update_party(player_id: int, party_add: int = 1) -> bool:
 	"""
 	Add or subract to the player's current party count.
 
@@ -265,158 +256,134 @@ async def update_party(player_id: int, server_id: int, party_add: int = 1) -> bo
 		"""
 			UPDATE players
 			SET party_size = party_size + ?
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ?
 		""",
-		(party_add, player_id, server_id),
+		(party_add, player_id),
 	)
-
 	return rows_affected > 0
 
 
-def get_party_has_space(player_id: int, server_id: int) -> bool:
-	"""
-	Check if the player's party is full.
+def get_party_has_space(player_id: int) -> bool:
+	"""Check if the player's party is full."""
 
-	Returns:
-		bool: True if has space, False otherwise.
-	"""
-	response = query_one(
+	row = query_one(
 		"""
 			SELECT 1 FROM players
 			WHERE party_size < party_cap
 				AND player_id = ?
-				AND server_id = ?
 		""",
-		(player_id, server_id),
+		(player_id,),
 	)
+	return row is not None
 
-	return response is not None
 
+async def calculate_party_average(player_id: int) -> int:
+	"""Work out the average rank of the party."""
 
-async def calculate_party_average(player_id: int, server_id: int) -> int:
-	# print("DEBUG: calculate_party_average")
-	party = await check_party(player_id, server_id)
+	party = await check_party(player_id)
 	ranks = []
 
 	# Isolate rank.
 	for demon in party:
 		ranks.append(demon.stored_rank)
 
-	average = max(1, sum(ranks) // len(ranks))
-
-	return average
+	return max(1, sum(ranks) // len(ranks))
 
 
-async def update_party_average(player_id: int, server_id: int) -> bool:
-	# print("DEBUG: update_party_average")
-	average_rank = await calculate_party_average(player_id, server_id)
+async def update_party_average(player_id: int) -> bool:
+	"""Set the average rank of the party."""
+
+	average_rank = await calculate_party_average(player_id)
 
 	rows_affected = query_write(
 		"""
 			UPDATE players
 			SET party_average_rank = ?
 			WHERE player_id = ?
-				AND server_id = ?
 		""",
-		(average_rank, player_id, server_id),
+		(average_rank, player_id),
 	)
-
 	return rows_affected > 0
 
 
-async def get_party_average(player_id: int, server_id: int) -> int:
-	response = query_one(
-		"""
-			SELECT party_average_rank FROM players
-			WHERE player_id = ?
-				AND server_id = ?
-		""",
-		(player_id, server_id),
-	)[0]
-
-	return max(1, response)
-
-
-async def get_party_stats(player_id: int, server_id: int) -> PartyStats:
+async def get_party_stats(player_id: int) -> PartyStats:
 	size, cap, average = query_one(
 		"""
 			SELECT party_size, party_cap, party_average_rank FROM players
 			WHERE player_id = ?
-				AND server_id = ?
 		""",
-		(player_id, server_id),
+		(player_id,),
 	)
 
-	strongest = await get_strongest_party_demon_rank(player_id, server_id)
-
+	strongest = await get_strongest_party_demon_rank(player_id)
 	return PartyStats(size=size, cap=cap, average=average, strongest=strongest)
 
 
-async def get_strongest_party_demon_rank(player_id: int, server_id: int) -> int:
-	# Because we're doing MAX, we will always get a valid response object.
-	response = query_one(
+async def get_strongest_party_demon_rank(player_id: int) -> int:
+	# Because we're doing MAX, we will always get a valid row object.
+	row = query_one(
 		"""
 			SELECT MAX(stored_rank) FROM player_demons
-			WHERE player_id = ? AND server_id = ? AND in_party = 1
+			WHERE player_id = ? AND in_party = 1
 		""",
-		(player_id, server_id),
+		(player_id,),
 	)[0]
 
-	return response if response is not None else 1
+	return row if row is not None else 1
 
 
-async def increase_dupe_level(player_id: int, server_id: int, demon_id: int) -> int:
-	response = query_one(
+async def increase_dupe_level(player_id: int, demon_id: int) -> int:
+	"""Add a level when a duplicate demon is encountered by the player."""
+
+	row = query_one(
 		"""
 			UPDATE player_demons
 			SET dupes = dupes + 1
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 			RETURNING dupes
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
 
-	if response is None:
+	if row is None:
 		raise RuntimeError("increase_dupe_level was called for an invalid player demon.")
+	return row[0]
 
-	return response[0]
 
-
-async def set_custom_colour_on_demon(player_id: int, server_id: int, demon_id: int, colour: int = 0) -> bool:
+async def set_custom_colour_on_demon(player_id: int, demon_id: int, colour: int = 0) -> bool:
 	"""When setting colour to 0, it will still hit the OR check in demon_data, thus becoming DEFAULT again."""
+
 	rows_affected = query_write(
 		"""
 			UPDATE player_demons
 			SET colour = ?
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 		""",
-		(colour, player_id, server_id, demon_id),
+		(colour, player_id, demon_id),
 	)
 
 	return rows_affected > 0
 
 
-async def get_custom_colour_on_demon(player_id: int, server_id: int, demon_id: int) -> int | None:
+async def get_custom_colour_on_demon(player_id: int, demon_id: int) -> int | None:
 	"""If colour is not NULL or None, it means that the player has it unlocked for the demon."""
-	response = query_one(
+
+	row = query_one(
 		"""
 			SELECT colour FROM player_demons
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
+	return row[0] if row else None
 
-	return response[0] if response else None
 
+async def set_custom_greeting_on_demon(player_id: int, demon_id: int, greeting: str = "") -> bool:
+	"""Update what the demon will say when it is encountered."""
 
-async def set_custom_greeting_on_demon(player_id: int, server_id: int, demon_id: int, greeting: str = "") -> bool:
-	""""""
 	if len(greeting) > GREETING_LENGTH:
 		# Too long. SQLite doesn't have a way to validate text length so has to be done here.
 		return False
@@ -426,61 +393,56 @@ async def set_custom_greeting_on_demon(player_id: int, server_id: int, demon_id:
 			UPDATE player_demons
 			SET greeting = ?
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 		""",
-		(greeting, player_id, server_id, demon_id),
+		(greeting, player_id, demon_id),
 	)
-
 	return rows_affected > 0
 
 
-async def get_custom_greeting_on_demon(player_id: int, server_id: int, demon_id: int) -> str | None:
-	"""If greeting is not NULL or None, it means that the player has it unlocked for the demon."""
-	response = query_one(
+async def get_custom_greeting_on_demon(player_id: int, demon_id: int) -> str | None:
+	"""If greeting is NOT NULL/None, it implies that the player has it unlocked for the demon."""
+
+	row = query_one(
 		"""
 			SELECT greeting FROM player_demons
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
-
-	return response[0] if response else None
+	return row[0] if row else None
 
 
 async def increase_demon_mag_mult(
 	player_id: int,
-	server_id: int,
 	demon_id: int,
 	amount: float = DEFAULT_DEMON_MULT_INCREMENT,
 ) -> float:
-	"""Update and return the mag mult value."""
-	response = query_one(
+	"""Update and return the MAG multiplier value."""
+
+	row = query_one(
 		"""
 			UPDATE player_demons
 			SET mag_mult = mag_mult + ?
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 			RETURNING mag_mult
 		""",
-		(amount, player_id, server_id, demon_id),
+		(amount, player_id, demon_id),
 	)
+	return row[0]
 
-	return response[0]
 
+async def get_demon_mag_mult(player_id: int, demon_id: int) -> float:
+	"""Retrieve the demon specific MAG multiplier if it exists."""
 
-async def get_demon_mag_mult(player_id: int, server_id: int, demon_id: int) -> float:
-	response = query_one(
+	row = query_one(
 		"""
 			SELECT mag_mult FROM player_demons
 			WHERE player_id = ?
-				AND server_id = ?
 				AND demon_id = ?
 		""",
-		(player_id, server_id, demon_id),
+		(player_id, demon_id),
 	)
-
-	return response[0] if response else 1
+	return row[0] if row else 1.0

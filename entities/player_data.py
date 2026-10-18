@@ -16,6 +16,7 @@ class PartyStats:
 @dataclass
 class PlayerData:
 	player_id: int
+	user_id: int
 	server_id: int
 	selected_demon_id: int
 	mag: int
@@ -29,6 +30,7 @@ def convert_row_to_player_data(row: Row, strongest: int) -> PlayerData:
 	try:
 		return PlayerData(
 			player_id=row["player_id"],
+			user_id=row["user_id"],
 			server_id=row["server_id"],
 			selected_demon_id=row["selected_demon_id"],
 			mag=row["mag"],

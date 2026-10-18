@@ -11,7 +11,7 @@ GEM_METER_FULL = 100
 async def get_possible_gems(race_id: int) -> tuple[str, str]:
 	response = query_all(
 		"""
-			SELECT gem_1, gem_2 FROM races
+			SELECT gem_1_id, gem_2_id FROM races
 			WHERE id = ?
 		""",
 		(race_id,),
@@ -20,20 +20,31 @@ async def get_possible_gems(race_id: int) -> tuple[str, str]:
 	return tuple(response[0])
 
 
-async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> bool:
+async def get_gem_progress(player_id: int, demon_id: int) -> int:
+	"""Get gem meter progress."""
+
+	row = query_one(
+		"""
+			SELECT gem_meter FROM player_demons
+			WHERE player_id = ? AND demon_id = ?
+		""",
+		(player_id, demon_id),
+	)
+	return row[0] if row else 0
+
+
+async def increase_gem_meter(player_id: int, demon_id: int) -> bool:
 	"""
 	Add to player's gem meter and if they're over the threshold for finding a new gem, then return True.
 
 	Args:
-		player_id (int): Player ID.
-		server_id (int): Server ID the player belongs to.
 		demon_id (int): Player's selected demon ID to determine which gem meter to increase.
 	Returns:
 		bool: True if meter was full, False otherwise.
 	"""
 
 	# Get player's stored rank for demon.
-	stored_rank = await player_demons_queries.get_player_demon_rank(player_id, server_id, demon_id)
+	stored_rank = await player_demons_queries.get_player_demon_rank(player_id, demon_id)
 	increment = stored_rank * GEM_EXP_MULTIPLIER
 
 	# Increase meter value.
@@ -41,12 +52,12 @@ async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> b
 		"""
 			UPDATE player_demons
 			SET gem_meter = gem_meter + ?
-			WHERE player_id = ? AND server_id = ? AND demon_id = ?
+			WHERE player_id = ? AND demon_id = ?
 		""",
-		(increment, player_id, server_id, demon_id),
+		(increment, player_id, demon_id),
 	)
 
-	meter_val = await get_gem_progress(player_id, server_id, demon_id)
+	meter_val = await get_gem_progress(player_id, demon_id)
 
 	# Reset meter if gem found.
 	if meter_val >= GEM_METER_FULL:
@@ -55,33 +66,35 @@ async def increase_gem_meter(player_id: int, server_id: int, demon_id: int) -> b
 			"""
 				UPDATE player_demons
 				SET gem_meter = gem_meter - ?
-				WHERE player_id = ? AND server_id = ? AND demon_id = ?
+				WHERE player_id = ? AND demon_id = ?
 			""",
-			(GEM_METER_FULL, player_id, server_id, demon_id),
+			(GEM_METER_FULL, player_id, demon_id),
 		)
 
 		return True
 	return False
 
 
-async def add_gem(player_id: int, server_id: int, gems: tuple, number: int = 1) -> str:
+async def add_gem(player_id: int, gems: tuple, number: int = 1) -> str:
+	"""Insert or update gem quantity."""
+
 	# Get gem type.
 	gem_name = random.choice(gems)
 
 	query_write(
 		"""
-			INSERT INTO player_gems (player_id, server_id, gem_name, quantity)
-			VALUES (?, ?, ?, ?)
-			ON CONFLICT (player_id, server_id, gem_name) DO
+			INSERT INTO player_gems (player_id, gem_name, quantity)
+			VALUES (?, ?, ?)
+			ON CONFLICT (player_id, gem_name) DO
 			UPDATE SET quantity = quantity + ?
 		""",
-		(player_id, server_id, gem_name, number, number),
+		(player_id, gem_name, number, number),
 	)
 
 	return gem_name
 
 
-async def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
+async def get_player_gems(player_id: int) -> list[ItemEntry]:
 	"""
 	Get a player's gem collection.
 
@@ -89,32 +102,20 @@ async def get_player_gems(player_id: int, server_id: int) -> list[ItemEntry]:
 		list[dict]: List of gems in the player's collection. Each gem is represented as a dictionary with 'gem_name'
 			and 'quantity' keys.
 	"""
+
 	rows = query_all(
 		"""
 			SELECT
 				gem_name AS name,
 				quantity
 			FROM player_gems
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ?
 			ORDER BY name ASC
 		""",
-		(player_id, server_id),
+		(player_id,),
 	)
 
 	entries = []
 	for row in rows:
 		entries.append(convert_row_to_item_entry(row))
 	return entries
-
-
-async def get_gem_progress(player_id: int, server_id: int, demon_id: int) -> int:
-	"""Get gem meter progress."""
-	result = query_one(
-		"""
-			SELECT gem_meter FROM player_demons
-			WHERE player_id = ? AND server_id = ? AND demon_id = ?
-		""",
-		(player_id, server_id, demon_id),
-	)
-
-	return result[0] if result else 0

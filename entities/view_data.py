@@ -45,7 +45,7 @@ class Columns:
 	ITEM_DEFAULT = [EMOTE, ITEM_NAME, QUANTITY]
 
 
-def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) -> tuple:
+def get_args(args: tuple[str, ...], server: discord.Guild, column_layout: list) -> tuple[list, discord.Member | None]:
 	mentioned = None
 	sorted_args = sorted(args)
 

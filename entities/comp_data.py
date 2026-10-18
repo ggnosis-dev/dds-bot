@@ -11,8 +11,8 @@ class ServerCompendiumDemon:
 	"""Thin data class used for operations."""
 
 	server_id: int
-	player_id: int
 	demon_id: int
+	player_id: int
 	stored_rank: int
 
 
@@ -73,7 +73,7 @@ def convert_row_to_demon_entry(row: Row) -> DemonEntry:
 			stored_rank=row["stored_rank"],
 			dupes=row["dupes"],
 			tone_name=Tone(row["tone"]).name,
-			gems=(row["gem_1"], row["gem_2"]),
+			gems=(row["gem_1_id"], row["gem_2_id"]),
 			design_data=convert_row_to_design_data(row),
 			date_met=row["date_met"],
 			desc=desc,

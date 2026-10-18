@@ -1,27 +1,27 @@
 from helpers.db import query_one, query_write
 
 
-async def get_mag(player_id: int, server_id: int) -> int:
+async def get_mag(player_id: int) -> int:
 	"""Get the amount of magnetite a player has."""
 	result = query_one(
 		"""
 			SELECT mag FROM players
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ?
 		""",
-		(player_id, server_id),
+		(player_id,),
 	)
 	return result[0] if result else 0
 
 
-async def update_mag(player_id: int, server_id: int, amount: int) -> bool:
+async def update_mag(player_id: int, amount: int) -> bool:
 	"""Update the amount of magnetite a player has."""
 	rows_affected = query_write(
 		"""
 			UPDATE players
 			SET mag = mag + ?
-			WHERE player_id = ? AND server_id = ?
+			WHERE player_id = ?
 		""",
-		(amount, player_id, server_id),
+		(amount, player_id),
 	)
 
 	return rows_affected > 0

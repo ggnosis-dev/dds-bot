@@ -2,10 +2,6 @@ from entities.server_data import LEVEL_REWARDS, LevelReward, LevelUpData, Server
 from helpers.db import query_one, query_write
 from shared_enums import LevelRewardType
 
-# XP_START = 5
-# XP_END = 150
-# MAX_LEVEL = 10
-
 XP_END = 10000
 MAX_LEVEL = 120
 
@@ -13,6 +9,7 @@ MAX_LEVEL = 120
 # https://gist.github.com/laundmo/b224b1f4c8ef6ca5fe47e132c8deab56
 def get_xp_threshold(level: int) -> int:
 	"""XP required to hit next level using a linear interpolate. Eases in due to the power of 2."""
+
 	point_t = (level / MAX_LEVEL) ** 2
 	xp_required = int((1 - point_t) + point_t * XP_END)
 	return xp_required
@@ -26,7 +23,7 @@ async def try_server_level_up(server_id: int, stored_rank: int) -> LevelUpData:
 	Returns:
 		tuple[int, list[LevelReward]]: The new server level and the details of each applied reward.
 	"""
-	# print("DEBUG: try_server_level_up")
+
 	# Update server level XP and return the XP.
 	xp, server_level = query_one(
 		"""

@@ -5,10 +5,9 @@ async def update_server_in_db(server_id: int) -> bool:
 	"""Update a server's data in the database."""
 	rows_affected = query_write(
 		"""
-			INSERT INTO servers (server_id, player_count)
-			VALUES (?, 1)
-			ON CONFLICT (server_id) DO
-				UPDATE SET player_count = player_count + 1
+			UPDATE servers
+			SET player_count = player_count + 1
+			WHERE server_id = ?
 		""",
 		(server_id,),
 	)
@@ -16,31 +15,27 @@ async def update_server_in_db(server_id: int) -> bool:
 
 
 async def check_server_exists(server_id: int) -> bool:
-	"""
-	Check if a server exists in the database.
-	"""
-	response = query_one(
+	"""Check if a server exists in the database."""
+	row = query_one(
 		"""
 			SELECT 1 FROM servers
 			WHERE server_id = ?
 		""",
 		(server_id,),
 	)
+	return row is not None
 
-	return response is not None
 
-
-async def set_dedicated_channel(server_id: int, channel_id: int) -> None:
-	response = query_write(
+async def set_dedicated_channel(server_id: int, channel_id: int) -> bool:
+	rows_affected = query_write(
 		"""
-			UPDATE servers SET dedicated_channel = ?
+			UPDATE servers
+			SET dedicated_channel = ?
 			WHERE server_id = ?
 		""",
 		(channel_id, server_id),
 	)
-
-	if response is None:
-		raise RuntimeError("Server didn't exist in server table despite existence check.")
+	return rows_affected > 0
 
 
 async def get_dedicated_channel(server_id: int) -> int | None:
@@ -56,7 +51,7 @@ async def get_dedicated_channel(server_id: int) -> int | None:
 
 
 async def get_player_count(server_id: int) -> int:
-	response = query_one(
+	row = query_one(
 		"""
 			SELECT player_count FROM servers
 			WHERE server_id = ?
@@ -64,4 +59,4 @@ async def get_player_count(server_id: int) -> int:
 		(server_id,),
 	)
 
-	return response[0] if response else 0
+	return row[0] if row else 0

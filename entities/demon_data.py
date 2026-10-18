@@ -46,10 +46,10 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			name=row["name"],
 			race=row["race"].title(),
 			rank=row["rank"],
-			dupes=row["dupes"],
+			dupes=row["dupes"] or 0,
 			tone_type=Tone(row["tone"]),
 			personality_type=Personality(row["personality"]),
-			gems=(row["gem_1"], row["gem_2"]),
+			gems=(row["gem_1_id"], row["gem_2_id"]),
 			design_data=convert_row_to_design_data(row),
 		)
 	except Exception as e:
