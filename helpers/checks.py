@@ -56,14 +56,15 @@ def in_set_channel():
 
 
 def has_profile():
-	async def predicate(ctx: commands.Context):
+	async def predicate(ctx: commands.Context) -> bool:
 		if ctx.guild is None:
 			raise RuntimeError("ERROR: Server ID could not be determined.")
 
-		has_profile = await player_queries.check_player_exists(ctx.author.id, ctx.guild.id)
-		if not has_profile:
+		player_id = await player_queries.get_player_id(ctx.author.id, ctx.guild.id)
+		if player_id is None:
 			raise ProfileSetupCheck("You don't have a profile set up yet! Use `>encounter` to get you set up!")
 
+		ctx.player_id = player_id  # pyright: ignore[reportAttributeAccessIssue]
 		return True
 
 	return commands.check(predicate)

@@ -1,13 +1,23 @@
-import typing
+from typing import Any, cast
 
 from discord import Guild, Interaction, Member
 from discord.ext import commands
 
 
 def get_user_server(ctx: commands.Context) -> tuple:
-	player = get_user(ctx)
+	user = get_user(ctx)
 	server = get_server(ctx)
-	return player, server
+	return user, server
+
+
+def get_player_id(ctx: commands.Context) -> int:
+	"""Added to context during the @checks.has_profile() check."""
+	return ctx.player_id  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def get_server_id(ctx: commands.Context) -> int:
+	server = get_server(ctx)
+	return server.id
 
 
 def get_user_server_ids(ctx: commands.Context | Interaction) -> tuple:
@@ -22,13 +32,18 @@ def get_user(ctx: commands.Context | Interaction) -> Member:
 	elif isinstance(ctx, Interaction):
 		author = ctx.user
 
-	return typing.cast(Member, author)
+	return cast(Member, author)
 
 
-def get_server(ctx) -> Guild:
-	return typing.cast(Guild, ctx.guild)
+def get_server(ctx: commands.Context | Interaction) -> Guild:
+	return cast(Guild, ctx.guild)
 
 
-def get_server_name(ctx: commands.Context) -> str:
-	server = typing.cast(Guild, ctx.guild)
-	return server.name
+def get_user_field(ctx: commands.Context, field: str) -> Any:
+	user = get_user(ctx)
+	return getattr(user, field)
+
+
+def get_server_field(ctx: commands.Context, field: str) -> Any:
+	server = get_server(ctx)
+	return getattr(server, field)
