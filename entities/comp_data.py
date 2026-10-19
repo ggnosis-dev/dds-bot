@@ -28,7 +28,7 @@ class DemonTableRow:
 	initial_rank: int = 0
 	dupes: int = 0
 	tone_name: str | None = None
-	gems: tuple[str, str] | None = None
+	gems: tuple[str, ...] | None = None
 	on_loan: bool = False
 	# For player demon only.
 	in_party: bool | None = None
@@ -52,7 +52,7 @@ class DemonEntry:
 	stored_rank: int
 	dupes: int
 	tone_name: str
-	gems: tuple[str, str]
+	gems: tuple[str, ...]
 	design_data: DesignData
 	date_met: int
 	desc: str | None
@@ -73,7 +73,7 @@ def convert_row_to_demon_entry(row: Row) -> DemonEntry:
 			stored_rank=row["stored_rank"],
 			dupes=row["dupes"],
 			tone_name=Tone(row["tone"]).name,
-			gems=(row["gem_1_id"], row["gem_2_id"]),
+			gems=row["gems"],
 			design_data=convert_row_to_design_data(row),
 			date_met=row["date_met"],
 			desc=desc,
@@ -96,12 +96,12 @@ async def convert_row_to_demon_table_rows(rows: list[Row], need_gems: bool) -> l
 	try:
 		entries = []
 		# { race_id: (GEM, NAMES) }
-		gem_cache: dict[int, tuple[str, str]] = {}
+		gem_cache: dict[int, tuple[str, ...]] = {}
 
 		for raw_row in rows:
 			row: dict = dict(raw_row)
 			st_rank = row.get("stored_rank", 0)
-			gems = None
+			gems = ()
 
 			# If we're querying gems, make sure to skip anything that's not seen.
 			if need_gems and st_rank is not None:
