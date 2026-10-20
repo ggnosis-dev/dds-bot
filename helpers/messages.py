@@ -4,6 +4,7 @@ from entities.badge_data import BadgeData
 from entities.command_data import CommandData
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, DEFAULT_RACE_MULT_INCREMENT, DemonData
 from entities.fusion_data import IngredientData
+from entities.item_data import GemCost
 from entities.server_data import ServerStats
 from helpers import format_utils
 from shared_enums import DemonRegistration, DupeReward, Emotes, Unicode
@@ -53,7 +54,7 @@ class GenericMsg:
 	@staticmethod
 	def dupe_level_up(player_id: int, demon: DemonData, dupe_message: str):
 		new_dupe_level = demon.dupes + 1
-		level_string = "MAX" if new_dupe_level == 5 else str(new_dupe_level)
+		level_string = "MAX" if new_dupe_level == DupeReward.BADGE else str(new_dupe_level)
 		return (
 			f"### <@{player_id}> {demon.race} {demon.name} has leveled up to {level_string}{Emotes.GEM.value}!"
 			f"\n{dupe_message}"
@@ -61,6 +62,10 @@ class GenericMsg:
 
 
 class PartyMsg(GenericMsg):
+	@staticmethod
+	def no_party() -> str:
+		return "`> ERROR: 1000 PARTY_NOT_FOUND`"
+
 	@staticmethod
 	def confirm_release(demon_name: str) -> str:
 		return f"Are you sure you want to release **{demon_name}** from your party?"
@@ -156,15 +161,6 @@ class EncountersMsg(GenericMsg):
 			case DemonRegistration.IN_COMP:
 				status = f"> {demon.race} {demon.name} has joined {user_name}'s party! +{mag_received} MAG"
 
-			# Demon already in the party.
-			case DemonRegistration.IN_PARTY | DemonRegistration.ON_LOAN:
-				status_addition = f"| +{DEFAULT_DEMON_MULT_INCREMENT}x Mult" if demon.dupes >= 5 else ""
-
-				status = (
-					f"> {demon.race} {demon.name} gifted {user_name} {gems_added} {gem_name.title()}!"
-					f" +{mag_received} MAG {status_addition}"
-				)
-
 			# Party had too many demons already.
 			case DemonRegistration.PARTY_FULL:
 				status = (
@@ -173,9 +169,17 @@ class EncountersMsg(GenericMsg):
 				)
 
 			# Player was too weak to control the demon.
-			case DemonRegistration.TOO_WEAK | _:
+			case DemonRegistration.TOO_WEAK:
 				status = f"> {demon.race} {demon.name} did not join {user_name}. They were too weak! +{mag_received} MAG"
 
+			# Demon in the party.
+			case _:
+				status_addition = f"| +{DEFAULT_DEMON_MULT_INCREMENT}x Mult" if demon.dupes >= 5 else ""
+
+				status = (
+					f"> {demon.race} {demon.name} gifted {user_name} {gems_added} {gem_name.title()}!"
+					f" +{mag_received} MAG {status_addition}"
+				)
 		return status
 
 	@staticmethod
@@ -500,10 +504,10 @@ class ShopMsgs(GenericMsg):
 		)
 
 	@staticmethod
-	def build_item_title(item_name: str, cost: dict[str, int]) -> str:
+	def build_item_title(item_name: str, cost: list[GemCost]) -> str:
 		gem_amounts = []
-		for gem, amount in cost.items():
-			gem_amounts.append(f"{gem.title()} x{amount}")
+		for gem in cost:
+			gem_amounts.append(f"{gem.name.title()} x{gem.amount}")
 		return f"**{item_name}** - {', '.join(gem_amounts)}"
 
 	@staticmethod
