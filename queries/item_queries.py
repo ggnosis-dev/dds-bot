@@ -1,13 +1,14 @@
-import json
+from sqlite3 import Connection
 
 from entities.item_data import (
 	INCENSE_RANK_INCREASE,
+	GemCost,
 	ItemEntry,
 	ShopItemData,
 	convert_row_to_item_entry,
 	convert_rows_to_shop_item_data,
 )
-from helpers.db import query_all, query_one, query_write
+from helpers.db import query_all, query_one, query_write, transaction
 from queries import demon_queries
 
 
@@ -40,10 +41,23 @@ async def get_rags_item_list() -> list[ShopItemData]:
 
 	rows = query_all(
 		"""
-			SELECT * FROM items
-			WHERE type = "sml_incense"
+			SELECT
+				i.*,
+				json_group_array(
+					json_object(
+						'gem_id', g.item_id,
+						'name', g.name,
+						'amount', si.amount
+					)
+				) AS cost
+			FROM shop_items si
+			JOIN items i ON i.item_id = si.item_id
+			JOIN items g ON g.item_id = si.currency_gem_id
+			GROUP BY i.item_id
+			ORDER BY i.name
 		""",
 	)
+
 	return convert_rows_to_shop_item_data(rows)
 
 
@@ -74,7 +88,7 @@ async def get_item_id_by_name(item_name: str) -> int | None:
 	return row[0] if row else None
 
 
-async def give_player_item(player_id: int, item_id: int) -> bool:
+async def give_player_item(player_id: int, item_id: int, conn: Connection | None = None) -> bool:
 	"""Add item to inventory. If it doesn't exist already, set to 1."""
 
 	rows_affected = query_write(
@@ -85,6 +99,7 @@ async def give_player_item(player_id: int, item_id: int) -> bool:
 			UPDATE SET quantity = quantity + 1
 		""",
 		(player_id, item_id),
+		conn=conn,
 	)
 	return rows_affected > 0
 
@@ -92,34 +107,39 @@ async def give_player_item(player_id: int, item_id: int) -> bool:
 async def use_incense(player_id: int, demon_id: int, item_id: int, number_to_use: int) -> bool:
 	"""Use an incense item on a specified demon."""
 
-	# Remove one of the used item from the player's inventory.
-	q1 = query_write(
-		"""
-			UPDATE player_items
-			SET quantity = quantity - ?
-			WHERE player_id = ?
-				AND item_id = ?
-				AND quantity >= ?
-		""",
-		(number_to_use, player_id, item_id, number_to_use),
-	)
+	with transaction() as conn:
+		# Remove one of the used item from the player's inventory.
+		q1 = query_write(
+			"""
+				UPDATE player_items
+				SET quantity = quantity - ?
+				WHERE player_id = ?
+					AND item_id = ?
+					AND quantity >= ?
+			""",
+			(number_to_use, player_id, item_id, number_to_use),
+		)
 
-	if not q1:
-		return False
+		if not q1:
+			return False
 
-	increase_by = number_to_use * INCENSE_RANK_INCREASE
+		increase_by = number_to_use * INCENSE_RANK_INCREASE
 
-	# Increase the demon's stored rank by increment.
-	q2 = query_write(
-		f"""
-			UPDATE player_demons
-			SET stored_rank = stored_rank + {increase_by}
-			WHERE player_id = ? AND demon_id = ?
-		""",
-		(player_id, demon_id),
-	)
+		# Increase the demon's stored rank by increment.
+		q2 = query_write(
+			f"""
+				UPDATE player_demons
+				SET stored_rank = stored_rank + {increase_by}
+				WHERE player_id = ? AND demon_id = ?
+			""",
+			(player_id, demon_id),
+		)
 
-	return bool(q2)
+		if not q2:
+			conn.rollback()
+			return False
+
+		return True
 
 
 async def can_demon_use_item(demon_id: int, item_id: int) -> bool:
@@ -136,60 +156,40 @@ async def can_demon_use_item(demon_id: int, item_id: int) -> bool:
 	exclusive_to = row[0] if row else None
 	demon_race = await demon_queries.get_demon_race_by_id(demon_id)
 
-	return exclusive_to is None and demon_race == exclusive_to
+	return exclusive_to is None or demon_race == exclusive_to
 
 
-async def attempt_purchase_item(player_id: int, item_id: int, cost: dict) -> bool:
+async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost]) -> bool:
 	"""
 	Attempt to purchase item for the player. Checks if the player has enough gems and deducts the cost if they do.
 
 	Args:
-		item_id (str): ID of the item being purchased.
-		cost (int): Cost of the item in gems.
+		item_id (int): ID of the item being purchased.
+		cost (list[GemCost]): List of gems the item costs.
 	Returns:
 		bool: True if the purchase was successful, False if player didn't have enough.
 	"""
 
-	row = query_one(
-		"SELECT cost FROM items WHERE item_id = ?",
-		(item_id,),
-	)[0]
+	# Get the cost.
+	with transaction() as conn:
+		for c in cost:
+			updated = query_write(
+				"""
+					UPDATE player_gems
+					SET quantity = quantity - ?
+					WHERE player_id = ?
+						AND gem_id = ?
+						AND quantity >= ?
+				""",
+				(c.amount, player_id, c.gem_id, c.amount),
+				conn=conn,
+			)
 
-	cost = json.loads(row)
-	gem_names = list(cost.keys())
+			# If there wasn't enough of any gem, rollback everything.
+			if updated == 0:
+				conn.rollback()
+				return False
 
-	# Get number of placeholders for the IN clause.
-	gem_placeholders = ",".join("?" * len(gem_names))
-
-	# Get player's gem counts.
-	rows = query_all(
-		f"""
-			SELECT gem_name, quantity FROM player_gems
-			WHERE player_id = ? AND gem_name IN ({gem_placeholders})
-		""",
-		(player_id, *gem_names),
-	)
-
-	# Convert rows into a set for easier access. Gem: Quantity.
-	player_gems = {row[0]: row[1] for row in rows}
-
-	# Compare player's gems amount with cost.
-	for gem, required_amount in cost.items():
-		if player_gems.get(gem, 0) < required_amount:
-			return False
-
-	# Deduct gems.
-	for gem, required_amount in cost.items():
-		query_write(
-			"""
-				UPDATE player_gems
-				SET quantity = quantity - ?
-				WHERE player_id = ? AND gem_name = ?
-			""",
-			(required_amount, player_id, gem),
-		)
-
-	# Add item to inventory. If it doesn't exist already, set to 1.
-	await give_player_item(player_id, item_id)
+		await give_player_item(player_id, item_id, conn=conn)
 
 	return True
