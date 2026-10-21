@@ -15,6 +15,7 @@ SPECIAL_FUSION_JSON = DATA_DIR / "special_fusions.json"
 TALK_JSON = DATA_DIR / "talk.json"
 RACE_GEMS_JSON = DATA_DIR / "race_gems.json"
 FUSION_CSV = DATA_DIR / "fusion.csv"
+ELEMENT_PAIRINGS_CSV = DATA_DIR / "element_pairings.csv"
 
 
 def load_json(path: Path):

@@ -14,14 +14,12 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 	def __init__(
 		self,
 		player_id: int,
-		server_id: int,
 		ordered_demon_ids: tuple[int],
 		*,
 		shown_demon_id: int | None = None,
 	):
 		super().__init__()
 		self.player_id = player_id
-		self.server_id = server_id
 		self.ordered_dids = ordered_demon_ids
 		self.shown_demon_id = shown_demon_id if shown_demon_id else ordered_demon_ids[0]
 		self.data_cache: dict[int, DemonEntry] = {}
@@ -134,10 +132,9 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 					JOIN player_demons pd
 						ON pd.demon_id = v.id
 						AND pd.player_id = ?
-						AND pd.server_id = ?
 					WHERE v.id IN ({",".join("?" * len(fetch_data))})
 				""",
-				(self.player_id, self.server_id, *fetch_data),
+				(self.player_id, *fetch_data),
 			)
 
 			for r in rows:

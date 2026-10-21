@@ -26,14 +26,19 @@ class Encounters(commands.Cog):
 	async def encounter_demon_command(self, ctx: commands.Context) -> None:
 		"""Command to trigger a daily demon encounter."""
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		player_data = await player_queries.get_player(player_id, server_id)
+		# player_id = gets.get_player_id(ctx)
+		user_id, server_id = gets.get_user_server_ids(ctx)
 		set_channel = await server_queries.get_dedicated_channel(server_id)
 		send_to_channel = cast(discord.TextChannel, self.bot.get_channel(set_channel) if set_channel else ctx.channel)
 
+		# player_id = None if new player.
+		player_id = await player_queries.get_player_id(user_id, server_id)
+
 		# If its the player's first encounter, send the tutorial one instead.
-		if player_data is None:
-			return await self._start_tutorial_encounter(send_to_channel, player_id, server_id, ctx.author.name)
+		if player_id is None:
+			return await self._start_tutorial_encounter(send_to_channel, user_id, server_id, ctx.author.name)
+
+		player_data = await player_queries.get_player(player_id)
 
 		# Check if player has to still wait for the encounter window.
 		time_until = utils.get_time_until(player_data.encounter_timer, ENCOUNTER_WINDOW)
@@ -49,26 +54,28 @@ class Encounters(commands.Cog):
 			server_level_queries.get_rank_cap(server_id),
 		)
 		average_rank = player_data.party_stats.average
-		demon = await demon_queries.get_demon_by_distribution(player_id, server_id, average_rank, server_cap)
+		demon = await demon_queries.get_demon_by_distribution(player_id, average_rank, server_cap)
 
 		# Get the current window so we enforce rolls reset on the hour.
 		current_window = encounter_utils.get_current_encounter_window()
 
 		# Start the encounter.
 		await asyncio.gather(
-			player_queries.set_encounter_timer(player_id, server_id, current_window),
-			EncounterViewInitial.start(send_to_channel, demon, player_id, count=count),
+			player_queries.set_encounter_timer(player_id, current_window),
+			EncounterViewInitial.start(send_to_channel, demon, player_data.user_id, count=count),
 		)
 
 	@checks.is_developer()
+	@checks.has_profile()
 	@commands.command(**command_kwargs(ENCOUNTERS_COMMANDS, "test_encounter"))
 	async def test_encounter_command(self, ctx: commands.Context, *, name: str | None) -> None:
 		"""Command to start a test encounter with a random demon. Name can be provided."""
 		try:
-			player_id, server_id = gets.get_user_server_ids(ctx)
+			player_id = gets.get_player_id(ctx)
+			user_id = gets.get_user_id(ctx)
 
 			if name:
-				d = await demon_queries.get_demon_by_name(player_id, server_id, name)
+				d = await demon_queries.get_demon_by_name(player_id, name)
 			else:
 				d = await demon_queries.get_random_demon()
 
@@ -76,7 +83,7 @@ class Encounters(commands.Cog):
 				print(f"WARN: Demon {name} was None.")
 				return
 
-			await EncounterViewInitial.start(ctx.channel, d, player_id, count=3)
+			await EncounterViewInitial.start(ctx.channel, d, user_id, count=3)
 
 		except Exception as e:
 			raise RuntimeError(f"test_encounter_command | {e}")
@@ -84,17 +91,17 @@ class Encounters(commands.Cog):
 	async def _start_tutorial_encounter(
 		self,
 		send_to_channel: discord.TextChannel,
-		player_id: int,
+		user_id: int,
 		server_id: int,
 		player_name: str,
 	) -> None:
 		"""Stores new player data into the DB and begins a forced encounter with a Pixie that acts as a tutorial."""
 
-		if await player_queries.setup_player(player_id, server_id):
+		if await player_queries.setup_player(user_id, server_id):
 			await MessageView.send(send_to_channel, EncountersMsg.introduction(player_name))
 
 			tut_demon = "pixie"
-			demon = await demon_queries.get_demon_by_name(player_id, server_id, tut_demon)
+			demon = await demon_queries.get_demon_by_name(player_id=-1, demon_name=tut_demon)
 
 			if demon is None:
 				raise RuntimeError(f"Demon {tut_demon} was not found in the database.")
@@ -102,9 +109,9 @@ class Encounters(commands.Cog):
 			await EncounterViewInitial.start(
 				send_to_channel,
 				demon,
-				player_id,
+				user_id,
 				count=1,
-				user_exclusive_to=player_id,
+				user_exclusive_to=user_id,
 				tutorial=True,
 			)
 

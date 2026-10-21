@@ -44,24 +44,6 @@ class ResponseType(Enum):
 	BAD = 3
 
 
-class Gem(Enum):
-	AGATE = 0
-	AMETHYST = 1
-	AQUAMARINE = 2
-	CORAL = 3
-	DIAMOND = 4
-	EMERALD = 5
-	GARNET = 6
-	JADE = 7
-	ONYX = 8
-	OPAL = 9
-	PEARL = 10
-	RUBY = 11
-	SAPPHIRE = 12
-	TOPAZ = 13
-	TURQUOISE = 14
-
-
 class LevelRewardType(Enum):
 	RANK = 0
 	SP_FUSION_KEY = 1
@@ -97,25 +79,6 @@ class Tone(Enum):
 	DIVINE = 12
 
 
-class Race(Enum):
-	AVIAN = auto()
-	BEAST = auto()
-	DIVINE = auto()
-	ELEMENT = auto()
-	FAIRY = auto()
-	FALLEN = auto()
-	FEMME = auto()
-	FLIGHT = auto()
-	FOUL = auto()
-	HAUNT = auto()
-	JAKI = auto()
-	JIRAE = auto()
-	SPIRIT = auto()
-	TYRANT = auto()
-	VILE = auto()
-	WILDER = auto()
-
-
 class DupeReward(Enum):
 	COLOUR = 1
 	MAG_MULT = 2
@@ -123,3 +86,7 @@ class DupeReward(Enum):
 	GREETING = 5
 	GRIMOIRE = 8
 	BADGE = 10
+
+	@classmethod
+	def _missing_(cls, value: object) -> DupeReward:
+		return cls.MAG_MULT

@@ -20,6 +20,15 @@ def get_server_id(ctx: commands.Context) -> int:
 	return server.id
 
 
+def get_user_id(ctx: commands.Context) -> int:
+	if isinstance(ctx, commands.Context):
+		author = ctx.author
+	elif isinstance(ctx, Interaction):
+		author = ctx.user
+
+	return cast(int, author.id)
+
+
 def get_user_server_ids(ctx: commands.Context | Interaction) -> tuple:
 	player = get_user(ctx)
 	server = get_server(ctx)
@@ -37,11 +46,6 @@ def get_user(ctx: commands.Context | Interaction) -> Member:
 
 def get_server(ctx: commands.Context | Interaction) -> Guild:
 	return cast(Guild, ctx.guild)
-
-
-def get_user_field(ctx: commands.Context, field: str) -> Any:
-	user = get_user(ctx)
-	return getattr(user, field)
 
 
 def get_server_field(ctx: commands.Context, field: str) -> Any:

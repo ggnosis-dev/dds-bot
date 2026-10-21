@@ -6,7 +6,7 @@ from entities.command_data import COMPENDIUM_COMMANDS, command_kwargs
 from entities.view_data import Columns, get_args
 from helpers import checks, costs, gets
 from helpers.messages import CompendiumMsg
-from queries import currency_queries, demon_queries, player_demons_queries
+from queries import currency_queries, demon_queries, player_demons_queries, player_queries
 from shared_enums import DemonRegistration
 from views.common_view import ConfirmationView, MessageView
 from views.demon_entry_view import DemonEntryBrowser
@@ -22,7 +22,8 @@ class Compendium(commands.Cog):
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "compendium"))
 	async def compendium_command(self, ctx: commands.Context, *args: str) -> None:
 		"""Command to display a player's seen demons which is stored in their compendium."""
-		player, server = gets.get_user_server(ctx)
+
+		user, server = gets.get_user_server(ctx)
 		columns = list(Columns.COMP_DEFAULT)
 		mentioned = None
 
@@ -31,14 +32,16 @@ class Compendium(commands.Cog):
 		need_gems = Columns.GEMS in columns
 
 		# Swap player to the mentioned player if it was provided.
-		player = mentioned if mentioned is not None else player
-		comp_entries = await player_demons_queries.check_compendium(player.id, server.id, need_gems)
+		user = mentioned if mentioned is not None else user
+
+		player_id = await player_queries.get_player_id(user.id, server.id)
+		comp_entries = await player_demons_queries.check_compendium(player_id, need_gems) if player_id else []
 
 		await CompendiumView.send(
 			ctx.channel,
 			comp_entries,
 			columns,
-			player.name,
+			user.name,
 		)
 
 	@checks.has_profile()
@@ -50,21 +53,21 @@ class Compendium(commands.Cog):
 			await MessageView.send(ctx.channel, CompendiumMsg.no_input_given(COMPENDIUM_COMMANDS["summon"]))
 			return
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = gets.get_player_id(ctx)
 		demon_name = demon_name.title()
-		demon = await demon_queries.get_demon_by_name(player_id, server_id, demon_name)
+		demon = await demon_queries.get_demon_by_name(player_id, demon_name)
 
 		if demon is None:
 			await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
 			return
 
 		# Check if party has space.
-		if not player_demons_queries.get_party_has_space(player_id, server_id):
+		if not player_demons_queries.get_party_has_space(player_id):
 			await MessageView.send(ctx.channel, CompendiumMsg.party_full())
 			return
 
 		# Check if demon is in compendium before summoning to give a more informative message.
-		in_comp = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
+		in_comp = await player_demons_queries.check_demon_registration(player_id, demon.id)
 
 		if in_comp == DemonRegistration.UNREGISTERED:
 			await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
@@ -76,22 +79,23 @@ class Compendium(commands.Cog):
 
 		# Check if player has enough mag to summon.
 		cost = costs.summon_cost(demon.rank)
-		mag = await currency_queries.get_mag(player_id, server_id)
+		mag = await currency_queries.get_mag(player_id)
 		if mag < cost:
 			await MessageView.send(ctx.channel, CompendiumMsg.summon_cost_not_enough(demon_name, mag, cost))
 			return
 
 		# All success. Send a confirmation view with the cost.
+		user_id = gets.get_user_id(ctx)
 		message = CompendiumMsg.confirm_summon_cost(demon_name, cost)
-		confirmed = await ConfirmationView.send(ctx, message, player_id)
+		confirmed = await ConfirmationView.send(ctx, message, user_id)
 		if not confirmed:
 			return
 
 		# Operations. Take cash, put demon in party and update stats.
 		await asyncio.gather(
-			currency_queries.update_mag(player_id, server_id, -cost),
-			player_demons_queries.set_demon_in_party(player_id, server_id, demon.id),
-			player_demons_queries.update_party(player_id, server_id),
+			currency_queries.update_mag(player_id, -cost),
+			player_demons_queries.set_demon_in_party(player_id, demon.id),
+			player_demons_queries.update_party(player_id),
 		)
 
 		# Final message.
@@ -106,7 +110,7 @@ class Compendium(commands.Cog):
 	@commands.command(**command_kwargs(COMPENDIUM_COMMANDS, "entry"))
 	async def entry_command(self, ctx: commands.Context, *, demon_name: str | None) -> None:
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = gets.get_player_id(ctx)
 		demon_id = None
 
 		if demon_name is not None:
@@ -114,7 +118,7 @@ class Compendium(commands.Cog):
 			demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
 			reg_status = (
-				await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+				await player_demons_queries.check_demon_registration(player_id, demon_id)
 				if demon_id is not None
 				else DemonRegistration.UNREGISTERED
 			)
@@ -124,12 +128,11 @@ class Compendium(commands.Cog):
 				await MessageView.send(ctx.channel, CompendiumMsg.not_in_comp(demon_name))
 				return
 
-		entries = await player_demons_queries.get_demon_entries(player_id, server_id)
+		entries = await player_demons_queries.get_demon_entries(player_id)
 
 		await DemonEntryBrowser.send(
 			ctx.channel,
 			player_id,
-			server_id,
 			entries,
 			# (100, 24, 33, 15, 70, 7, 1, 34, 84, 88, 89, 105, 85),
 			shown_demon_id=demon_id,

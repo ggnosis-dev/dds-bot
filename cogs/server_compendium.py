@@ -20,34 +20,31 @@ class ServerCompendium(commands.Cog):
 
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "server_compendium"))
 	async def server_compendium_command(self, ctx: commands.Context, *args: str) -> None:
-		try:
-			server = gets.get_server(ctx)
+		server = gets.get_server(ctx)
 
-			columns = list(Columns.SERVER_DEFAULT)
-			columns, mentioned = get_args(args, server, columns) if args else (columns, None)
-			mentioned = mentioned.id if mentioned else None
-			need_gems = Columns.GEMS in columns
+		columns = list(Columns.SERVER_DEFAULT)
+		columns, mentioned = get_args(args, server, columns) if args else (columns, None)
+		mentioned = mentioned.id if mentioned else None
+		need_gems = Columns.GEMS in columns
 
-			comp_entries, stats = await asyncio.gather(
-				server_demons_queries.check_server_compendium(server.id, mentioned, need_gems),
-				server_level_queries.get_server_status(server.id),
-			)
+		comp_entries, stats = await asyncio.gather(
+			server_demons_queries.check_server_compendium(server.id, mentioned, need_gems),
+			server_level_queries.get_server_status(server.id),
+		)
 
-			# Because the server COMP only stores user IDs, we need to retrieve their names through a cache lookup.
-			for entry in comp_entries:
-				if entry.owner_id is not None:
-					player = server.get_member(entry.owner_id)
-					entry.owner_name = player.display_name if player else "Unknown"
+		# Because the server COMP only stores user IDs, we need to retrieve their names through a cache lookup.
+		for entry in comp_entries:
+			if entry.owner_id is not None:
+				player = server.get_member(entry.owner_id)
+				entry.owner_name = player.display_name if player else "Unknown"
 
-			await ServerCompendiumView.send(
-				ctx.channel,
-				comp_entries,
-				columns,
-				server.name,
-				server_stats=stats,
-			)
-		except Exception as e:
-			print(f"server_comp_command | {e}")
+		await ServerCompendiumView.send(
+			ctx.channel,
+			comp_entries,
+			columns,
+			server.name,
+			server_stats=stats,
+		)
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "loan"))
@@ -57,8 +54,7 @@ class ServerCompendium(commands.Cog):
 			await MessageView.send(ctx.channel, Messages.no_input_given(SERVER_COMPENDIUM_COMMANDS["loan"]))
 			return
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		server_name = gets.get_server_name(ctx)
+		server = gets.get_server(ctx)
 		demon_name = demon_name.title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
@@ -66,10 +62,13 @@ class ServerCompendium(commands.Cog):
 			await MessageView.send(ctx.channel, Messages.not_in_party(demon_name))
 			return
 
+		player_id = gets.get_player_id(ctx)
+		user_id = gets.get_user_id(ctx)
+
 		# Check if demon is summoned.
 		player_demon, reg_status = await asyncio.gather(
-			player_demons_queries.get_player_demon_by_id(player_id, server_id, demon_id),
-			player_demons_queries.check_demon_registration(player_id, server_id, demon_id),
+			player_demons_queries.get_player_demon_by_id(player_id, demon_id),
+			player_demons_queries.check_demon_registration(player_id, demon_id),
 		)
 
 		if reg_status == DemonRegistration.ON_LOAN:
@@ -86,19 +85,19 @@ class ServerCompendium(commands.Cog):
 			return
 
 		# Get potential stored demon.
-		stored_demon = await server_demons_queries.get_serv_comp_demon(server_id, player_demon.demon_id)
+		stored_demon = await server_demons_queries.get_serv_comp_demon(server.id, player_demon.demon_id)
 		returned_to_owner_msg = ""
 
 		if stored_demon:
 			# Check and prompt replace demon if possible.
-			stored_owner = await self.bot.fetch_user(stored_demon.player_id)
-			design_data = await demon_queries.get_design_data(demon_id, stored_demon.player_id, server_id)
+			stored_owner = await self.bot.fetch_user(stored_demon.user_id)
+			design_data = await demon_queries.get_design_data(demon_id, stored_demon.player_id)
 
 			# If player demon is weaker, send message about it and return.
 			if player_demon.stored_rank <= stored_demon.stored_rank:
 				await MessageView.send(
 					ctx.channel,
-					Messages.someone_has_loaned(stored_owner.name, demon_name, stored_demon.stored_rank, server_name),
+					Messages.someone_has_loaned(stored_owner.name, demon_name, stored_demon.stored_rank, server.name),
 					thumbnail=design_data.profile_img,
 					colour=design_data.colour,
 				)
@@ -106,12 +105,12 @@ class ServerCompendium(commands.Cog):
 
 			# Player demon is stronger, prompt to replace.
 			message = Messages.confirm_replace_loaned(
-				stored_owner.name, player_demon.name, server_name, player_demon.stored_rank, stored_demon.stored_rank
+				stored_owner.name, player_demon.name, server.name, player_demon.stored_rank, stored_demon.stored_rank
 			)
 			confirmed = await ConfirmationView.send(
 				ctx.channel,
 				message,
-				player_id,
+				user_id,
 				confirm_label="Yes",
 				deny_label="No",
 				thumbnail=design_data.profile_img,
@@ -124,11 +123,11 @@ class ServerCompendium(commands.Cog):
 
 		else:
 			# Store a brand new demon.
-			design_data = await demon_queries.get_design_data(demon_id, player_id, server_id)
+			design_data = await demon_queries.get_design_data(demon_id, player_id)
 			confirmed = await ConfirmationView.send(
 				ctx.channel,
-				Messages.confirm_loan(player_demon.race, player_demon.name, player_demon.stored_rank, server_name),
-				exclusive_to=player_id,
+				Messages.confirm_loan(player_demon.race, player_demon.name, player_demon.stored_rank, server.name),
+				user_id,
 				confirm_label="Yes",
 				deny_label="No",
 				thumbnail=design_data.profile_img,
@@ -138,10 +137,10 @@ class ServerCompendium(commands.Cog):
 				return
 
 		# Both types of checks have passed, add to the server compendium.
-		await server_demons_queries.new_add_demon_to_server_compendium(player_id, server_id, player_demon.demon_id)
+		await server_demons_queries.add_demon_to_server_compendium(player_id, server.id, player_demon.demon_id)
 
 		# Send final message first, append returned to owner message if exists.
-		message = Messages.loan_completed(player_demon.race, player_demon.name, player_demon.stored_rank, server_name)
+		message = Messages.loan_completed(player_demon.race, player_demon.name, player_demon.stored_rank, server.name)
 		message += returned_to_owner_msg
 		await MessageView.send(ctx.channel, message, thumbnail=design_data.profile_img, colour=design_data.colour)
 
@@ -149,7 +148,7 @@ class ServerCompendium(commands.Cog):
 		add_exp = player_demon.stored_rank
 		if stored_demon:
 			add_exp = player_demon.stored_rank - stored_demon.stored_rank
-		await self._do_level_change(ctx, server_id, server_name, add_exp)
+		await self._do_level_change(ctx, server.id, server.name, add_exp)
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "return"))
@@ -159,26 +158,27 @@ class ServerCompendium(commands.Cog):
 			await MessageView.send(ctx.channel, Messages.no_input_given(SERVER_COMPENDIUM_COMMANDS["loan"]))
 			return
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		server_name = gets.get_server_name(ctx)
+		player_id = gets.get_player_id(ctx)
+		user_id = gets.get_user_id(ctx)
+		server = gets.get_server(ctx)
 		demon_name = demon_name.title()
-		demon = await demon_queries.get_demon_by_name(player_id, server_id, demon_name)
+		demon = await demon_queries.get_demon_by_name(player_id, demon_name)
 
 		if demon is None:
 			await MessageView.send(ctx.channel, Messages.not_found_on_loan(demon_name))
 			return
 
 		# Get the stored demon, return if it's not owned or found.
-		stored_demon = await server_demons_queries.get_serv_comp_demon(server_id, demon.id)
-		if stored_demon is None or player_id != stored_demon.player_id:
+		stored_demon = await server_demons_queries.get_serv_comp_demon(server.id, demon.id)
+		if stored_demon is None or user_id != stored_demon.user_id:
 			await MessageView.send(ctx.channel, Messages.not_found_on_loan(demon_name))
 			return
 
 		# Confirm return.
 		confirmed = await ConfirmationView.send(
 			ctx.channel,
-			Messages.confirm_return(demon.race, demon.name, stored_demon.stored_rank, server_name),
-			player_id,
+			Messages.confirm_return(demon.race, demon.name, stored_demon.stored_rank, server.name),
+			user_id,
 			confirm_label="Yes",
 			deny_label="No",
 			colour=demon.design_data.colour,
@@ -187,7 +187,7 @@ class ServerCompendium(commands.Cog):
 			return
 
 		# Return the player's demon.
-		await server_demons_queries.return_server_comp_demon(server_id, demon.id)
+		await server_demons_queries.return_server_comp_demon(server.id, demon.id)
 
 		# Remove the experience from the server's level.
 		remove_exp = -stored_demon.stored_rank
@@ -200,7 +200,7 @@ class ServerCompendium(commands.Cog):
 				thumbnail=demon.design_data.profile_img,
 				colour=demon.design_data.colour,
 			),
-			self._do_level_change(ctx, server_id, server_name, remove_exp),
+			self._do_level_change(ctx, server.id, server.name, remove_exp),
 		)
 
 	@commands.command(**command_kwargs(SERVER_COMPENDIUM_COMMANDS, "server_stats"))

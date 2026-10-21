@@ -81,10 +81,13 @@ async def get_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendium
 
 	row = query_one(
 		"""
-			SELECT sd.*, pd.stored_rank FROM server_demons sd
+			SELECT sd.*, pd.stored_rank, p.user_id
+			FROM server_demons sd
 			JOIN player_demons pd
 				ON sd.player_id = pd.player_id
 					AND sd.demon_id = pd.demon_id
+			JOIN players p
+				ON sd.player_id = p.player_id
 			WHERE sd.server_id = ? AND sd.demon_id = ?
 		""",
 		(server_id, demon_id),
@@ -95,6 +98,7 @@ async def get_serv_comp_demon(server_id: int, demon_id: int) -> ServerCompendium
 			server_id=row["server_id"],
 			demon_id=row["demon_id"],
 			player_id=row["player_id"],
+			user_id=row["user_id"],
 			stored_rank=row["stored_rank"],
 		)
 		if row

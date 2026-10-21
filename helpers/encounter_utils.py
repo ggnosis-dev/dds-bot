@@ -40,24 +40,26 @@ async def join_player_party(
 	Returns:
 		JoinData: Messages and responses to be passed on related to joining.
 	"""
-	player_id = interaction.user.id
-	server_id = interaction.guild.id if interaction.guild else None
 
-	if server_id is None:
-		raise RuntimeError("Server ID is None.")
+	user_id = interaction.user.id
+	server_id = interaction.guild.id if interaction.guild else None
+	assert server_id, "Server ID cannot be None as bot is unavailable outside a server."
+
+	player_id = await player_queries.get_player_id(user_id, server_id)
+	assert player_id, "Player ID cannot be None as function has set up player before point."
 
 	gems_to_add = 0
 	gem_name = ""
 	extra_response = None
 	already_summoned = False
-	party_stats = await player_demons_queries.get_party_stats(player_id, server_id)
+	party_stats = await player_demons_queries.get_party_stats(player_id)
 
 	# Check if party's strongest member is TOO_WEAK.
 	if party_stats.strongest <= demon.rank - TOO_WEAK_LEEWAY:
 		reg_status = DemonRegistration.TOO_WEAK
 
 	else:
-		reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon.id)
+		reg_status = await player_demons_queries.check_demon_registration(player_id, demon.id)
 		already_summoned = reg_status in {
 			DemonRegistration.IN_PARTY,
 			DemonRegistration.ON_LOAN,
@@ -73,44 +75,44 @@ async def join_player_party(
 		case DemonRegistration.UNREGISTERED:
 			# Add demon to COMP.
 			await asyncio.gather(
-				player_demons_queries.add_demon_to_compendium(player_id, server_id, demon.id, demon.rank),
-				player_demons_queries.set_demon_in_party(player_id, server_id, demon.id),
-				player_demons_queries.update_party(player_id, server_id),
-				player_demons_queries.update_party_average(player_id, server_id),
+				player_demons_queries.add_demon_to_compendium(player_id, demon.id, demon.rank),
+				player_demons_queries.set_demon_in_party(player_id, demon.id),
+				player_demons_queries.update_party(player_id),
+				player_demons_queries.update_party_average(player_id),
 			)
 
 			if party_stats.size < 1:
-				await player_demons_queries.set_selected_demon(player_id, server_id, demon.id)
+				await player_demons_queries.set_selected_demon(player_id, demon.id)
 
 		case DemonRegistration.IN_COMP:
 			# Only add demon to player's party, has been obtained before.
 			await asyncio.gather(
-				player_demons_queries.set_demon_in_party(player_id, server_id, demon.id),
-				player_demons_queries.update_party(player_id, server_id),
-				player_demons_queries.update_party_average(player_id, server_id),
+				player_demons_queries.set_demon_in_party(player_id, demon.id),
+				player_demons_queries.update_party(player_id),
+				player_demons_queries.update_party_average(player_id),
 			)
 
 		case DemonRegistration.IN_PARTY | DemonRegistration.LEADER | DemonRegistration.ON_LOAN:
 			# Add gem to player and increase MAG paid given the demon is already in the party.
 			gems_to_add = _gems_for_rank(demon.rank)
-			gem_name = await add_gem(player_id, server_id, demon.gems, gems_to_add)
+			gem_name = await add_gem(player_id, demon.gems, gems_to_add)
 
 		case DemonRegistration.PARTY_FULL:
 			extra_response = party_full_extra_responses[demon.tone_type]
 			gems_to_add = _gems_for_rank(demon.rank)
-			gem_name = await add_gem(player_id, server_id, demon.gems, gems_to_add)
+			gem_name = await add_gem(player_id, demon.gems, gems_to_add)
 
 		case DemonRegistration.TOO_WEAK:
 			extra_response = "TOO WEAK"
 
 	race_mult, demon_mult = await asyncio.gather(
-		player_queries.get_race_mag_mult(player_id, server_id, demon.race_id),
-		player_demons_queries.get_demon_mag_mult(player_id, server_id, demon.id),
+		player_queries.get_race_mag_mult(player_id, demon.race_id),
+		player_demons_queries.get_demon_mag_mult(player_id, demon.id),
 	)
 
 	mag_mult = _get_mag_multipler(reg_status, race_mult, demon_mult)
 	mag_to_add = int(demon.rank * 10 * mag_mult)
-	await update_mag(player_id, server_id, mag_to_add)
+	await update_mag(player_id, mag_to_add)
 	status_message = EncountersMsg.get_status_message(
 		reg_status, demon, interaction.user.name, mag_to_add, gems_to_add, gem_name
 	)
@@ -168,41 +170,38 @@ async def get_num_available_for_encounters(server_id: int) -> int:
 
 
 async def grant_dupe_reward(
-	summoner_id: int,
-	server_id: int,
+	summoner_player_id: int,
 	demon: DemonData,
 ) -> str | None:
 
 	mag_bonus = None
+	badge_set = False
 
 	# Do the update.
-	new_dupe_level = await player_demons_queries.increase_dupe_level(summoner_id, server_id, demon.id)
+	new_dupe_level = await player_demons_queries.increase_dupe_level(summoner_player_id, demon.id)
+	reward = DupeReward(new_dupe_level)
 
 	# Do more specific updates.
-	match DupeReward(new_dupe_level):
+	match reward:
 		case DupeReward.COLOUR:
-			await player_demons_queries.set_custom_colour_on_demon(summoner_id, server_id, demon.id)
+			await player_demons_queries.set_custom_colour_on_demon(summoner_player_id, demon.id)
 
 		case DupeReward.RACE_MULT:
-			mag_bonus = await player_queries.increase_race_mag_mult(summoner_id, server_id, demon.race_id)
+			mag_bonus = await player_queries.increase_race_mag_mult(summoner_player_id, demon.race_id)
 
 		case DupeReward.GREETING:
-			await player_demons_queries.set_custom_greeting_on_demon(summoner_id, server_id, demon.id)
+			await player_demons_queries.set_custom_greeting_on_demon(summoner_player_id, demon.id)
 
 		case DupeReward.GRIMOIRE:
 			item_id = await item_queries.get_item_id_by_name("grimoire")
 			if item_id is None:
 				raise RuntimeError("Grimoire item returned None.")
-			await item_queries.give_player_item(summoner_id, server_id, item_id)
+			await item_queries.give_player_item(summoner_player_id, item_id)
 
 		case DupeReward.BADGE:
-			badge_id = await badge_queries.get_demon_badge_id(demon.id)
-			if badge_id is None:
-				raise RuntimeError("Badge for demon not available.")
-			await badge_queries.set_badge_on_player(summoner_id, badge_id)
+			badge_set = await badge_queries.set_badge_on_player(summoner_player_id, demon.id)
 
 		case DupeReward.MAG_MULT | _:
-			mag_bonus = await player_demons_queries.increase_demon_mag_mult(summoner_id, server_id, demon.id)
+			mag_bonus = await player_demons_queries.increase_demon_mag_mult(summoner_player_id, demon.id)
 
-	response = EncountersMsg.get_dupe_message(new_dupe_level, demon.race, demon.name, mag_bonus)
-	return response
+	return EncountersMsg.get_dupe_message(new_dupe_level, demon.race, demon.name, mag_bonus, badge_set)

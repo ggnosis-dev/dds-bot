@@ -2,7 +2,7 @@ from random import choice
 
 from entities.badge_data import BadgeData
 from entities.command_data import CommandData
-from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, DEFAULT_RACE_MULT_INCREMENT, DemonData
+from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, DEFAULT_RACE_MULT_INCREMENT, STOP_DUPE_MSG_LVL, DemonData
 from entities.fusion_data import IngredientData
 from entities.item_data import GemCost
 from entities.server_data import ServerStats
@@ -183,7 +183,16 @@ class EncountersMsg(GenericMsg):
 		return status
 
 	@staticmethod
-	def get_dupe_message(new_dupe_level: int, race: str, name: str, mag_bonus: float | None) -> str | None:
+	def get_dupe_message(
+		new_dupe_level: int,
+		race: str,
+		name: str,
+		mag_bonus: float | None,
+		badge_exists: bool = False,
+	) -> str | None:
+		if new_dupe_level > STOP_DUPE_MSG_LVL:
+			return None
+
 		match DupeReward(new_dupe_level):
 			case DupeReward.COLOUR:
 				return (
@@ -209,14 +218,15 @@ class EncountersMsg(GenericMsg):
 				return f"**{name}** has gifted you a special item: **Grimoire**!"
 
 			case DupeReward.BADGE:
+				badge_text = ""
+				if badge_exists:
+					badge_text = "A universal badge has been added to your player (see `>badges`)!"
+				else:
+					badge_text = "A universal badge will be added to your player when one becomes available (see `>badges`)!"
 				return (
-					f"You are now fully linked with **{name}**!"
-					" A universal badge has been added to your player (see `>badges`)!"
+					f"You are now fully linked with **{name}**! {badge_text}"
 					f"\n\n-# Any levels after this will add **+0.05x MAG multiplier** when interacting with **{name}**."
 				)
-
-			case _:
-				return None
 
 	@staticmethod
 	def demon_fled(race: str, name: str, player_name: str) -> str:

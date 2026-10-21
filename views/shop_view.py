@@ -12,12 +12,13 @@ from shared_enums import Banners, EmbedColours, Emotes
 from views.common_view import BaseLayoutView, EntryT
 
 # Generic type.
-type PurchaseCallback[EntryT] = Callable[[discord.Interaction, EntryT], Coroutine[Any, Any, None]]
+type PurchaseCallback[EntryT] = Callable[[discord.Interaction, EntryT, int], Coroutine[Any, Any, None]]
 
 
 class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 	def __init__(
 		self,
+		player_id: int,
 		entries: list[EntryT],
 		on_purchase: PurchaseCallback[EntryT],
 		*,
@@ -26,6 +27,7 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 	) -> None:
 		super().__init__(entries, page=page, page_size=SHOP_PAGE_SIZE, colour=colour)
 
+		self.player_id = player_id
 		self.items = entries
 		self.on_purchase = on_purchase
 		self.show_info = False
@@ -36,12 +38,13 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 	async def send(
 		cls,
 		destination: discord.abc.Messageable,
+		player_id: int,
 		entries: list[EntryT],
 		on_purchase: PurchaseCallback[EntryT],
 		page: int = 1,
 		colour: int = EmbedColours.DEFAULT.value,
 	) -> discord.Message:
-		view = cls(entries, on_purchase, page=page, colour=colour)
+		view = cls(player_id, entries, on_purchase, page=page, colour=colour)
 		return await destination.send(view=view)
 
 	@abstractmethod
@@ -68,7 +71,7 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 
 	def _make_purchase_callback(self, item: EntryT):
 		async def callback(interaction: discord.Interaction) -> None:
-			await self.on_purchase(interaction, item)
+			await self.on_purchase(interaction, item, self.player_id)
 
 		return callback
 

@@ -25,13 +25,14 @@ class CustomisationCommands(commands.Cog):
 		if len(parts) < 1:
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["demon_colour"]))
 			return
+
 		demon_name = parts[0]
-		player_id, server_id = gets.get_user_server_ids(ctx)
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
+		player_id = gets.get_player_id(ctx)
 
 		# Check if demon is valid. If it is, still check registration as to not reveal demons player haven't seen yet.
 		reg_status = (
-			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+			await player_demons_queries.check_demon_registration(player_id, demon_id)
 			if demon_id is not None
 			else DemonRegistration.UNREGISTERED
 		)
@@ -40,7 +41,7 @@ class CustomisationCommands(commands.Cog):
 			return
 
 		# Anything that returns implies the player has access to customising.
-		old_colour = await player_demons_queries.get_custom_colour_on_demon(player_id, server_id, demon_id)
+		old_colour = await player_demons_queries.get_custom_colour_on_demon(player_id, demon_id)
 		if old_colour is None:
 			await MessageView.send(ctx.channel, CustomisationMsg.custom_option_locked("embed colour", demon_name))
 			return
@@ -51,7 +52,7 @@ class CustomisationCommands(commands.Cog):
 
 		# Update colour and send complete message.
 		await asyncio.gather(
-			player_demons_queries.set_custom_colour_on_demon(player_id, server_id, demon_id, new_colour),
+			player_demons_queries.set_custom_colour_on_demon(player_id, demon_id, new_colour),
 			MessageView.send(ctx.channel, CustomisationMsg.custom_colour_updated(demon_name, new_colour), colour=new_colour),
 		)
 
@@ -64,12 +65,13 @@ class CustomisationCommands(commands.Cog):
 		if len(parts) < 1:
 			await MessageView.send(ctx.channel, CustomisationMsg.no_input_given(CUSTOMISATION_COMMANDS["set_greeting"]))
 			return
+
 		demon_name = parts[0]
-		player_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = gets.get_player_id(ctx)
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
 		reg_status = (
-			await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+			await player_demons_queries.check_demon_registration(player_id, demon_id)
 			if demon_id is not None
 			else DemonRegistration.UNREGISTERED
 		)
@@ -80,20 +82,20 @@ class CustomisationCommands(commands.Cog):
 			return
 
 		# Anything past here implies the player has access to customising.
-		old_greeting = await player_demons_queries.get_custom_greeting_on_demon(player_id, server_id, demon_id)
+		old_greeting = await player_demons_queries.get_custom_greeting_on_demon(player_id, demon_id)
 		if old_greeting is None:
 			await MessageView.send(ctx.channel, CustomisationMsg.custom_option_locked("greeting", demon_name))
 			return
 
 		# Want demon for design data and for greeting example after confirmation.
-		demon = await demon_queries.get_demon_by_id(player_id, server_id, demon_id)
+		demon = await demon_queries.get_demon_by_id(player_id, demon_id)
 		greeting_string = parts[1] if len(parts) > 1 else None
 
 		# No greeting given, reset to default.
 		if greeting_string is None:
 			# Set greeting with default and send reverted message.
 			await asyncio.gather(
-				player_demons_queries.set_custom_greeting_on_demon(player_id, server_id, demon_id),
+				player_demons_queries.set_custom_greeting_on_demon(player_id, demon_id),
 				MessageView.send(
 					ctx.channel,
 					CustomisationMsg.custom_greeting_reverted(demon_name),
@@ -116,7 +118,7 @@ class CustomisationCommands(commands.Cog):
 
 		# Save the sanitised string.
 		await asyncio.gather(
-			player_demons_queries.set_custom_greeting_on_demon(player_id, server_id, demon_id, sanitised_greeting),
+			player_demons_queries.set_custom_greeting_on_demon(player_id, demon_id, sanitised_greeting),
 			MessageView.send(ctx.channel, CustomisationMsg.custom_greeting_updated(demon, sanitised_greeting)),
 		)
 

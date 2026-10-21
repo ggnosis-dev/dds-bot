@@ -9,7 +9,7 @@ from entities.encounter_data import BUTTON_EMOTES, AnswerData, ReactionData, Tal
 from helpers import encounter_utils
 from helpers.format_utils import format_dialogue, format_greeting
 from helpers.messages import EncountersMsg as Messages
-from queries import player_demons_queries, talk_queries
+from queries import player_demons_queries, player_queries, talk_queries
 from shared_enums import DemonRegistration, Emotes, ResponseType, Unicode
 from views.common_view import MessageView
 
@@ -39,7 +39,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 		Args:
 			demon (DemonData): The encounter's demon information.
-			summoner_id (int): Used to lock potential dupes to the player who summoned it.
+			summoner_id (int): Used to lock potential dupes to the user who summoned it. Requires user_id for comparisons.
 			message (discord.Message): Message the encounter is associated with, needed for editing and followups.
 			count (int): Number of recruitable demons in the one encounter.
 			consecutive_bad_interactions (int, optional): Threshold that dictates when a demon will flee.
@@ -309,18 +309,24 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 		"""Check if demon is summoned and grant level up if summoner ID matches interacting player ID."""
 
 		server_id = interaction.guild_id
-		if server_id is None:
-			raise RuntimeError("Server ID is None.")
+		assert server_id, "Cannot be run outside of a server."
+
+		# Check if demon is already summoned.
+		player_id = await player_queries.get_player_id(self.summoner_id, server_id)
+		assert player_id, "Player ID cannot be None beyond this point as it is set up before encounter begins."
 
 		d = self.demon
 
-		# Check if demon is already summoned.
-		reg_status = await player_demons_queries.check_demon_registration(self.summoner_id, server_id, d.id)
+		if player_id:
+			reg_status = await player_demons_queries.check_demon_registration(player_id, d.id)
+		else:
+			reg_status = DemonRegistration.UNREGISTERED
+
 		is_summoned = reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}
 
 		# Try applying dupe level.
 		if is_summoned:
-			dupe_message = await encounter_utils.grant_dupe_reward(self.summoner_id, server_id, d)
+			dupe_message = await encounter_utils.grant_dupe_reward(player_id, d)
 
 			# Send dupe message if it exists.
 			if dupe_message is not None:
@@ -332,7 +338,7 @@ class EncounterViewTemplate(discord.ui.LayoutView, ABC):
 
 				await MessageView.send(
 					destination_channel,
-					Messages.dupe_level_up(self.summoner_id, d, dupe_message),
+					Messages.dupe_level_up(self.summoner_id, self.demon, dupe_message),
 					thumbnail=d.design_data.profile_img,
 					colour=d.design_data.colour,
 				)
@@ -383,7 +389,7 @@ class EncounterViewInitial(EncounterViewTemplate):
 		# Format text.
 		stars = f" ({self.demon.dupes}{Emotes.GEM_THIN.value})" if self.demon.dupes > 0 else ""
 
-		if self.demon.design_data.greeting is not None:
+		if self.demon.design_data.greeting:
 			greeting = format_greeting(self.demon.design_data.greeting, self.demon)
 		else:
 			greeting = f"{self.demon.race} {self.demon.name}{stars}!"

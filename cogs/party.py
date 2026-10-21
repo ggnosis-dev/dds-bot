@@ -7,7 +7,7 @@ from entities.view_data import Columns, get_args
 from helpers import checks, gets
 from helpers.costs import party_slot_cost
 from helpers.messages import PartyMsg
-from queries import demon_queries, gem_queries, player_demons_queries
+from queries import demon_queries, gem_queries, player_demons_queries, player_queries
 from queries.currency_queries import update_mag
 from queries.player_queries import get_player, increase_party_slots
 from shared_enums import DemonRegistration
@@ -22,45 +22,46 @@ class PartyCommands(commands.Cog):
 		"""Init the Party cog with reference to bot instance and database classes."""
 		self.bot = bot
 
-	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "party"))
 	async def party_command(self, ctx: commands.Context, *args: str) -> None:
 		"""Command to display a player's current party."""
 
-		try:
-			player, server = gets.get_user_server(ctx)
-			mentioned = None
-			columns = list(Columns.PLAYER_DEFAULT)
+		# player, server = gets.get_user_server(ctx)
+		user, server = gets.get_user_server(ctx)
+		mentioned = None
+		columns = list(Columns.PLAYER_DEFAULT)
 
-			if args:
-				columns, mentioned = get_args(args, server, columns)
-			need_gems = Columns.GEMS in columns
+		if args:
+			columns, mentioned = get_args(args, server, columns)
+		need_gems = Columns.GEMS in columns
 
-			player = mentioned if mentioned is not None else player
+		# Swap player to mentioned player if it was provided.
+		user = mentioned if mentioned is not None else user
 
+		player_id = await player_queries.get_player_id(user.id, server.id)
+		if player_id:
 			party_entries, party_stats, sd_id = await asyncio.gather(
-				player_demons_queries.check_party(player.id, server.id, need_gems),
-				player_demons_queries.get_party_stats(player.id, server.id),
-				player_demons_queries.get_selected_demon_id(player.id, server.id),
+				player_demons_queries.check_party(player_id, need_gems),
+				player_demons_queries.get_party_stats(player_id),
+				player_demons_queries.get_selected_demon_id(player_id),
 			)
-
 			await PartyView.send(
 				ctx.channel,
 				party_entries,
 				columns,
-				player.name,
+				user.name,
 				party_stats=party_stats,
 				selected_demon_id=sd_id,
 			)
-		except Exception as e:
-			raise RuntimeError(f"party_command | {e}")
+			return
+		await MessageView.send(ctx.channel, PartyMsg.no_party())
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "release"))
 	async def release_command(self, ctx: commands.Context, *, demon_name: str) -> None:
 		"""Command to release a demon from the player's party."""
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = gets.get_player_id(ctx)
 		demon_name = demon_name.title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
@@ -69,7 +70,7 @@ class PartyCommands(commands.Cog):
 			return
 
 		# Check if demon is in party.
-		in_party = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+		in_party = await player_demons_queries.check_demon_registration(player_id, demon_id)
 		if in_party == DemonRegistration.ON_LOAN:
 			await MessageView.send(ctx.channel, PartyMsg.currently_on_loan(demon_name))
 			return
@@ -79,15 +80,16 @@ class PartyCommands(commands.Cog):
 			return
 
 		# Send a confirmation view.
+		user_id = gets.get_user_id(ctx)
 		message = PartyMsg.confirm_release(demon_name)
-		result = await ConfirmationView.send(ctx.channel, message, player_id, confirm_label="Yes", deny_label="No")
+		result = await ConfirmationView.send(ctx.channel, message, user_id, confirm_label="Yes", deny_label="No")
 		if result in (False, None):
 			return
 
 		# Operations to remove demon from party and update stats.
 		asyncio.gather(
-			player_demons_queries.set_demon_in_party(player_id, server_id, demon_id, set_in_party=False),
-			player_demons_queries.update_party(player_id, server_id, party_add=-1),
+			player_demons_queries.set_demon_in_party(player_id, demon_id, set_in_party=False),
+			player_demons_queries.update_party(player_id, party_add=-1),
 		)
 
 		await MessageView.send(ctx.channel, PartyMsg.demon_released(demon_name))
@@ -95,38 +97,34 @@ class PartyCommands(commands.Cog):
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "increase_party"))
 	async def increase_party_command(self, ctx: commands.Context, number: int = 1) -> None:
-		try:
-			pid, sid = gets.get_user_server_ids(ctx)
-			p_data = await get_player(pid, sid)
 
-			if p_data is None:
-				raise RuntimeError("Player was not found despite existence check.")
+		player_id = gets.get_player_id(ctx)
+		user_id = gets.get_user_id(ctx)
 
-			party_cap = p_data.party_stats.cap
-			cost = party_slot_cost(party_cap, number)
+		p_data = await get_player(player_id)
+		party_cap = p_data.party_stats.cap
+		cost = party_slot_cost(party_cap, number)
 
-			# Check if player has enough MAG.
-			if p_data.mag < cost:
-				await MessageView.send(ctx.channel, PartyMsg.increase_party_cost_not_enough(cost, p_data.mag))
-				return
+		# Check if player has enough MAG.
+		if p_data.mag < cost:
+			await MessageView.send(ctx.channel, PartyMsg.increase_party_cost_not_enough(cost, p_data.mag))
+			return
 
-			# Confirmation window.
-			message = PartyMsg.confirm_increase_party(number, cost)
-			confirmed = await ConfirmationView.send(
-				ctx.channel, message, p_data.player_id, trigger_id="increase_party", confirm_label="Yes", deny_label="No"
-			)
-			if not confirmed:
-				return
+		# Confirmation window.
+		message = PartyMsg.confirm_increase_party(number, cost)
+		confirmed = await ConfirmationView.send(
+			ctx.channel, message, user_id, trigger_id="increase_party", confirm_label="Yes", deny_label="No"
+		)
+		if not confirmed:
+			return
 
-			# Increase slots and take cash.
-			await asyncio.gather(
-				increase_party_slots(p_data.player_id, p_data.server_id, number),
-				update_mag(p_data.player_id, p_data.server_id, -cost),
-			)
+		# Increase slots and take cash.
+		await asyncio.gather(
+			increase_party_slots(player_id, number),
+			update_mag(player_id, -cost),
+		)
 
-			await MessageView.send(ctx.channel, PartyMsg.increased_party_success(party_cap, number))
-		except Exception as e:
-			raise RuntimeError(f"increase_party_command | {e}")
+		await MessageView.send(ctx.channel, PartyMsg.increased_party_success(party_cap, number))
 
 
 class LeaderCommands(commands.Cog):
@@ -145,7 +143,8 @@ class LeaderCommands(commands.Cog):
 
 	async def _select_demon_to_lead(self, ctx: commands.Context, demon_name: str) -> None:
 		"""Select a demon to lead your party."""
-		player_id, server_id = gets.get_user_server_ids(ctx)
+		# player_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = gets.get_player_id(ctx)
 		demon_name = demon_name.title()
 		demon_id = await demon_queries.get_demon_id_by_name(demon_name)
 
@@ -155,7 +154,7 @@ class LeaderCommands(commands.Cog):
 			return
 
 		# Check if demon is in party first.
-		reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+		reg_status = await player_demons_queries.check_demon_registration(player_id, demon_id)
 		if reg_status == DemonRegistration.ON_LOAN:
 			await MessageView.send(ctx.channel, PartyMsg.currently_on_loan(demon_name))
 			return
@@ -165,18 +164,18 @@ class LeaderCommands(commands.Cog):
 			return
 
 		# Send message and update who is selected.
-		dd = await demon_queries.get_design_data(demon_id, player_id, server_id)
+		dd = await demon_queries.get_design_data(demon_id, player_id)
 		message = PartyMsg.chosen_to_lead(demon_name)
 		await asyncio.gather(
-			player_demons_queries.set_selected_demon(player_id, server_id, demon_id),
+			player_demons_queries.set_selected_demon(player_id, demon_id),
 			MessageView.send(ctx.channel, message, thumbnail=dd.profile_img, colour=dd.colour),
 		)
 		ctx.bot.dispatch("tutorial_trigger", ctx, "leader_set")
 
 	async def _check_leader(self, ctx: commands.Context) -> None:
 		"""Check stats of the current leader."""
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
+		player_id = gets.get_player_id(ctx)
+		demon_id = await player_demons_queries.get_selected_demon_id(player_id)
 
 		# This should never happen.
 		if demon_id is None:
@@ -184,9 +183,9 @@ class LeaderCommands(commands.Cog):
 			return
 
 		demon, mag_mult, gem_progress = await asyncio.gather(
-			demon_queries.get_demon_by_id(player_id, server_id, demon_id),
-			player_demons_queries.get_demon_mag_mult(player_id, server_id, demon_id),
-			gem_queries.get_gem_progress(player_id, server_id, demon_id),
+			demon_queries.get_demon_by_id(player_id, demon_id),
+			player_demons_queries.get_demon_mag_mult(player_id, demon_id),
+			gem_queries.get_gem_progress(player_id, demon_id),
 		)
 
 		# Get gems player can get with demon. Needs demon first.

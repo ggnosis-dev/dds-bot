@@ -25,14 +25,13 @@ class PlayerUtil(commands.Cog):
 	async def stuff_command(self, ctx: commands.Context) -> None:
 		"""Command to view MAG, daily timer, all that jazz."""
 
-		user_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = gets.get_player_id(ctx)
+		server_id = gets.get_server_id(ctx)
+
 		player_data, server_data = await asyncio.gather(
-			player_queries.get_player(user_id, server_id),
+			player_queries.get_player(player_id),
 			server_level_queries.get_server_status(server_id),
 		)
-
-		if player_data is None:
-			raise RuntimeError("Player was not found despite existence check.")
 
 		# Get current time and subtract it from when the player's timer was set.
 		time_until_daily = utils.get_time_until(player_data.daily_timer, DAILY_COOLDOWN)
@@ -55,12 +54,8 @@ class PlayerUtil(commands.Cog):
 	async def daily_command(self, ctx: commands.Context) -> None:
 		"""Command to get some free MAG every, however many hours."""
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		player_data = await player_queries.get_player(player_id, server_id)
-
-		if player_data is None:
-			raise RuntimeError("Player was not found despite existence check.")
-
+		player_id = gets.get_player_id(ctx)
+		player_data = await player_queries.get_player(player_id)
 		time_until = utils.get_time_until(player_data.daily_timer, DAILY_COOLDOWN)
 
 		# If time not up, send how long left.
@@ -74,33 +69,35 @@ class PlayerUtil(commands.Cog):
 
 		# Add mag, set timer and send final message.
 		await asyncio.gather(
-			currency_queries.update_mag(player_id, server_id, add_mag),
-			player_queries.set_daily_timer(player_id, server_id),
+			currency_queries.update_mag(player_data.player_id, add_mag),
+			player_queries.set_daily_timer(player_data.player_id),
 			MessageView.send(ctx.channel, message),
 		)
 
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "tutorial"))
 	async def tutorial_command(self, ctx: commands.Context) -> None:
 		"""Tutorial is not blocked by needing a profile."""
+
 		# Build tutorial view using TutorialStep object.
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		step, task_mask = await player_queries.get_tutorial_progress(player_id, server_id)
+		user_id, server_id = gets.get_user_server_ids(ctx)
+		player_id: int | None = await player_queries.get_player_id(user_id, server_id)
+		step, task_mask = await player_queries.get_tutorial_progress(player_id)
 		await GoalView.send(ctx.channel, step, task_mask)
 
-	async def process_tutorial_task(
-		self, player_id: int, server_id: int, event: tutorial_data.TutorialEvent, channel
-	) -> None:
+	async def process_tutorial_task(self, player_id: int, event: tutorial_data.TutorialEvent, channel) -> None:
 		"""
 		Check for tutorial triggers.
 		This will only trigger if a COMMAND is run, so no need to worry about junk attempts.
 		"""
-		# If tutorial is complete, don't do anything else.
-		if await player_queries.check_tutorial_complete(player_id, server_id):
-			return
 
 		# Get the tutorial step they are on and the task bitmask.
 		# Bitmask structured like 010 where 1 indicates task in that position (i.e. task 2) has been completed.
-		step_id, task_mask = await player_queries.get_tutorial_progress(player_id, server_id)
+		step_id, task_mask = await player_queries.get_tutorial_progress(player_id)
+
+		# No longer in the tutorial if -1.
+		if step_id == -1:
+			return
+
 		step = tutorial_data.TUTORIAL_STEPS[step_id]
 		new_mask = task_mask
 
@@ -131,27 +128,43 @@ class PlayerUtil(commands.Cog):
 		full_mask = (1 << len(step.desc_tasks)) - 1
 
 		if new_mask == full_mask:
-			await step.on_complete(player_id, server_id)
+			await step.on_complete(player_id)
 			await channel.send(f"STEP COMPLETED! Reward: {step.reward_text}")
-			await player_queries.next_tutorial_step(player_id, server_id)
+			await player_queries.next_tutorial_step(player_id)
 			return
 
-		await player_queries.set_tutorial_mask(player_id, server_id, new_mask)
+		await player_queries.set_tutorial_mask(player_id, new_mask)
 
+	@checks.has_profile()
 	@commands.Cog.listener()
 	async def on_command_completion(self, ctx: commands.Context) -> None:
+		"""Tutorial tasks often completed after command is executed."""
+
 		assert ctx.command is not None, "Run command check should only occur in on_command_completion."
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		command_args = tutorial_data.get_command_args(ctx)
-		event = tutorial_data.TutorialEvent("command", ctx.command.name, player_id, server_id, args=command_args)
-		await self.process_tutorial_task(player_id, server_id, event, ctx.channel)
+		user_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = await player_queries.get_player_id(user_id, server_id)
 
+		if player_id is None:
+			return
+
+		command_args = tutorial_data.get_command_args(ctx)
+		event = tutorial_data.TutorialEvent("command", ctx.command.name, player_id, args=command_args)
+		await self.process_tutorial_task(player_id, event, ctx.channel)
+
+	@checks.has_profile()
 	@commands.Cog.listener()
 	async def on_tutorial_trigger(self, source: commands.Context | discord.Interaction, trigger: str) -> None:
-		player_id, server_id = gets.get_user_server_ids(source)
-		event = tutorial_data.TutorialEvent("trigger", trigger, player_id, server_id)
-		await self.process_tutorial_task(player_id, server_id, event, source.channel)
+		"""Tutorial triggers can be placed wherever a bot/client.dispatch can be made."""
+
+		user_id, server_id = gets.get_user_server_ids(source)
+		player_id = await player_queries.get_player_id(user_id, server_id)
+
+		if player_id is None:
+			return
+
+		event = tutorial_data.TutorialEvent("trigger", trigger, player_id)
+		await self.process_tutorial_task(player_id, event, source.channel)
 
 
 class ServerUtil(commands.Cog):
@@ -194,13 +207,14 @@ class DevUtil(commands.Cog):
 		self.bot = bot
 
 	@checks.is_developer()
+	@checks.has_profile()
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "give_mag"))
 	async def give_mag_command(self, ctx: commands.Context, amount: int) -> None:
 		"""Add MAG to self for testing."""
 
-		player_id, server_id = gets.get_user_server_ids(ctx)
-		await currency_queries.update_mag(player_id, server_id, amount)
-		mag = await currency_queries.get_mag(player_id, server_id)
+		player_id = gets.get_player_id(ctx)
+		await currency_queries.update_mag(player_id, amount)
+		mag = await currency_queries.get_mag(player_id)
 		await MessageView.send(ctx.channel, Messages.discovered_mag(amount, mag))
 
 	@checks.is_developer()

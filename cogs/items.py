@@ -12,7 +12,7 @@ from entities.item_data import INCENSE_RANK_INCREASE
 from entities.view_data import Columns
 from helpers import checks, gets, utils
 from helpers.messages import ItemMsg
-from queries import demon_queries, gem_queries, item_queries, player_demons_queries, server_queries
+from queries import demon_queries, gem_queries, item_queries, player_demons_queries, player_queries, server_queries
 from shared_enums import DemonRegistration
 from views.common_view import ConfirmationView, MessageView
 from views.table_view import GemCollectionView, InventoryView
@@ -38,7 +38,8 @@ class InventoryCommands(commands.Cog):
 		number_to_use = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 1
 		if number_to_use <= 0:
 			number_to_use = 1
-		player_id, server_id = gets.get_user_server_ids(ctx)
+
+		player_id = gets.get_player_id(ctx)
 		item_id = await item_queries.get_item_id_by_name(item_name)
 
 		# Check if item is valid.
@@ -47,7 +48,7 @@ class InventoryCommands(commands.Cog):
 			return
 
 		# UX check for impossible action if player does not have enough of the item.
-		quantity = await item_queries.get_player_has_item(player_id, server_id, item_id)
+		quantity = await item_queries.get_player_has_item(player_id, item_id)
 		if quantity < number_to_use:
 			await MessageView.send(ctx.channel, ItemMsg.not_in_inventory(item_name))
 			return
@@ -65,7 +66,7 @@ class InventoryCommands(commands.Cog):
 			return
 
 		# Check registration status. If ON LOAN, do not rank up.
-		reg_status = await player_demons_queries.check_demon_registration(player_id, server_id, demon_id)
+		reg_status = await player_demons_queries.check_demon_registration(player_id, demon_id)
 		if reg_status == DemonRegistration.ON_LOAN:
 			await MessageView.send(ctx.channel, ItemMsg.currently_on_loan(demon_name))
 			return
@@ -75,17 +76,20 @@ class InventoryCommands(commands.Cog):
 			return
 
 		# Get confirmation to use item.
+		user_id = gets.get_user_id(ctx)
 		confirmed = await ConfirmationView.send(
-			ctx.channel, ItemMsg.confirm_use_item(quantity, item_name, number_to_use, demon_name), player_id
+			ctx.channel,
+			ItemMsg.confirm_use_item(quantity, item_name, number_to_use, demon_name),
+			user_id,
 		)
 		if not confirmed:
 			return
 
 		# Use the incense item and apply its effect.
-		used_item = await item_queries.use_incense(player_id, server_id, demon_id, item_id, number_to_use)
+		used_item = await item_queries.use_incense(player_id, demon_id, item_id, number_to_use)
 		if used_item:
 			dd = await demon_queries.get_design_data(demon_id)
-			message = ItemMsg.use_item_completed(player_id, item_name, demon_name, number_to_use * INCENSE_RANK_INCREASE)
+			message = ItemMsg.use_item_completed(user_id, item_name, demon_name, number_to_use * INCENSE_RANK_INCREASE)
 			await MessageView.send(ctx.channel, message, thumbnail=dd.profile_img, colour=dd.colour)
 
 			# Tutorial Trigger.
@@ -101,8 +105,9 @@ class InventoryCommands(commands.Cog):
 	async def item_inventory_command(self, ctx: commands.Context) -> None:
 		"""View player's item inventory."""
 
-		player, server = gets.get_user_server(ctx)
-		items = await item_queries.get_player_inventory(player.id, server.id)
+		player_id = gets.get_player_id(ctx)
+		name = ctx.author.name
+		items = await item_queries.get_player_inventory(player_id)
 		columns = list(Columns.ITEM_DEFAULT)
 		columns.append(Columns.DESC)
 
@@ -110,7 +115,7 @@ class InventoryCommands(commands.Cog):
 			await MessageView.send(ctx.channel, ItemMsg.empty_inventory())
 			return
 
-		await InventoryView.send(ctx.channel, items, columns, player.name)
+		await InventoryView.send(ctx.channel, items, columns, name)
 
 
 class GemCommands(commands.Cog):
@@ -121,57 +126,62 @@ class GemCommands(commands.Cog):
 	@commands.command(**command_kwargs(GEMS_COMMANDS, "gems"))
 	async def gems_command(self, ctx: commands.Context) -> None:
 		"""View player's current gems collection."""
-		player, server = gets.get_user_server(ctx)
-		collected_gems = await gem_queries.get_player_gems(player.id, server.id)
+		player_id = gets.get_player_id(ctx)
+		name = ctx.author.name
+		collected_gems = await gem_queries.get_player_gems(player_id)
 		columns = list(Columns.ITEM_DEFAULT)
 
-		await GemCollectionView.send(ctx.channel, collected_gems, columns, player.name)
+		await GemCollectionView.send(ctx.channel, collected_gems, columns, name)
 
-	@checks.has_profile()
 	@commands.Cog.listener()
 	async def on_message(self, message: discord.Message) -> None:
 		"""
 		Listener for player messages to track progress towards finding a gem.
 		Only triggers if player has a profile.
 		"""
-		try:
-			# Exit early if message is from bot or not in a server.
-			if message.author.bot or message.guild is None:
-				return
 
-			ctx = await self.bot.get_context(message)
+		# Exit early if message is from bot or not in a server.
+		if message.author.bot or message.guild is None:
+			return
 
-			# This check will exit if the player uses a proper command.
-			if ctx.valid:
-				return
+		ctx = await self.bot.get_context(message)
 
-			player_id, server_id = gets.get_user_server_ids(ctx)
-			selected_demon_id = await player_demons_queries.get_selected_demon_id(player_id, server_id)
+		# This check will exit if the player uses a proper command.
+		if ctx.valid:
+			return
 
-			if selected_demon_id is None:
-				return
+		user_id = gets.get_user_id(ctx)
+		server_id = gets.get_server_id(ctx)
+		player_id = await player_queries.get_player_id(user_id, server_id)
 
-			# Increase exp towards finding a gem.
-			gem_found = await gem_queries.increase_gem_meter(player_id, server_id, selected_demon_id)
+		if player_id is None:
+			return
 
-			if gem_found:
-				d = cast(DemonData, demon_queries.get_demon_by_id(player_id, server_id, selected_demon_id))
+		selected_demon_id = await player_demons_queries.get_selected_demon_id(player_id)
 
-				new_gem, set_channel = await asyncio.gather(
-					gem_queries.add_gem(player_id, server_id, d.gems),
-					server_queries.get_dedicated_channel(server_id),
-				)
+		if selected_demon_id is None:
+			return
 
-				send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
+		# Increase exp towards finding a gem.
+		gem_found = await gem_queries.increase_gem_meter(player_id, selected_demon_id)
 
-				await MessageView.send(
-					send_to_channel,
-					ItemMsg.found_gem(player_id, d.name, new_gem),
-					d.design_data.profile_img,
-					d.design_data.colour,
-				)
-		except Exception as e:
-			raise RuntimeError(f"GemCommands | on_message | {e}")
+		if gem_found:
+			d = cast(DemonData, demon_queries.get_demon_by_id(player_id, selected_demon_id))
+			server_id = gets.get_server_id(ctx)
+
+			new_gem, set_channel = await asyncio.gather(
+				gem_queries.add_gem(player_id, d.gems),
+				server_queries.get_dedicated_channel(server_id),
+			)
+
+			send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
+
+			await MessageView.send(
+				send_to_channel,
+				ItemMsg.found_gem(player_id, d.name, new_gem),
+				d.design_data.profile_img,
+				d.design_data.colour,
+			)
 
 
 class Items(InventoryCommands, GemCommands):
