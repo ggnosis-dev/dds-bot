@@ -9,7 +9,6 @@ from entities.item_data import (
 	convert_rows_to_shop_item_data,
 )
 from helpers.db import query_all, query_one, query_write, transaction
-from queries import demon_queries
 
 
 async def get_player_inventory(player_id: int) -> list[ItemEntry]:
@@ -118,6 +117,7 @@ async def use_incense(player_id: int, demon_id: int, item_id: int, number_to_use
 					AND quantity >= ?
 			""",
 			(number_to_use, player_id, item_id, number_to_use),
+			conn=conn,
 		)
 
 		if not q1:
@@ -133,6 +133,7 @@ async def use_incense(player_id: int, demon_id: int, item_id: int, number_to_use
 				WHERE player_id = ? AND demon_id = ?
 			""",
 			(player_id, demon_id),
+			conn=conn,
 		)
 
 		if not q2:
@@ -147,16 +148,20 @@ async def can_demon_use_item(demon_id: int, item_id: int) -> bool:
 
 	row = query_one(
 		"""
-			SELECT UPPER(exclusive_to)
-			FROM items WHERE item_id = ?
+			SELECT 1 FROM items
+			WHERE item_id = ?
+				AND (
+					exclusive_to IS NULL
+					OR exclusive_to = (
+						SELECT race_id FROM demons
+						WHERE id = ?
+					)
+				)
 		""",
-		(item_id,),
+		(item_id, demon_id),
 	)
 
-	exclusive_to = row[0] if row else None
-	demon_race = await demon_queries.get_demon_race_by_id(demon_id)
-
-	return exclusive_to is None or demon_race == exclusive_to
+	return row is not None
 
 
 async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost]) -> bool:

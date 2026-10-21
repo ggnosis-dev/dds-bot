@@ -1,14 +1,12 @@
 from entities.demon_data import TOO_WEAK_LEEWAY, DemonData, convert_row_to_demon_data
 from entities.fusion_data import (
-	ELEMENT_PAIRS,
-	ELEMENT_RACE,
 	SpecialFusionShopData,
 	convert_row_to_special_fusion_data,
 )
 from helpers.db import query_all, query_one
 
 
-async def get_fused_race(race_1: str, race_2: str) -> str | None:
+async def get_fused_race_id(race_1: int, race_2: int) -> int | None:
 	# Database has race_1 in alphabetical order.
 	race_1, race_2 = sorted([race_1, race_2])
 	race_result = query_one(
@@ -22,32 +20,38 @@ async def get_fused_race(race_1: str, race_2: str) -> str | None:
 	return race_result[0] if race_result else None
 
 
-async def get_fused_demon(player_id: int, server_id: int, race_1: str, race_2: str, average_rank: int) -> DemonData | None:
-	fused_race = await get_fused_race(race_1, race_2)
-	print(fused_race)
+async def get_fused_demon(player_id: int, race_1_id: int, race_2_id: int, average_rank: int) -> DemonData | None:
+	fused_race = await get_fused_race_id(race_1_id, race_2_id)
 
 	# Some races won't fuse together deliberately.
 	if not fused_race:
-		print(f"INFO: {race_1} + {race_2} cannot fuse together.")
 		return None
 
 	# The ELEMENT race are defined as their own races.
-	if fused_race in ELEMENT_RACE:
-		return await get_specifc_fusion_demon(player_id, name=fused_race)
+	if fused_race == 1:
+		return await fuse_into_element(player_id, race_1_id)
 
 	return await get_closest_demon_in_race(player_id, fused_race, average_rank)
 
 
 async def get_fuse_with_element(
 	player_id: int,
-	race: str,
-	element: str,
+	race_id: int,
+	element_demon_id: int,
 	original_rank: int,
 ) -> DemonData | None:
 	"""If the pair is a good one, get the next demon up in the race, otherwise next demon down."""
 
-	direction = 1 if race in ELEMENT_PAIRS[element] else -1
-	return await get_next_demon_in_race(player_id, race, original_rank, direction)
+	row = query_one(
+		"""
+			SELECT 1 FROM element_pairings
+			WHERE race_id = ? AND element_id = ?
+		""",
+		(race_id, element_demon_id),
+	)
+
+	positive_dir = row is not None
+	return await get_next_demon_in_race(player_id, race_id, original_rank, positive_dir)
 
 
 async def get_special_fusion_list(server_id: int) -> list[SpecialFusionShopData]:
@@ -90,7 +94,7 @@ async def get_special_fusion_list(server_id: int) -> list[SpecialFusionShopData]
 	return convert_row_to_special_fusion_data(recipe_rows, ing_rows)
 
 
-async def get_closest_demon_in_race(player_id: int, race: str, rank: int) -> DemonData | None:
+async def get_closest_demon_in_race(player_id: int, race_id: int, rank: int) -> DemonData | None:
 	"""Get the closest demon's data to the rank inside of a specific race."""
 
 	row = query_one(
@@ -100,19 +104,19 @@ async def get_closest_demon_in_race(player_id: int, race: str, rank: int) -> Dem
 			LEFT JOIN player_demons pd
 				ON v.id = pd.demon_id
 				AND pd.player_id = ?
-			WHERE v.race = UPPER(?)
+			WHERE v.race_id = ?
 				AND v.prevent_spawn = 0
 			ORDER BY
 				-- Order by absolute rank minus the passed in rank. If tied, prioritise the smaller one.
 				ABS(v.rank - ?), v.rank
 			LIMIT 1
 		""",
-		(player_id, race, rank),
+		(player_id, race_id, rank),
 	)
 	return convert_row_to_demon_data(row) if row else None
 
 
-async def get_next_demon_in_race(player_id: int, race: str, rank: int, direction: int) -> DemonData | None:
+async def get_next_demon_in_race(player_id: int, race_id: int, rank: int, positive_dir: bool) -> DemonData | None:
 	"""Get the neighbouring demon of the specified race."""
 
 	row = query_one(
@@ -124,17 +128,17 @@ async def get_next_demon_in_race(player_id: int, race: str, rank: int, direction
 			LEFT JOIN player_demons pd
 				ON v.id = pd.demon_id
 				AND pd.player_id = ?
-			WHERE race = UPPER(?) AND rank {">" if direction == 1 else "<"} ?
-			ORDER BY rank {"ASC" if direction == 1 else "DESC"}
+			WHERE race_id = ? AND rank {">" if positive_dir else "<"} ?
+			ORDER BY rank {"ASC" if positive_dir else "DESC"}
 			LIMIT 1
 		""",
-		(player_id, race, rank),
+		(player_id, race_id, rank),
 	)
 	return convert_row_to_demon_data(row) if row else None
 
 
-async def get_specifc_fusion_demon(player_id: int, name: str) -> DemonData | None:
-	"""Mainly used for when an Element is made, but could be used for special combinations."""
+async def fuse_into_element(player_id: int, race_id: int) -> DemonData | None:
+	"""Used to get an Element from the specified race_id."""
 
 	row = query_one(
 		"""
@@ -145,9 +149,11 @@ async def get_specifc_fusion_demon(player_id: int, name: str) -> DemonData | Non
 			LEFT JOIN player_demons pd
 				ON v.id = pd.demon_id
 				AND pd.player_id = ?
-			WHERE name = ?
+			JOIN fusion_elements fe
+				ON v.id = fe.element_id
+			WHERE fe.race_id = ?
 		""",
-		(player_id, name),
+		(player_id, race_id),
 	)
 	return convert_row_to_demon_data(row) if row else None
 

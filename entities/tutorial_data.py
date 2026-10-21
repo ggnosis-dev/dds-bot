@@ -30,13 +30,12 @@ class TutorialEvent:
 	kind: str
 	name: str
 	player_id: int
-	server_id: int
 	args: tuple[str, ...] | None = None
 
 
 # Get command context and return bool if task completed.
 TaskCheck = Callable[[TutorialEvent], Awaitable[bool]]
-QueryCheck = Callable[[int, int], Awaitable[bool]]
+QueryCheck = Callable[[int], Awaitable[bool]]
 
 
 def get_command_args(ctx: commands.Context) -> tuple[str, ...]:
@@ -86,38 +85,38 @@ def check_using_query(query: QueryCheck, allowed_commands: tuple[str, ...]) -> T
 		if event.name not in allowed_commands:
 			return False
 
-		return await query(event.player_id, event.server_id)
+		return await query(event.player_id)
 
 	return check
 
 
 def party_average_check(target: int) -> QueryCheck:
-	async def query(player_id: int, server_id: int) -> bool:
-		stats = await player_demons_queries.get_party_stats(player_id, server_id)
+	async def query(player_id: int) -> bool:
+		stats = await player_demons_queries.get_party_stats(player_id)
 		return stats.average >= target
 
 	return query
 
 
 def party_size_check(target: int) -> QueryCheck:
-	async def query(player_id: int, server_id: int) -> bool:
-		stats = await player_demons_queries.get_party_stats(player_id, server_id)
+	async def query(player_id: int) -> bool:
+		stats = await player_demons_queries.get_party_stats(player_id)
 		return stats.size >= target
 
 	return query
 
 
 def gem_amount_check(target: int) -> QueryCheck:
-	async def query(player_id: int, server_id: int) -> bool:
-		gems = await gem_queries.get_player_gems(player_id, server_id)
+	async def query(player_id: int) -> bool:
+		gems = await gem_queries.get_player_gems(player_id)
 		return len(gems) >= target
 
 	return query
 
 
-async def give_gem_reward(player_id, server_id, gem_dict):
+async def give_gem_reward(player_id: int, gem_dict: dict):
 	for name, qty in gem_dict.items():
-		await gem_queries.add_gem(player_id, server_id, gems=(name,), number=qty)
+		await gem_queries.add_gem(player_id, gems=(name,), number=qty)
 
 
 TUTORIAL_STEPS = {
@@ -165,7 +164,7 @@ TUTORIAL_STEPS = {
 			1: TutorialTask(
 				name="I'm Putting Together a Team",
 				hint="Register 3 demons to your Compendium then run `>party`.",
-				check=check_using_query(party_average_check(3), ("party",)),
+				check=check_using_query(party_size_check(3), ("party",)),
 			),
 			2: TutorialTask(
 				name="Loan Something to the Server Compendium",

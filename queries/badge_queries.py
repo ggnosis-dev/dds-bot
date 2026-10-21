@@ -16,15 +16,18 @@ async def get_demon_badge_id(demon_id: int) -> int | None:
 	return result[0] if result else None
 
 
-async def set_badge_on_player(user_id: int, badge_id: int) -> bool:
+async def set_badge_on_player(user_id: int, demon_id: int) -> bool:
 	"""Add a badge to a user (different to player)."""
 
 	rows_affected = query_write(
 		"""
 			INSERT OR IGNORE INTO user_badges (user_id, badge_id)
-			VALUES (?, ?)
+			VALUES (
+				?,
+				(SELECT id FROM badges WHERE demon_id = ?)
+			)
 		""",
-		(user_id, badge_id),
+		(user_id, demon_id),
 	)
 	return rows_affected > 0
 

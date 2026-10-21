@@ -11,6 +11,13 @@ DEFAULT_DEMON_MULT_INCREMENT = 0.05
 DEFAULT_RACE_MULT_INCREMENT = 0.1
 GREETING_LENGTH = 48
 TOO_WEAK_LEEWAY = 3
+STOP_DUPE_MSG_LVL = 10
+
+
+@dataclass
+class RaceGems:
+	gem_id: int
+	name: str
 
 
 @dataclass
@@ -33,7 +40,7 @@ class DemonData:
 	dupes: int
 	tone_type: Tone
 	personality_type: Personality
-	gems: tuple[str, str]
+	gems: tuple[RaceGems, ...]
 	design_data: DesignData
 
 
@@ -49,7 +56,10 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			dupes=row["dupes"] or 0,
 			tone_type=Tone(row["tone"]),
 			personality_type=Personality(row["personality"]),
-			gems=(row["gem_1_id"], row["gem_2_id"]),
+			gems=(
+				RaceGems(row["gem_1_id"], row["gem_1"]),
+				RaceGems(row["gem_2_id"], row["gem_2"]),
+			),
 			design_data=convert_row_to_design_data(row),
 		)
 	except Exception as e:

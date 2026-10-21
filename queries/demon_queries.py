@@ -131,20 +131,6 @@ async def get_demon_by_distribution(
 	return convert_row_to_demon_data(row)
 
 
-async def get_demon_race_by_id(demon_id: int) -> str:
-	"""Get demon's race from the database using its ID."""
-	row = query_one(
-		"""
-			SELECT r.name FROM demons d
-			JOIN races r ON d.race_id = r.id
-			WHERE d.id = ?
-		""",
-		(demon_id,),
-	)[0]
-
-	return row
-
-
 def get_demon_names_by_race(race: str) -> list[str]:
 	"""Return a list of all demon names from  a race."""
 	race = race.title()

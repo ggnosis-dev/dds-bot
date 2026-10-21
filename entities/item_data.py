@@ -18,11 +18,18 @@ class ItemEntry:
 
 
 @dataclass
+class GemCost:
+	gem_id: int
+	amount: int
+	name: str
+
+
+@dataclass
 class ShopItemData:
 	item_id: int
 	name: str
 	item_type: str
-	cost: dict
+	cost: list[GemCost]
 	description: str
 	emote: Emotes
 
@@ -47,7 +54,7 @@ def convert_rows_to_shop_item_data(rows: list[Row]) -> list[ShopItemData]:
 		entries = []
 		for raw_row in rows:
 			row = dict(raw_row)
-			cost = json.loads(row["cost"])
+			cost = [GemCost(**c) for c in json.loads(row["cost"])]
 			emote_name = row.get("emote") or "GEM"
 
 			entries.append(

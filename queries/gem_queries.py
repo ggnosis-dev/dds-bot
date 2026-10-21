@@ -1,6 +1,6 @@
 import random
 
-from entities.demon_data import Gems
+from entities.demon_data import RaceGems
 from entities.item_data import ItemEntry, convert_row_to_item_entry
 from helpers.db import query_all, query_one, query_write
 from queries import player_demons_queries
@@ -79,7 +79,7 @@ async def increase_gem_meter(player_id: int, demon_id: int) -> bool:
 	return False
 
 
-async def add_gem(player_id: int, gems: tuple[Gems, ...], number: int = 1) -> str:
+async def add_gem(player_id: int, gems: tuple[RaceGems, ...], number: int = 1) -> str:
 	"""Insert or update gem quantity."""
 
 	# Get gem type.
@@ -92,7 +92,7 @@ async def add_gem(player_id: int, gems: tuple[Gems, ...], number: int = 1) -> st
 			ON CONFLICT (player_id, gem_id) DO
 			UPDATE SET quantity = quantity + excluded.quantity
 		""",
-		(player_id, gem.id, number),
+		(player_id, gem.gem_id, number),
 	)
 
 	return gem.name
@@ -110,11 +110,12 @@ async def get_player_gems(player_id: int) -> list[ItemEntry]:
 	rows = query_all(
 		"""
 			SELECT
-				gem_name AS name,
-				quantity
-			FROM player_gems
-			WHERE player_id = ?
-			ORDER BY name ASC
+				i.name,
+				pg.quantity
+			FROM player_gems pg
+			JOIN items i ON pg.gem_id = i.item_id
+			WHERE pg.player_id = ?
+			ORDER BY i.name ASC
 		""",
 		(player_id,),
 	)

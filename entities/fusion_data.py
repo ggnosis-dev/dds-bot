@@ -23,21 +23,6 @@ class SpecialFusionShopData:
 	rank: int
 
 
-ELEMENT_RACE = ["Erthys", "Aeros", "Aquans", "Flaemis", "Gnome", "Salamander", "Sylph", "Undine"]
-
-# Races typically have 2 pairings for level up.
-ELEMENT_PAIRS = {
-	"Erthys": ["Beast", "Femme", "Jaki"],
-	"Aeros": ["Fairy", "Flight"],
-	"Aquans": ["Fairy", "Wilder"],
-	"Flaemis": ["Beast", "Femme", "Flight", "Jaki", "Wilder"],
-	"Gnome": [],
-	"Salamander": [],
-	"Sylph": ["Avian", "Holy", "Dragon", "Lady"],
-	"Undine": [],
-}
-
-
 def convert_row_to_special_fusion_data(recipe_rows: list[Row], ingredient_rows: list[Row]) -> list[SpecialFusionShopData]:
 	try:
 		recipe_ingredients: dict[int, list[IngredientData]] = defaultdict(list)
