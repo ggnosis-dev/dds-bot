@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from sqlite3 import Row
 
 from entities.demon_data import DesignData, convert_row_to_design_data
-from queries.gem_queries import get_possible_gems
+from queries import gem_queries
 from shared_enums import Tone
 
 
@@ -110,7 +110,7 @@ async def convert_row_to_demon_table_rows(rows: list[Row], need_gems: bool) -> l
 
 				# Skip retrieving gems if they're already in the cache.
 				if race_id not in gem_cache:
-					gem_cache[race_id] = await get_possible_gems(race_id)
+					gem_cache[race_id] = await gem_queries.get_possible_gems(race_id)
 				gems = gem_cache[race_id]
 
 			row["stored_rank"] = st_rank
