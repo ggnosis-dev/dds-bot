@@ -52,7 +52,7 @@ async def join_player_party(
 	gem_name = ""
 	extra_response = None
 	already_summoned = False
-	party_stats = await player_demons_queries.get_party_stats(player_id)
+	party_stats = await player_queries.get_party_stats(player_id)
 
 	# Check if party's strongest member is TOO_WEAK.
 	if party_stats.strongest <= demon.rank - TOO_WEAK_LEEWAY:
@@ -77,8 +77,6 @@ async def join_player_party(
 			await asyncio.gather(
 				player_demons_queries.add_demon_to_compendium(player_id, demon.id, demon.rank),
 				player_demons_queries.set_demon_in_party(player_id, demon.id),
-				player_demons_queries.update_party(player_id),
-				player_demons_queries.update_party_average(player_id),
 			)
 
 			if party_stats.size < 1:
@@ -88,8 +86,6 @@ async def join_player_party(
 			# Only add demon to player's party, has been obtained before.
 			await asyncio.gather(
 				player_demons_queries.set_demon_in_party(player_id, demon.id),
-				player_demons_queries.update_party(player_id),
-				player_demons_queries.update_party_average(player_id),
 			)
 
 		case DemonRegistration.IN_PARTY | DemonRegistration.LEADER | DemonRegistration.ON_LOAN:

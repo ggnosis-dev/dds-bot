@@ -62,7 +62,7 @@ class Compendium(commands.Cog):
 			return
 
 		# Check if party has space.
-		if not player_demons_queries.get_party_has_space(player_id):
+		if not player_queries.get_party_has_space(player_id):
 			await MessageView.send(ctx.channel, CompendiumMsg.party_full())
 			return
 
@@ -95,7 +95,6 @@ class Compendium(commands.Cog):
 		await asyncio.gather(
 			currency_queries.update_mag(player_id, -cost),
 			player_demons_queries.set_demon_in_party(player_id, demon.id),
-			player_demons_queries.update_party(player_id),
 		)
 
 		# Final message.

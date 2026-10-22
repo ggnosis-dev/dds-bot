@@ -2,7 +2,6 @@ from time import time
 
 from entities.comp_data import DemonTableRow, convert_row_to_demon_table_row, convert_row_to_demon_table_rows
 from entities.demon_data import DEFAULT_DEMON_MULT_INCREMENT, GREETING_LENGTH
-from entities.player_data import PartyStats
 from helpers.db import query_all, query_one, query_write
 from shared_enums import DemonRegistration
 
@@ -242,94 +241,6 @@ async def get_selected_demon_id(player_id: int) -> int | None:
 		(player_id,),
 	)
 	return row[0] if row else None
-
-
-async def update_party(player_id: int, party_add: int = 1) -> bool:
-	"""
-	Add or subract to the player's current party count.
-
-	Returns:
-		bool: True if successful, False otherwise.
-	"""
-
-	rows_affected = query_write(
-		"""
-			UPDATE players
-			SET party_size = party_size + ?
-			WHERE player_id = ?
-		""",
-		(party_add, player_id),
-	)
-	return rows_affected > 0
-
-
-def get_party_has_space(player_id: int) -> bool:
-	"""Check if the player's party is full."""
-
-	row = query_one(
-		"""
-			SELECT 1 FROM players
-			WHERE party_size < party_cap
-				AND player_id = ?
-		""",
-		(player_id,),
-	)
-	return row is not None
-
-
-async def calculate_party_average(player_id: int) -> int:
-	"""Work out the average rank of the party."""
-
-	party = await check_party(player_id)
-	ranks = []
-
-	# Isolate rank.
-	for demon in party:
-		ranks.append(demon.stored_rank)
-
-	return max(1, sum(ranks) // len(ranks))
-
-
-async def update_party_average(player_id: int) -> bool:
-	"""Set the average rank of the party."""
-
-	average_rank = await calculate_party_average(player_id)
-
-	rows_affected = query_write(
-		"""
-			UPDATE players
-			SET party_average_rank = ?
-			WHERE player_id = ?
-		""",
-		(average_rank, player_id),
-	)
-	return rows_affected > 0
-
-
-async def get_party_stats(player_id: int) -> PartyStats:
-	size, cap, average = query_one(
-		"""
-			SELECT party_size, party_cap, party_average_rank FROM players
-			WHERE player_id = ?
-		""",
-		(player_id,),
-	)
-
-	strongest = await get_strongest_party_demon_rank(player_id)
-	return PartyStats(size=size, cap=cap, average=average, strongest=strongest)
-
-
-async def get_strongest_party_demon_rank(player_id: int) -> int:
-	# Because we're doing MAX, we will always get a valid row object.
-	row = query_one(
-		"""
-			SELECT MAX(stored_rank) FROM player_demons
-			WHERE player_id = ? AND in_party = 1
-		""",
-		(player_id,),
-	)[0]
-
-	return row if row is not None else 1
 
 
 async def increase_dupe_level(player_id: int, demon_id: int) -> int:

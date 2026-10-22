@@ -25,7 +25,7 @@ class PlayerData:
 	encounter_timer: int
 
 
-def convert_row_to_player_data(row: Row, strongest: int) -> PlayerData:
+def convert_row_to_player_data(row: Row, party_stats: PartyStats) -> PlayerData:
 	"""Convert retrieved DB row into a DemonData object."""
 	try:
 		return PlayerData(
@@ -34,12 +34,7 @@ def convert_row_to_player_data(row: Row, strongest: int) -> PlayerData:
 			server_id=row["server_id"],
 			selected_demon_id=row["selected_demon_id"],
 			mag=row["mag"],
-			party_stats=PartyStats(
-				size=row["party_size"],
-				cap=row["party_cap"],
-				average=row["party_average_rank"],
-				strongest=strongest,
-			),
+			party_stats=party_stats,
 			daily_timer=row["daily_timer"],
 			encounter_timer=row["encounter_timer"],
 		)

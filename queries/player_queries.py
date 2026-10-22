@@ -1,9 +1,8 @@
 from time import time
 
 from entities.demon_data import DEFAULT_RACE_MULT_INCREMENT
-from entities.player_data import PlayerData, convert_row_to_player_data
+from entities.player_data import PartyStats, PlayerData, convert_row_to_player_data
 from helpers.db import query_one, query_write
-from queries.player_demons_queries import get_strongest_party_demon_rank
 from queries.server_queries import update_server_in_db
 
 
@@ -71,8 +70,41 @@ async def get_player(player_id: int) -> PlayerData:
 		(player_id,),
 	)
 
-	strongest = await get_strongest_party_demon_rank(player_id)
-	return convert_row_to_player_data(row, strongest)
+	# Get party stats.
+	party_stats = await get_party_stats(player_id)
+	return convert_row_to_player_data(row, party_stats)
+
+
+async def get_party_stats(player_id: int) -> PartyStats:
+	row = query_one(
+		"""
+			SELECT party_size, party_average_rank, party_cap, strongest_rank
+			FROM player_party_stats_VIEW
+			WHERE player_id = ?
+		""",
+		(player_id,),
+	)
+
+	return PartyStats(
+		size=row["party_size"],
+		cap=row["party_cap"],
+		average=row["party_average_rank"],
+		strongest=row["strongest_rank"],
+	)
+
+
+def get_party_has_space(player_id: int) -> bool:
+	"""Check if the player's party is full."""
+
+	row = query_one(
+		"""
+			SELECT 1 FROM player_party_stats_VIEW
+			WHERE party_size < party_cap
+				AND player_id = ?
+		""",
+		(player_id,),
+	)
+	return row is not None
 
 
 async def set_daily_timer(player_id: int) -> bool:

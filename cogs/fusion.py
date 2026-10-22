@@ -10,7 +10,7 @@ from entities.demon_data import TOO_WEAK_LEEWAY, DemonData
 from entities.fusion_data import FUSION_ACCIDENT_CHANCE, SpecialFusionShopData
 from helpers import checks, costs, encounter_utils, gets, utils
 from helpers.messages import FusionMsg
-from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries
+from queries import currency_queries, demon_queries, fusion_queries, player_demons_queries, player_queries
 from shared_enums import DemonRegistration, EmbedColours
 from views.common_view import ConfirmationView, MessageView
 from views.shop_view import SpecialFusionView
@@ -101,7 +101,7 @@ class Fusion(commands.Cog):
 		message = FusionMsg.fusion_response(demons, demon_result)
 
 		# If player's strongest demon is less than the result's rank + 3, do not let them fuse it.
-		party_stats = await player_demons_queries.get_party_stats(player_id)
+		party_stats = await player_queries.get_party_stats(player_id)
 		if demon_result.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
 			message += FusionMsg.fusion_too_weak(party_stats.strongest, TOO_WEAK_LEEWAY)
 			await MessageView.send(ctx.channel, message, thumbnail=dd.profile_img, colour=self.col)
@@ -149,7 +149,6 @@ class Fusion(commands.Cog):
 		await asyncio.gather(
 			player_demons_queries.set_demon_in_party(player_id, d1.id, set_in_party=False),
 			player_demons_queries.set_demon_in_party(player_id, d2.id, set_in_party=False),
-			player_demons_queries.update_party(player_id, party_add=-2),
 			currency_queries.update_mag(player_id, -cost),
 		)
 
@@ -171,11 +170,8 @@ class Fusion(commands.Cog):
 			# Check if it's a brand new demon.
 			new_to_comp = await player_demons_queries.add_demon_to_compendium(player_id, demon_result.id, demon_result.rank)
 
-			# Set it in party, update party count.
-			await asyncio.gather(
-				player_demons_queries.set_demon_in_party(player_id, demon_result.id, set_in_party=True),
-				player_demons_queries.update_party(player_id),
-			)
+			# Set it in party.
+			await player_demons_queries.set_demon_in_party(player_id, demon_result.id, set_in_party=True)
 
 		# Send final message.
 		await MessageView.send(
@@ -210,7 +206,7 @@ class Fusion(commands.Cog):
 		fused_demon = await demon_queries.get_demon_by_id(player_id, fusion_result.demon_id)
 
 		# Check if strong enough to summon it.
-		party_stats = await player_demons_queries.get_party_stats(player_id)
+		party_stats = await player_queries.get_party_stats(player_id)
 		if fused_demon.rank > party_stats.strongest + TOO_WEAK_LEEWAY:
 			message = FusionMsg.fusion_too_weak(party_stats.strongest, TOO_WEAK_LEEWAY)
 			await MessageView.reply(
@@ -237,8 +233,6 @@ class Fusion(commands.Cog):
 				await MessageView.reply(interaction, FusionMsg.not_in_party(i.name), colour=self.col, ephemeral=True)
 				return
 
-		# Len of ingredients minus 1 for the new demon.
-		party_num_to_remove = -(len(ingredients) - 1)
 		dd = await demon_queries.get_design_data(fused_demon.id)
 
 		# Start building the confirmation message.
@@ -248,9 +242,6 @@ class Fusion(commands.Cog):
 		fused_reg_status = await player_demons_queries.check_demon_registration(player_id, fused_demon.id)
 		is_summoned = fused_reg_status in {DemonRegistration.IN_PARTY, DemonRegistration.ON_LOAN, DemonRegistration.LEADER}
 		if is_summoned:
-			# Update party number as we are no longer adding a new demon.
-			party_num_to_remove = -(len(ingredients))
-
 			# Append warning message about demon already being in party.
 			message += FusionMsg.fusion_already_in_party(fused_demon)
 
@@ -277,7 +268,6 @@ class Fusion(commands.Cog):
 		# Set in party, update party stats and perform tasks.
 		await asyncio.gather(
 			player_demons_queries.set_demon_in_party(player_id, fused_demon.id, set_in_party=True),
-			player_demons_queries.update_party(player_id, party_add=party_num_to_remove),
 			*tasks,
 		)
 

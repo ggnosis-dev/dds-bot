@@ -42,7 +42,7 @@ class PartyCommands(commands.Cog):
 		if player_id:
 			party_entries, party_stats, sd_id = await asyncio.gather(
 				player_demons_queries.check_party(player_id, need_gems),
-				player_demons_queries.get_party_stats(player_id),
+				player_queries.get_party_stats(player_id),
 				player_demons_queries.get_selected_demon_id(player_id),
 			)
 			await PartyView.send(
@@ -86,13 +86,11 @@ class PartyCommands(commands.Cog):
 		if result in (False, None):
 			return
 
-		# Operations to remove demon from party and update stats.
-		asyncio.gather(
+		# Operations to remove demon from party and send message.
+		await asyncio.gather(
 			player_demons_queries.set_demon_in_party(player_id, demon_id, set_in_party=False),
-			player_demons_queries.update_party(player_id, party_add=-1),
+			MessageView.send(ctx.channel, PartyMsg.demon_released(demon_name)),
 		)
-
-		await MessageView.send(ctx.channel, PartyMsg.demon_released(demon_name))
 
 	@checks.has_profile()
 	@commands.command(**command_kwargs(PARTY_COMMANDS, "increase_party"))
