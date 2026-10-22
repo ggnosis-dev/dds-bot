@@ -4,7 +4,8 @@ from functools import partial
 
 from discord.ext import commands
 
-from queries import currency_queries, gem_queries, player_demons_queries
+from entities.demon_data import RaceGems
+from queries import currency_queries, gem_queries, item_queries, player_queries
 
 
 @dataclass
@@ -92,7 +93,7 @@ def check_using_query(query: QueryCheck, allowed_commands: tuple[str, ...]) -> T
 
 def party_average_check(target: int) -> QueryCheck:
 	async def query(player_id: int) -> bool:
-		stats = await player_demons_queries.get_party_stats(player_id)
+		stats = await player_queries.get_party_stats(player_id)
 		return stats.average >= target
 
 	return query
@@ -100,7 +101,7 @@ def party_average_check(target: int) -> QueryCheck:
 
 def party_size_check(target: int) -> QueryCheck:
 	async def query(player_id: int) -> bool:
-		stats = await player_demons_queries.get_party_stats(player_id)
+		stats = await player_queries.get_party_stats(player_id)
 		return stats.size >= target
 
 	return query
@@ -116,7 +117,13 @@ def gem_amount_check(target: int) -> QueryCheck:
 
 async def give_gem_reward(player_id: int, gem_dict: dict):
 	for name, qty in gem_dict.items():
-		await gem_queries.add_gem(player_id, gems=(name,), number=qty)
+		gid = await item_queries.get_item_id_by_name(name)
+
+		if gid is None:
+			raise ValueError("Gem name provided in tutorial is not valid.")
+
+		gem = RaceGems(gem_id=gid, name=name)
+		await gem_queries.add_gem(player_id, gems=(gem,), number=qty)
 
 
 TUTORIAL_STEPS = {
