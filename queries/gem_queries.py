@@ -2,7 +2,7 @@ import random
 
 from entities.demon_data import RaceGems
 from entities.item_data import ItemEntry, convert_row_to_item_entry
-from helpers.db import query_all, query_one, query_write
+from helpers.db import query_all, query_one, query_write, transaction
 from queries import player_demons_queries
 
 GEM_EXP_MULTIPLIER = 0.1
@@ -47,36 +47,41 @@ async def increase_gem_meter(player_id: int, demon_id: int) -> bool:
 		bool: True if meter was full, False otherwise.
 	"""
 
-	# Get player's stored rank for demon.
-	stored_rank = await player_demons_queries.get_player_demon_rank(player_id, demon_id)
-	increment = stored_rank * GEM_EXP_MULTIPLIER
+	# Do both transactions together if necessary.
+	with transaction() as conn:
+		# Read player's stored rank for demon.
+		stored_rank = await player_demons_queries.get_player_demon_rank(player_id, demon_id)
+		increment = stored_rank * GEM_EXP_MULTIPLIER
 
-	# Increase meter value.
-	query_write(
-		"""
-			UPDATE player_demons
-			SET gem_meter = gem_meter + ?
-			WHERE player_id = ? AND demon_id = ?
-		""",
-		(increment, player_id, demon_id),
-	)
-
-	meter_val = await get_gem_progress(player_id, demon_id)
-
-	# Reset meter if gem found.
-	if meter_val >= GEM_METER_FULL:
-		# Remove a full meter worth of XP from the gem meter.
+		# Increase meter value.
 		query_write(
 			"""
 				UPDATE player_demons
-				SET gem_meter = gem_meter - ?
+				SET gem_meter = gem_meter + ?
 				WHERE player_id = ? AND demon_id = ?
 			""",
-			(GEM_METER_FULL, player_id, demon_id),
+			(increment, player_id, demon_id),
+			conn=conn,
 		)
 
-		return True
-	return False
+		# Read gem progress.
+		meter_val = await get_gem_progress(player_id, demon_id)
+
+		# Reset meter if gem found.
+		if meter_val >= GEM_METER_FULL:
+			# Remove a full meter worth of XP from the gem meter.
+			query_write(
+				"""
+					UPDATE player_demons
+					SET gem_meter = gem_meter - ?
+					WHERE player_id = ? AND demon_id = ?
+				""",
+				(GEM_METER_FULL, player_id, demon_id),
+				conn=conn,
+			)
+
+			return True
+		return False
 
 
 async def add_gem(player_id: int, gems: tuple[RaceGems, ...], number: int = 1) -> str:
