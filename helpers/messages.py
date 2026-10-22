@@ -603,3 +603,22 @@ class UtilityMsgs(GenericMsg):
 			data_list += f"\n`{key}`: {val}"
 
 		return f"Demon Entry for {demon_name} updated to:{data_list}"
+
+	@staticmethod
+	def tutorial_step_completed(user_id: int, step_num: int, reward_text: str) -> str:
+		return (
+			f"-# <@{user_id}>\n\n**TUTORIAL STEP {step_num} COMPLETE!** {Emotes.HUH.value}"
+			f"\nYou have been gifted {reward_text}!"
+		)
+
+	@staticmethod
+	def tutorial_task_completed(user_id: int, task_hint: str) -> str:
+		return f"-# <@{user_id}>\n\n**TUTORIAL TASK COMPLETE!** {Emotes.HUH.value}\n{task_hint}"
+
+	@staticmethod
+	def tutorial_completed() -> str:
+		return "**ALL TUTORIAL STEPS COMPLETED!**\nTo browse specific tutorial pages, you can do `>tutorial {page_number}.`"
+
+	@staticmethod
+	def tutorial_not_found() -> str:
+		return "`> ERROR: 1004 TUTORIAL_NOT_FOUND`"

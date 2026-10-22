@@ -107,6 +107,14 @@ def party_size_check(target: int) -> QueryCheck:
 	return query
 
 
+def comp_size_check(target: int) -> QueryCheck:
+	async def query(player_id: int) -> bool:
+		stats = await player_queries.get_party_stats(player_id)
+		return stats.comp_size >= target
+
+	return query
+
+
 def gem_amount_check(target: int) -> QueryCheck:
 	async def query(player_id: int) -> bool:
 		gems = await gem_queries.get_player_gems(player_id)
@@ -241,8 +249,8 @@ TUTORIAL_STEPS = {
 		desc_tasks={
 			1: TutorialTask(
 				name="I'm Putting Together a Team",
-				hint="Register 10 demons to your Compendium then run `>party`.",
-				check=check_using_query(party_average_check(10), ("party",)),
+				hint="Register 10 demons to your Compendium then view your demons.",
+				check=check_using_query(comp_size_check(10), ("compendium", "party")),
 			),
 			2: TutorialTask(
 				name="Views with Extra Columns",
@@ -259,18 +267,6 @@ TUTORIAL_STEPS = {
 			),
 		},
 		reward_text="500 MAG",
-		on_complete=partial(currency_queries.update_mag, amount=500),
-	),
-	5: TutorialStep(
-		desc_step="End",
-		desc_tasks={
-			1: TutorialTask(
-				name="I'm Just Being Lazy and not protecting against key overflow",
-				hint="No really, I should just do that...",
-				check=ran_command("give_mag"),
-			),
-		},
-		reward_text="End of Tutorial",
 		on_complete=partial(currency_queries.update_mag, amount=500),
 	),
 }

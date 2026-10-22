@@ -78,7 +78,7 @@ async def get_player(player_id: int) -> PlayerData:
 async def get_party_stats(player_id: int) -> PartyStats:
 	row = query_one(
 		"""
-			SELECT party_size, party_average_rank, party_cap, strongest_rank
+			SELECT party_size, comp_size, party_average_rank, party_cap, strongest_rank
 			FROM player_party_stats_VIEW
 			WHERE player_id = ?
 		""",
@@ -87,6 +87,7 @@ async def get_party_stats(player_id: int) -> PartyStats:
 
 	return PartyStats(
 		size=row["party_size"],
+		comp_size=row["comp_size"],
 		cap=row["party_cap"],
 		average=row["party_average_rank"],
 		strongest=row["strongest_rank"],

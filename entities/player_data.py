@@ -8,6 +8,7 @@ ENCOUNTER_WINDOW = 1 * 3600
 @dataclass
 class PartyStats:
 	size: int
+	comp_size: int
 	cap: int
 	average: int
 	strongest: int

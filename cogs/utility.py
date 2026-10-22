@@ -74,98 +74,6 @@ class PlayerUtil(commands.Cog):
 			MessageView.send(ctx.channel, message),
 		)
 
-	@commands.command(**command_kwargs(UTILITY_COMMANDS, "tutorial"))
-	async def tutorial_command(self, ctx: commands.Context) -> None:
-		"""Tutorial is not blocked by needing a profile."""
-
-		# Build tutorial view using TutorialStep object.
-		user_id, server_id = gets.get_user_server_ids(ctx)
-		player_id: int | None = await player_queries.get_player_id(user_id, server_id)
-		step, task_mask = await player_queries.get_tutorial_progress(player_id)
-		await GoalView.send(ctx.channel, step, task_mask)
-
-	async def process_tutorial_task(self, player_id: int, event: tutorial_data.TutorialEvent, channel) -> None:
-		"""
-		Check for tutorial triggers.
-		This will only trigger if a COMMAND is run, so no need to worry about junk attempts.
-		"""
-
-		# Get the tutorial step they are on and the task bitmask.
-		# Bitmask structured like 010 where 1 indicates task in that position (i.e. task 2) has been completed.
-		step_id, task_mask = await player_queries.get_tutorial_progress(player_id)
-
-		# No longer in the tutorial if -1.
-		if step_id == -1:
-			return
-
-		step = tutorial_data.TUTORIAL_STEPS[step_id]
-		new_mask = task_mask
-
-		for task_id, task in step.desc_tasks.items():
-			# Bit manipulation, takes 1 and slides its bit left by task_id - 1 places.
-			# Task 1: 000 << (1 - 1) = 0b001 -> 1
-			# Task 2: 000 << (2 - 1) = 0b010 -> 2
-			bit = 1 << (task_id - 1)
-
-			# Bitwise AND check to skip if already done.
-			# 101 & 010 = 0b000 -> 0 -> falsy
-			# 110 & 010 = 0b010 -> 2 -> truthy
-			if task_mask & bit:
-				continue
-
-			if task.check is not None and await task.check(event):
-				# Bitwise OR compare numbers. 0 | 0 = 0
-				new_mask = new_mask | bit
-				await channel.send(f"COMPLETED {task.name}")
-
-		# Nothing changed.
-		if new_mask == task_mask:
-			return
-
-		# Essentially, want to get the number of tasks, then minus one bit to get the full mask:
-		# (1 << 3) - 1 where 3 is num of tasks.
-		# 0b1000 - 0b1 == 8 - 1 == 7 or 0b111
-		full_mask = (1 << len(step.desc_tasks)) - 1
-
-		if new_mask == full_mask:
-			await step.on_complete(player_id)
-			await channel.send(f"STEP COMPLETED! Reward: {step.reward_text}")
-			await player_queries.next_tutorial_step(player_id)
-			return
-
-		await player_queries.set_tutorial_mask(player_id, new_mask)
-
-	@checks.has_profile()
-	@commands.Cog.listener()
-	async def on_command_completion(self, ctx: commands.Context) -> None:
-		"""Tutorial tasks often completed after command is executed."""
-
-		assert ctx.command is not None, "Run command check should only occur in on_command_completion."
-
-		user_id, server_id = gets.get_user_server_ids(ctx)
-		player_id = await player_queries.get_player_id(user_id, server_id)
-
-		if player_id is None:
-			return
-
-		command_args = tutorial_data.get_command_args(ctx)
-		event = tutorial_data.TutorialEvent("command", ctx.command.name, player_id, args=command_args)
-		await self.process_tutorial_task(player_id, event, ctx.channel)
-
-	@checks.has_profile()
-	@commands.Cog.listener()
-	async def on_tutorial_trigger(self, source: commands.Context | discord.Interaction, trigger: str) -> None:
-		"""Tutorial triggers can be placed wherever a bot/client.dispatch can be made."""
-
-		user_id, server_id = gets.get_user_server_ids(source)
-		player_id = await player_queries.get_player_id(user_id, server_id)
-
-		if player_id is None:
-			return
-
-		event = tutorial_data.TutorialEvent("trigger", trigger, player_id)
-		await self.process_tutorial_task(player_id, event, source.channel)
-
 
 class ServerUtil(commands.Cog):
 	def __init__(self, bot):
@@ -249,7 +157,123 @@ class DevUtil(commands.Cog):
 		await MessageView.send(ctx.channel, Messages.updated_demon_entry(demon_name, data_to_add))
 
 
-class Utility(DevUtil, PlayerUtil, ServerUtil):
+class TutorialUtil(commands.Cog):
+	def __init__(self, bot):
+		self.bot = bot
+
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "tutorial"))
+	async def tutorial_command(self, ctx: commands.Context, number: int | None) -> None:
+		"""Tutorial is not blocked by needing a profile."""
+
+		total_steps = len(tutorial_data.TUTORIAL_STEPS)
+		if number is not None:
+			if number > total_steps or number <= 0:
+				await MessageView.send(ctx.channel, Messages.tutorial_not_found())
+			else:
+				await GoalView.send(ctx.channel, number, 0)
+			return
+
+		# Build tutorial view using TutorialStep object.
+		user_id, server_id = gets.get_user_server_ids(ctx)
+		player_id: int | None = await player_queries.get_player_id(user_id, server_id)
+		step, task_mask = await player_queries.get_tutorial_progress(player_id)
+
+		if step > total_steps:
+			await MessageView.send(ctx.channel, Messages.tutorial_completed())
+			return
+
+		await GoalView.send(ctx.channel, step, task_mask)
+
+	async def process_tutorial_task(
+		self,
+		player_id: int,
+		user_id: int,
+		event: tutorial_data.TutorialEvent,
+		channel,
+	) -> None:
+		"""
+		Check for tutorial triggers.
+		This will only trigger if a COMMAND is run, so no need to worry about junk attempts.
+		"""
+
+		# Get the tutorial step they are on and the task bitmask.
+		# Bitmask structured like 010 where 1 indicates task in that position (i.e. task 2) has been completed.
+		step_id, task_mask = await player_queries.get_tutorial_progress(player_id)
+
+		# No longer in the tutorial if -1.
+		if step_id > len(tutorial_data.TUTORIAL_STEPS):
+			return
+
+		step = tutorial_data.TUTORIAL_STEPS[step_id]
+		new_mask = task_mask
+
+		for task_id, task in step.desc_tasks.items():
+			# Bit manipulation, takes 1 and slides its bit left by task_id - 1 places.
+			# Task 1: 000 << (1 - 1) = 0b001 -> 1
+			# Task 2: 000 << (2 - 1) = 0b010 -> 2
+			bit = 1 << (task_id - 1)
+
+			# Bitwise AND check to skip if already done.
+			# 101 & 010 = 0b000 -> 0 -> falsy
+			# 110 & 010 = 0b010 -> 2 -> truthy
+			if task_mask & bit:
+				continue
+
+			if task.check is not None and await task.check(event):
+				# Bitwise OR compare numbers. 0 | 0 = 0
+				new_mask = new_mask | bit
+				await MessageView.send(channel, Messages.tutorial_task_completed(user_id, task.hint))
+
+		# Nothing changed.
+		if new_mask == task_mask:
+			return
+
+		# Essentially, want to get the number of tasks, then minus one bit to get the full mask:
+		# (1 << 3) - 1 where 3 is num of tasks.
+		# 0b1000 - 0b1 == 8 - 1 == 7 or 0b111
+		full_mask = (1 << len(step.desc_tasks)) - 1
+
+		if new_mask == full_mask:
+			await step.on_complete(player_id)
+			await MessageView.send(channel, Messages.tutorial_step_completed(user_id, step_id, step.reward_text))
+			await player_queries.next_tutorial_step(player_id)
+			return
+
+		await player_queries.set_tutorial_mask(player_id, new_mask)
+
+	@checks.has_profile()
+	@commands.Cog.listener()
+	async def on_command_completion(self, ctx: commands.Context) -> None:
+		"""Tutorial tasks often completed after command is executed."""
+
+		assert ctx.command is not None, "Run command check should only occur in on_command_completion."
+
+		user_id, server_id = gets.get_user_server_ids(ctx)
+		player_id = await player_queries.get_player_id(user_id, server_id)
+
+		if player_id is None:
+			return
+
+		command_args = tutorial_data.get_command_args(ctx)
+		event = tutorial_data.TutorialEvent("command", ctx.command.name, player_id, args=command_args)
+		await self.process_tutorial_task(player_id, user_id, event, ctx.channel)
+
+	@checks.has_profile()
+	@commands.Cog.listener()
+	async def on_tutorial_trigger(self, source: commands.Context | discord.Interaction, trigger: str) -> None:
+		"""Tutorial triggers can be placed wherever a bot/client.dispatch can be made."""
+
+		user_id, server_id = gets.get_user_server_ids(source)
+		player_id = await player_queries.get_player_id(user_id, server_id)
+
+		if player_id is None:
+			return
+
+		event = tutorial_data.TutorialEvent("trigger", trigger, player_id)
+		await self.process_tutorial_task(player_id, user_id, event, source.channel)
+
+
+class Utility(DevUtil, PlayerUtil, ServerUtil, TutorialUtil):
 	def __init__(self, bot):
 		self.bot = bot
 
