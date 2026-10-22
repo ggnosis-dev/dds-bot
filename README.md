@@ -47,4 +47,9 @@ Planning to slow development for a bit while I start working on other projects b
 - Remove the gem hunted pop-up, I don't like it.
 - Events
   - Kind of have these worked out already
+- More dialogue options
+- More demons and races
 - Better tutorials
+- Entries need filling
+- Migrate DB to something with async writes (not really that important right now)
+- Get the bot on servers
