@@ -13,10 +13,10 @@ async def get_possible_gems(race_id: int) -> tuple[str, str]:
 
 	rows = query_all(
 		"""
-			SELECT i.name FROM races r
-			JOIN items i ON i.item_id IN (r.gem_1_id, r.gem_2_id)
-			WHERE r.id = ?
-			ORDER BY i.item_id
+			SELECT i.name FROM race_gems rg
+			JOIN items i ON i.item_id = rg.gem_id
+			WHERE rg.race_id = ?
+			ORDER BY i.name
 		""",
 		(race_id,),
 	)

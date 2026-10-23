@@ -2,6 +2,8 @@
 This is stuff for encounters.
 """
 
+import json
+
 from dataclasses import dataclass
 from sqlite3 import Row
 
@@ -47,6 +49,9 @@ class DemonData:
 def convert_row_to_demon_data(row: Row) -> DemonData:
 	"""Convert retrieved DB row into a DemonData object."""
 	try:
+		gems_dict = json.loads(row["gems"])
+		gems = tuple(RaceGems(gem["gem_id"], gem["gem_name"]) for gem in gems_dict)
+
 		return DemonData(
 			id=row["id"],
 			race_id=row["race_id"],
@@ -56,10 +61,7 @@ def convert_row_to_demon_data(row: Row) -> DemonData:
 			dupes=row["dupes"] or 0,
 			tone_type=Tone(row["tone"]),
 			personality_type=Personality(row["personality"]),
-			gems=(
-				RaceGems(row["gem_1_id"], row["gem_1"]),
-				RaceGems(row["gem_2_id"], row["gem_2"]),
-			),
+			gems=gems,
 			design_data=convert_row_to_design_data(row),
 		)
 	except Exception as e:
