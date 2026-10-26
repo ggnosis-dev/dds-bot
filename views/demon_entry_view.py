@@ -145,6 +145,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		shown_demon = self.data_cache[self.shown_demon_id]
 		design_data = shown_demon.design_data
 		date_met = time.strftime("%d-%b-%Y", time.gmtime(shown_demon.date_met))
+		gem_text = " & ".join([gem.name.title() for gem in shown_demon.gems])
 
 		# Add a space in the hints for proper spacing with bullets.
 		stored_rank_hint = f" (**{shown_demon.stored_rank}**)" if shown_demon.stored_rank != shown_demon.initial_rank else ""
@@ -173,7 +174,7 @@ class DemonEntryBrowser(discord.ui.LayoutView):
 		container.add_item(
 			ui.TextDisplay(
 				f"\n-# - Tone: {shown_demon.tone_name.title()}"
-				f"\n-# - Gems: {' & '.join(shown_demon.gems).title()}"
+				f"\n-# - Gems: {gem_text}"
 				f"\n-# - Origin: {shown_demon.origin or 'N/A.'}"
 				# f"\n-# - Time Period: {'19th Century'}"
 			)

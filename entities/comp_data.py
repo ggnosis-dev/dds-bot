@@ -1,7 +1,9 @@
+import json
+
 from dataclasses import dataclass
 from sqlite3 import Row
 
-from entities.demon_data import DesignData, convert_row_to_design_data
+from entities.demon_data import DesignData, RaceGems, convert_row_to_design_data
 from queries import gem_queries
 from shared_enums import Tone
 
@@ -53,7 +55,7 @@ class DemonEntry:
 	stored_rank: int
 	dupes: int
 	tone_name: str
-	gems: tuple[str, ...]
+	gems: tuple[RaceGems, ...]
 	design_data: DesignData
 	date_met: int
 	desc: str | None
@@ -65,6 +67,8 @@ def convert_row_to_demon_entry(row: Row) -> DemonEntry:
 		row_keys = row.keys()
 		desc = row["desc"] if "desc" in row_keys else None
 		origin = row["origin"] if "origin" in row_keys else None
+		gems_dict = json.loads(row["gems"])
+		gems = tuple(RaceGems(gem["gem_id"], gem["gem_name"]) for gem in gems_dict)
 
 		return DemonEntry(
 			demon_id=row["id"],
@@ -74,7 +78,7 @@ def convert_row_to_demon_entry(row: Row) -> DemonEntry:
 			stored_rank=row["stored_rank"],
 			dupes=row["dupes"],
 			tone_name=Tone(row["tone"]).name,
-			gems=(row["gem_1"], row["gem_2"]),
+			gems=gems,
 			design_data=convert_row_to_design_data(row),
 			date_met=row["date_met"],
 			desc=desc,
