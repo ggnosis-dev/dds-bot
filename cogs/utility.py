@@ -11,7 +11,7 @@ from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW
 from helpers import checks, gets, utils
 from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
-from queries import currency_queries, demon_queries, player_queries, server_level_queries, server_queries
+from queries import currency_queries, demon_queries, item_queries, player_queries, server_level_queries, server_queries
 from views.common_view import MessageView
 from views.goal_view import GoalView
 
@@ -124,6 +124,22 @@ class DevUtil(commands.Cog):
 		await currency_queries.update_mag(player_id, amount)
 		mag = await currency_queries.get_mag(player_id)
 		await MessageView.send(ctx.channel, Messages.discovered_mag(amount, mag))
+
+	@checks.is_developer()
+	@checks.has_profile()
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "give_item"))
+	async def give_item_command(self, ctx: commands.Context, *, name: str) -> None:
+		"""Add MAG to self for testing."""
+
+		player_id = gets.get_player_id(ctx)
+		item_id = await item_queries.get_item_id_by_name(name)
+
+		if item_id is None:
+			await MessageView.send(ctx.channel, Messages.generic_failure())
+			return
+
+		await item_queries.give_player_item(player_id, item_id)
+		await MessageView.send(ctx.channel, Messages.generic_success())
 
 	@checks.is_developer()
 	@commands.command(**command_kwargs(UTILITY_COMMANDS, "update_entry"))

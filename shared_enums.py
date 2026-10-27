@@ -90,3 +90,14 @@ class DupeReward(Enum):
 	@classmethod
 	def _missing_(cls, value: object) -> DupeReward:
 		return cls.MAG_MULT
+
+
+class ItemUseCheck(Enum):
+	SUCCESS = auto()
+	NOT_USABLE = auto()
+	NOT_IN_RACE = auto()
+	NEED_STRONGER_INCENSE = auto()
+	NEED_WEAKER_INCENSE = auto()
+	MAX_RANK = auto()
+	NOT_IN_PARTY = auto()
+	CURRENTLY_ON_LOAN = auto()

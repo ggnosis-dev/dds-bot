@@ -278,6 +278,12 @@ UTILITY_COMMANDS = {
 		help="-# Get some free MAG every day.",
 		usage=">daily | d",
 	),
+	"give_item": CommandData(
+		name="give_item",
+		aliases=["gi"],
+		help="-# **Developer Only**. Give item to self.",
+		usage=">give_item | gi {item_name}",
+	),
 	"give_mag": CommandData(
 		name="give_mag",
 		aliases=["gm"],

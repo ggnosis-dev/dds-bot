@@ -13,7 +13,7 @@ from entities.view_data import Columns
 from helpers import checks, gets, utils
 from helpers.messages import ItemMsg
 from queries import demon_queries, gem_queries, item_queries, player_demons_queries, player_queries, server_queries
-from shared_enums import DemonRegistration
+from shared_enums import ItemUseCheck
 from views.common_view import ConfirmationView, MessageView
 from views.table_view import GemCollectionView, InventoryView
 
@@ -40,9 +40,9 @@ class InventoryCommands(commands.Cog):
 			number_to_use = 1
 
 		player_id = gets.get_player_id(ctx)
-		item_id = await item_queries.get_item_id_by_name(item_name)
 
 		# Check if item is valid.
+		item_id = await item_queries.get_item_id_by_name(item_name)
 		if item_id is None:
 			await MessageView.send(ctx.channel, ItemMsg.item_doesnt_exist(item_name))
 			return
@@ -59,20 +59,10 @@ class InventoryCommands(commands.Cog):
 			await MessageView.send(ctx.channel, ItemMsg.not_in_party(demon_name))
 			return
 
-		# Demon is not a part of the race that can use the item.
-		can_use = await item_queries.can_demon_use_item(demon_id, item_id)
-		if not can_use:
-			await MessageView.send(ctx.channel, ItemMsg.exclusive_to_fail(demon_name, item_name))
-			return
-
-		# Check registration status. If ON LOAN, do not rank up.
-		reg_status = await player_demons_queries.check_demon_registration(player_id, demon_id)
-		if reg_status == DemonRegistration.ON_LOAN:
-			await MessageView.send(ctx.channel, ItemMsg.currently_on_loan(demon_name))
-			return
-
-		if reg_status not in {DemonRegistration.IN_PARTY, DemonRegistration.LEADER}:
-			await MessageView.send(ctx.channel, ItemMsg.not_in_party(demon_name))
+		# Check if the item can be used by the demon.
+		can_use: ItemUseCheck = await item_queries.can_demon_use_item(player_id, demon_id, item_id)
+		if can_use != ItemUseCheck.SUCCESS:
+			await MessageView.send(ctx.channel, ItemMsg.can_use_item_check_fail(demon_name, item_name, can_use))
 			return
 
 		# Get confirmation to use item.

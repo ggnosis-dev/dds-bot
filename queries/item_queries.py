@@ -2,6 +2,8 @@ from sqlite3 import Connection
 
 from entities.item_data import (
 	INCENSE_RANK_INCREASE,
+	MAX_RANK,
+	RANK_ITEM_RULES,
 	GemCost,
 	ItemEntry,
 	ShopItemData,
@@ -9,6 +11,7 @@ from entities.item_data import (
 	convert_rows_to_shop_item_data,
 )
 from helpers.db import query_all, query_one, query_write, transaction
+from shared_enums import ItemUseCheck
 
 
 async def get_player_inventory(player_id: int) -> list[ItemEntry]:
@@ -143,25 +146,55 @@ async def use_incense(player_id: int, demon_id: int, item_id: int, number_to_use
 		return True
 
 
-async def can_demon_use_item(demon_id: int, item_id: int) -> bool:
+async def can_demon_use_item(player_id: int, demon_id: int, item_id: int) -> ItemUseCheck:
 	"""If the incense is exclusive to a specific race we should return False. Some incense are special and work for all."""
 
 	row = query_one(
 		"""
-			SELECT 1 FROM items
-			WHERE item_id = ?
-				AND (
-					exclusive_to IS NULL
-					OR exclusive_to = (
-						SELECT race_id FROM demons
-						WHERE id = ?
-					)
-				)
+			SELECT i.type, i.exclusive_to, d.race_id, pd.stored_rank, pd.in_party, pd.on_loan
+			FROM items i
+			JOIN demons d ON d.id = ?
+			JOIN player_demons pd
+				ON pd.player_id = ?
+				AND pd.demon_id = ?
+			WHERE i.item_id = ?
 		""",
-		(item_id, demon_id),
+		(demon_id, player_id, demon_id, item_id),
 	)
 
-	return row is not None
+	if row is None:
+		return ItemUseCheck.NOT_IN_PARTY
+
+	item_type, exclusive_to, race_id, stored_rank, in_party, on_loan = row
+	rule = RANK_ITEM_RULES.get(item_type)
+
+	# Item was not a rank increasing item.
+	if rule is None:
+		return ItemUseCheck.NOT_USABLE
+
+	if on_loan:
+		return ItemUseCheck.CURRENTLY_ON_LOAN
+
+	if not in_party:
+		return ItemUseCheck.NOT_IN_PARTY
+
+	# Max rank reached.
+	if stored_rank >= MAX_RANK:
+		return ItemUseCheck.MAX_RANK
+
+	# Most incense are exclusive to a race, grimoires are not.
+	if rule.race_locked and exclusive_to is not None and exclusive_to != race_id:
+		return ItemUseCheck.NOT_IN_RACE
+
+	# Need a stronger item to continue to grow.
+	if stored_rank >= rule.max_rank:
+		return ItemUseCheck.NEED_STRONGER_INCENSE
+
+	# Need a weaker item to grow.
+	if stored_rank <= rule.min_rank:
+		return ItemUseCheck.NEED_WEAKER_INCENSE
+
+	return ItemUseCheck.SUCCESS
 
 
 async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost]) -> bool:
