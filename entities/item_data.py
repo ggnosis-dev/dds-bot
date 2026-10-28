@@ -32,6 +32,14 @@ class ShopItemData:
 
 
 @dataclass
+class ShopItemGroup:
+	name: str
+	emote: Emotes
+	description: str
+	options: list[ShopItemData]
+
+
+@dataclass
 class ItemUseRules:
 	min_rank: int
 	max_rank: int
@@ -63,25 +71,46 @@ def convert_row_to_item_entry(raw_row: Row) -> ItemEntry:
 		raise KeyError(f"ERROR: Problem when creating ShopItemData | {e}")
 
 
-def convert_rows_to_shop_item_data(rows: list[Row]) -> list[ShopItemData]:
+def convert_rows_to_rags_item_data(rows: list[Row]) -> list[ShopItemData | ShopItemGroup]:
 	"""Convert retrieved DB row into a DemonData object."""
 	try:
-		entries = []
+		entries: list[ShopItemData | ShopItemGroup] = []
+		groups: dict[str, ShopItemGroup] = {}
+
 		for raw_row in rows:
 			row = dict(raw_row)
 			cost = [GemCost(**c) for c in json.loads(row["cost"])]
 			emote_name = row.get("emote") or "GEM"
 
-			entries.append(
-				ShopItemData(
-					item_id=row["item_id"],
-					name=row["name"],
-					item_type=row["type"],
-					cost=cost,
-					description=row["description"],
-					emote=Emotes[emote_name],
-				)
+			item_data = ShopItemData(
+				item_id=row["item_id"],
+				name=row["name"],
+				item_type=row["type"],
+				cost=cost,
+				description=row["description"],
+				emote=Emotes[emote_name],
 			)
+
+			# If no group, add it straight to entries.
+			group_name = row.get("group_name")
+			if group_name is None:
+				entries.append(item_data)
+				continue
+
+			group = groups.get(group_name)
+			# Create a new group if it doesn't exist.
+			if group is None:
+				group = ShopItemGroup(
+					name=group_name,
+					emote=Emotes[emote_name],
+					description="",
+					options=[],
+				)
+				groups[group_name] = group
+				entries.append(group)
+
+			# Add item_data to the group.
+			group.options.append(item_data)
 
 		return entries
 	except Exception as e:

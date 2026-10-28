@@ -7,8 +7,9 @@ from entities.item_data import (
 	GemCost,
 	ItemEntry,
 	ShopItemData,
+	ShopItemGroup,
 	convert_row_to_item_entry,
-	convert_rows_to_shop_item_data,
+	convert_rows_to_rags_item_data,
 )
 from helpers.db import query_all, query_one, query_write, transaction
 from shared_enums import ItemUseCheck
@@ -38,7 +39,7 @@ async def get_player_inventory(player_id: int) -> list[ItemEntry]:
 	return entries
 
 
-async def get_rags_item_list() -> list[ShopItemData]:
+async def get_rags_item_list() -> list[ShopItemData | ShopItemGroup]:
 	"""Get all the available Rag's shop items."""
 
 	rows = query_all(
@@ -60,7 +61,7 @@ async def get_rags_item_list() -> list[ShopItemData]:
 		""",
 	)
 
-	return convert_rows_to_shop_item_data(rows)
+	return convert_rows_to_rags_item_data(rows)
 
 
 async def get_player_has_item(player_id: int, item_id: int) -> int:
