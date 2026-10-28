@@ -175,8 +175,6 @@ class ConfirmationView(ResponseView):
 		super().__init__(exclusive_to=exclusive_to, timeout=timeout)
 
 		self.message = message
-		self.exclusive_to = exclusive_to
-
 		self.trigger_id = trigger_id  # Used for tutorials and eventually challenges.
 		self.confirm_label = confirm_label
 		self.deny_label = deny_label
@@ -184,11 +182,6 @@ class ConfirmationView(ResponseView):
 		self.deny_colour = deny_colour
 		self.thumbnail = thumbnail
 		self.colour = colour
-		self.timed_out: bool = False
-		self.confirmed: bool | None = None
-		self.msg: discord.Message | None = None
-
-		self._event = asyncio.Event()
 
 		self._build_layout()
 
