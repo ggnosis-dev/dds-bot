@@ -36,16 +36,17 @@ class Shop(commands.Cog):
 		await interaction.response.send_message(view=view)
 
 		if await view.wait_for_response():
-			print("PASSED")
-			# TODO: Update this for Groups.
-			check = await item_queries.attempt_purchase_item(player_id, item_data.item_id, item_data.cost)
+			item = view.item
+			qty = view.qty
+
+			check = await item_queries.attempt_purchase_item(player_id, item.item_id, item.cost, qty)
 
 			if not check:
-				await MessageView.reply(interaction, Messages.not_enough_gems(item_data.name), ephemeral=True)
+				await MessageView.reply(interaction, Messages.not_enough_gems(item.name), ephemeral=True)
 				return
-			await MessageView.reply(interaction, Messages.purchase_success(item_data.name), ephemeral=True)
+			await MessageView.reply(interaction, Messages.purchase_success(item.name, qty), ephemeral=True)
 
-			if item_data.name.lower() == "fairy incense":
+			if "fairy incense" in item_data.name.lower():
 				interaction.client.dispatch("tutorial_trigger", interaction, "rags_fairy")
 
 

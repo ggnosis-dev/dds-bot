@@ -91,17 +91,17 @@ async def get_item_id_by_name(item_name: str) -> int | None:
 	return row[0] if row else None
 
 
-async def give_player_item(player_id: int, item_id: int, conn: Connection | None = None) -> bool:
+async def give_player_item(player_id: int, item_id: int, quantity: int = 1, conn: Connection | None = None) -> bool:
 	"""Add item to inventory. If it doesn't exist already, set to 1."""
 
 	rows_affected = query_write(
 		"""
 			INSERT INTO player_items (player_id, item_id, quantity)
-			VALUES (?, ?, 1)
+			VALUES (?, ?, ?)
 			ON CONFLICT (player_id, item_id) DO
-			UPDATE SET quantity = quantity + 1
+			UPDATE SET quantity = quantity + excluded.quantity
 		""",
-		(player_id, item_id),
+		(player_id, item_id, quantity),
 		conn=conn,
 	)
 	return rows_affected > 0
@@ -198,7 +198,7 @@ async def can_demon_use_item(player_id: int, demon_id: int, item_id: int) -> Ite
 	return ItemUseCheck.SUCCESS
 
 
-async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost]) -> bool:
+async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost], item_qty: int) -> bool:
 	"""
 	Attempt to purchase item for the player. Checks if the player has enough gems and deducts the cost if they do.
 
@@ -212,6 +212,8 @@ async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost
 	# Get the cost.
 	with transaction() as conn:
 		for c in cost:
+			gems_required = c.amount * item_qty
+
 			updated = query_write(
 				"""
 					UPDATE player_gems
@@ -220,7 +222,7 @@ async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost
 						AND gem_id = ?
 						AND quantity >= ?
 				""",
-				(c.amount, player_id, c.gem_id, c.amount),
+				(gems_required, player_id, c.gem_id, c.amount),
 				conn=conn,
 			)
 
@@ -229,6 +231,6 @@ async def attempt_purchase_item(player_id: int, item_id: int, cost: list[GemCost
 				conn.rollback()
 				return False
 
-		await give_player_item(player_id, item_id, conn=conn)
+		await give_player_item(player_id, item_id, quantity=item_qty, conn=conn)
 
 	return True
