@@ -69,7 +69,95 @@ class MessageView(discord.ui.LayoutView):
 		self.add_item(container)
 
 
-class ConfirmationView(discord.ui.LayoutView):
+class ResponseView(discord.ui.LayoutView):
+	"""For views that require a response."""
+
+	def __init__(self, exclusive_to: int, *, timeout: float = 20.0) -> None:
+		super().__init__(timeout=timeout)
+		self.exclusive_to = exclusive_to
+		self.timed_out: bool = False
+		self.confirmed: bool | None = None
+		self.msg: discord.Message | None = None
+		self._event = asyncio.Event()
+
+		# Subclasses call self._build_layout() once setup.
+
+	def _build_layout(self) -> None:
+		raise NotImplementedError
+
+	@classmethod
+	async def send(cls, destination: discord.abc.Messageable, *args, **kwargs) -> bool | None:
+		"""
+		Send a response message and begin a wait for response timer.
+
+		Args:
+			destination: Where to send message to.
+			*args: Required arguments (see init).
+			**kwargs: Keyword/optional arguments (see init).
+		"""
+		view = cls(*args, **kwargs)
+		view.msg = await destination.send(view=view)
+		return await view.wait_for_response()
+
+	@classmethod
+	async def reply(cls, interaction: discord.Interaction, *args, ephemeral: bool = False, **kwargs) -> bool | None:
+		"""
+		Send a response message as an interaction response and begin a wait for response timer.
+
+		Args:
+			interaction (discord.Interaction): Initial interaction this will respond to.
+			*args: Required arguments (see init).
+			ephemeral (bool): Hides the view from other users.
+			**kwargs: Keyword/optional arguments (see init).
+		"""
+		view = cls(*args, **kwargs)
+
+		if interaction.response.is_done():
+			view.msg = await interaction.followup.send(view=view, ephemeral=True, wait=True)
+		else:
+			await interaction.response.send_message(view=view, ephemeral=ephemeral)
+			view.msg = await interaction.original_response()
+
+		return await view.wait_for_response()
+
+	async def wait_for_response(self) -> bool | None:
+		"""Begin waiting on the event. Returns True/False after response triggers it to continue."""
+		await self._event.wait()
+		return self.confirmed
+
+	async def on_timeout(self) -> None:
+		"""Clean up the view on timeout."""
+		self.confirmed = None
+		self.timed_out = True
+		self._event.set()
+		self.clear_items()
+		self._build_layout()
+		self._disable_buttons()
+
+	def on_finish(self, confirmed: bool = True) -> None:
+		"""Clean up view, set self.confirmed."""
+		self.confirmed = confirmed
+		self._event.set()
+		self.stop()  # Stop listening to future interactions.
+		self._disable_buttons()
+
+	def interaction_excl_check(self, interaction: discord.Interaction) -> bool:
+		"""True if user from the interaction is allowed."""
+		return self.exclusive_to is None or interaction.user.id == self.exclusive_to
+
+	def _disable_buttons(self) -> None:
+		"""Get all children of container and disable the buttons. Must come after the layout is built."""
+		container = self.children[0]
+
+		if isinstance(container, discord.ui.Container):
+			for item in container.children:
+				if isinstance(item, discord.ui.ActionRow):
+					for button in item.children:
+						if isinstance(button, discord.ui.Button):
+							button.disabled = True
+
+
+class ConfirmationView(ResponseView):
 	def __init__(
 		self,
 		message: str,
@@ -84,12 +172,12 @@ class ConfirmationView(discord.ui.LayoutView):
 		colour: int = EmbedColours.DEFAULT.value,
 		timeout: float = 20.0,
 	) -> None:
-		super().__init__(timeout=timeout)
+		super().__init__(exclusive_to=exclusive_to, timeout=timeout)
 
 		self.message = message
 		self.exclusive_to = exclusive_to
 
-		self.trigger_id = trigger_id
+		self.trigger_id = trigger_id  # Used for tutorials and eventually challenges.
 		self.confirm_label = confirm_label
 		self.deny_label = deny_label
 		self.confirm_colour = confirm_colour
@@ -103,42 +191,6 @@ class ConfirmationView(discord.ui.LayoutView):
 		self._event = asyncio.Event()
 
 		self._build_layout()
-
-	@classmethod
-	async def send(cls, destination: discord.abc.Messageable, *args, **kwargs) -> bool | None:
-		"""
-		Send a confirmation messages and begin a wait for response timer.
-
-		Args:
-			destination: Where to send message to.
-			*args: Required arguments (see init).
-			**kwargs: Keyword/optional arguments (see init).
-		"""
-		view = cls(*args, **kwargs)
-		msg = await destination.send(view=view)
-		view.msg = msg
-		return await view.wait_for_response()
-
-	@classmethod
-	async def reply(cls, interaction: discord.Interaction, *args, ephemeral: bool = False, **kwargs) -> bool | None:
-		"""
-		Send a confirmation message as an interaction response and begin a wait for response timer.
-
-		Args:
-			interaction (discord.Interaction): Initial interaction this will respond to.
-			*args: Required arguments (see init).
-			ephemeral (bool): Hides the view from other users.
-			**kwargs: Keyword/optional arguments (see init).
-		"""
-		view = cls(*args, **kwargs)
-
-		if interaction.response.is_done():
-			msg = await interaction.followup.send(view=view, ephemeral=True, wait=True)
-		else:
-			await interaction.response.send_message(view=view, ephemeral=ephemeral)
-			msg = await interaction.original_response()
-		view.msg = msg
-		return await view.wait_for_response()
 
 	def _build_layout(self) -> None:
 		ui = discord.ui
@@ -165,32 +217,6 @@ class ConfirmationView(discord.ui.LayoutView):
 
 		self.add_item(container)
 
-	async def wait_for_response(self) -> bool | None:
-		await self._event.wait()
-		return self.confirmed
-
-	async def on_timeout(self) -> None:
-		self.confirmed = None
-		self.timed_out = True
-		self._event.set()
-
-		self.clear_items()
-		self._build_layout()
-		self._disable_buttons()
-
-		if self.msg:
-			await self.msg.edit(view=self)
-
-	def _disable_buttons(self) -> None:
-		container = self.children[0]
-
-		if isinstance(container, discord.ui.Container):
-			for item in container.children:
-				if isinstance(item, discord.ui.ActionRow):
-					for button in item.children:
-						if isinstance(button, discord.ui.Button):
-							button.disabled = True
-
 	class ConfirmButton(discord.ui.Button):
 		def __init__(self, label: str, value: bool, style: discord.ButtonStyle) -> None:
 			super().__init__(label=label, style=style)
@@ -199,14 +225,11 @@ class ConfirmationView(discord.ui.LayoutView):
 		async def callback(self, interaction: discord.Interaction) -> None:
 			view = cast(ConfirmationView, self.view)
 
-			if view.exclusive_to != interaction.user.id:
+			# Check if user is allowed to interact with this.
+			if not view.interaction_excl_check(interaction):
 				return
 
-			view.confirmed = self.value
-			view._event.set()
-			view.stop()
-			view._disable_buttons()
-
+			view.on_finish(self.value)
 			await interaction.response.edit_message(view=view)
 
 			if view.trigger_id is not None:
@@ -303,11 +326,11 @@ class BaseLayoutView(ABC, Generic[EntryT], discord.ui.LayoutView):
 
 	@abstractmethod
 	def _build_layout(self) -> None:
-		pass
+		raise NotImplementedError
 
 	@abstractmethod
 	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		pass
+		raise NotImplementedError
 
 	def _build_footer(self, container: discord.ui.Container) -> discord.ui.Container:
 		"""Footer shows number of pages and given there's more than one page, will create page navigation."""

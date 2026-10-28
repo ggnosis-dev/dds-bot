@@ -31,8 +31,8 @@ class Shop(commands.Cog):
 		item_options = item_data.options if isinstance(item_data, ShopItemGroup) else [item_data]
 
 		# Open the modal.
-		_user_id = gets.get_user_id(interaction)
-		view = RagsBuyView(item_options)
+		user_id = gets.get_user_id(interaction)
+		view = RagsBuyView(item_options, user_id)
 		await interaction.response.send_message(view=view)
 
 		if await view.wait_for_response():
