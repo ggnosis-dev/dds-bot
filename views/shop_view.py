@@ -1,3 +1,5 @@
+import asyncio
+
 from abc import abstractmethod
 from collections.abc import Callable, Coroutine
 from typing import Any, Generic
@@ -5,7 +7,7 @@ from typing import Any, Generic
 import discord
 
 from entities.fusion_data import SpecialFusionShopData
-from entities.item_data import ShopItemData
+from entities.item_data import ShopItemData, ShopItemGroup
 from entities.view_data import SHOP_PAGE_SIZE
 from helpers.messages import ShopMsgs
 from shared_enums import Banners, EmbedColours, Emotes
@@ -76,7 +78,7 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		return callback
 
 
-class RagsShopView(BaseShopView[ShopItemData]):
+class RagsShopView(BaseShopView[ShopItemData | ShopItemGroup]):
 	def _build_layout(self) -> None:
 		"""Function to build Rag's Shop view layout."""
 
@@ -118,9 +120,13 @@ class RagsShopView(BaseShopView[ShopItemData]):
 
 		return container
 
-	def _get_title_desc(self, entry: ShopItemData) -> tuple[str, ...]:
-		title = ShopMsgs.build_item_title(entry.name, entry.cost)
-		desc = ShopMsgs.build_item_desc(entry.description)
+	def _get_title_desc(self, entry: ShopItemData | ShopItemGroup) -> tuple[str, ...]:
+		item_options = entry.options if isinstance(entry, ShopItemGroup) else [entry]
+
+		# title = ShopMsgs.build_item_title(entry.name, entry.cost)
+		title = ShopMsgs.build_item_title(entry.name)
+		# desc = ShopMsgs.build_item_desc(entry.description)
+		desc = ShopMsgs.build_item_cost(item_options)
 		emote = entry.emote.value or Emotes.GEM.value
 		return title, desc, emote
 
@@ -172,3 +178,173 @@ class SpecialFusionView(BaseShopView[SpecialFusionShopData]):
 		required = ShopMsgs.build_sp_fusion_required(entry.ingredients)
 		emote = Emotes.ICON.value
 		return title, required, emote
+
+
+class RagsShopModal(discord.ui.Modal):
+	def __init__(
+		self,
+		entries: list[ShopItemData],
+		title: str,
+		*,
+		timeout: int = 180,
+		ephemeral_response: bool = True,
+	):
+		super().__init__(title=title, timeout=timeout)
+
+		self.entries = sorted(entries, key=lambda i: i.item_id)
+		self.ephemeral_response = ephemeral_response
+		self._build_modal()
+
+	async def on_submit(self, interaction: discord.Interaction):
+		await interaction.response.send_message(f"Test {self.option.label}", ephemeral=self.ephemeral_response)
+
+	def _build_modal(self):
+		# TODO: Build an image with Emotes here.
+		self.add_item(
+			discord.ui.TextDisplay(
+				content=f"{Emotes.GEM.value}{Emotes.GEM.value}{Emotes.GEM.value} How many would you like?"
+			)
+		)
+
+		if len(self.entries) > 1:
+			options = [
+				discord.SelectOption(label=i.name, description=i.description, value=str(i.item_id)) for i in self.entries
+			]
+			select = discord.ui.Select(options=options)
+			self.add_item(discord.ui.Label(text="Select The Item", component=select))
+
+		option = discord.ui.TextInput(
+			style=discord.TextStyle.short,
+			default="1",
+			required=True,
+			max_length=2,
+		)
+		self.add_item(discord.ui.Label(text="Quantity", component=option))
+		self.add_item(discord.ui.TextDisplay(content="-# That'll cost you ."))
+
+		self.option = option
+
+
+class RagsBuyView(discord.ui.LayoutView):
+	def __init__(self, entries: list[ShopItemData]):
+		super().__init__(timeout=180)
+		self.entries = entries
+		self.item = entries[0]
+		self.qty = 1
+
+		# These ui items will get updated.
+		self.cost_text = discord.ui.TextDisplay(content=self._cost())
+
+		if len(entries) > 1:
+			self.select = discord.ui.Select(
+				options=[
+					discord.SelectOption(
+						label=i.name,
+						description=i.description,
+						value=str(i.item_id),
+					)
+					for i in entries
+				],
+			)
+			self.select.callback = self.on_select
+
+		self.minus_btn = discord.ui.Button(label="-")
+		self.minus_btn.callback = self.on_minus
+		self.plus_btn = discord.ui.Button(label="+")
+		self.plus_btn.callback = self.on_plus
+
+		self._event = asyncio.Event()
+		self.confirmed: bool | None = None
+		self.timed_out: bool = False
+		self.buy_btn = discord.ui.Button(label="Trade", style=discord.ButtonStyle.success)
+		self.buy_btn.callback = self.on_buy
+
+		self._build_layout()
+
+	def _build_layout(self) -> None:
+		self.cost_text.content = self._cost()
+
+		minus_colour = discord.ButtonStyle.primary if self.qty > 1 else discord.ButtonStyle.secondary
+		plus_colour = discord.ButtonStyle.primary if self.qty < 99 else discord.ButtonStyle.secondary
+		self.minus_btn.style = minus_colour
+		self.plus_btn.style = plus_colour
+
+		container = discord.ui.Container(accent_color=EmbedColours.RAGS.value)
+		container.add_item(self.cost_text)
+
+		if len(self.entries) > 1:
+			container.add_item(discord.ui.ActionRow(self.select))
+
+		container.add_item(discord.ui.ActionRow(self.minus_btn, self.plus_btn, self.buy_btn))
+
+		if self.timed_out:
+			container.add_item(discord.ui.TextDisplay("-# Timed Out"))
+
+		self.add_item(container)
+
+	def _cost(self) -> str:
+		item_costs: list = self.item.cost
+
+		gems_required_parts = []
+		for i in item_costs:
+			gems_required_parts.append(f"{i.amount * self.qty} {i.name}")
+
+		cost = " + ".join(gems_required_parts)
+
+		return f"{self.qty}x **{self.item.name}** will cost you...\n-# {cost}"
+
+	async def on_select(self, interaction: discord.Interaction):
+		selected_id = int(self.select.values[0])
+
+		for e in self.entries:
+			if e.item_id == selected_id:
+				self.item = e
+				break
+
+		await self.refresh(interaction)
+
+	async def on_plus(self, interaction):
+		self.qty = min(self.qty + 1, 99)
+		await self.refresh(interaction)
+
+	async def on_minus(self, interaction):
+		self.qty = max(self.qty - 1, 1)
+		await self.refresh(interaction)
+
+	async def on_buy(self, interaction):
+		self.finish(True)
+		await interaction.response.edit_message(view=self)
+
+	# Ripped from ConfirmationView
+	async def wait_for_response(self) -> bool | None:
+		await self._event.wait()
+		return self.confirmed
+
+	async def on_timeout(self) -> None:
+		self.confirmed = None
+		self.timed_out = True
+		self._event.set()
+		self.clear_items()
+		self._build_layout()
+		self._disable_buttons()
+
+	def _disable_buttons(self) -> None:
+		container = self.children[0]
+
+		if isinstance(container, discord.ui.Container):
+			for item in container.children:
+				if isinstance(item, discord.ui.ActionRow):
+					for button in item.children:
+						if isinstance(button, discord.ui.Button):
+							button.disabled = True
+
+	def finish(self, confirmed: bool | None) -> None:
+		self.confirmed = confirmed
+		self._event.set()
+		self.stop()
+		self._disable_buttons()
+
+	async def refresh(self, interaction: discord.Interaction) -> None:
+		self.clear_items()
+		self._build_layout()
+		await interaction.response.edit_message(view=self)
