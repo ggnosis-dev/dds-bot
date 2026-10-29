@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from sqlite3 import Row
 
-DAILY_COOLDOWN = 43200 * 2
+# Hours * Seconds in an hour
+DAILY_COOLDOWN = 24 * 3600
 ENCOUNTER_WINDOW = 1 * 3600
 
 

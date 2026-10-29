@@ -1,5 +1,3 @@
-import asyncio
-
 from abc import abstractmethod
 from collections.abc import Callable, Coroutine
 from typing import Any, Generic
@@ -78,6 +76,55 @@ class BaseShopView(BaseLayoutView, Generic[EntryT], discord.ui.LayoutView):
 		return callback
 
 
+class SpecialFusionView(BaseShopView[SpecialFusionShopData]):
+	def _build_layout(self) -> None:
+		"""Function to build Special Fusion's Shop view layout."""
+
+		container = discord.ui.Container(accent_color=self.colour)
+		page_entries = self._get_page_entries()
+
+		container = self._build_header(container)
+		for entry in page_entries:
+			title, desc, emote = self._get_title_desc(entry)
+			container = self._build_page_entry(container, entry, title, desc, emote)
+		container = self._build_footer(container)
+
+		self.add_item(container)
+
+	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
+		# Build banner at top of view.
+		container.add_item(
+			discord.ui.MediaGallery(
+				discord.MediaGalleryItem(
+					Banners.SP_FUSION.value,
+					description="Special Fusion",
+				),
+			)
+		)
+
+		# Build information button with section.
+		info_button = self.InfoButton(self.show_info)
+		section = discord.ui.Section(accessory=info_button)
+		section.add_item(discord.ui.TextDisplay(ShopMsgs.mido_dialogue()))
+		container.add_item(section)
+
+		# Show information if needed.
+		if self.show_info:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+			container.add_item(discord.ui.TextDisplay(ShopMsgs.special_fusion_info()))
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
+		else:
+			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+		return container
+
+	def _get_title_desc(self, entry: SpecialFusionShopData) -> tuple[str, ...]:
+		title = ShopMsgs.build_sp_fusion_title(entry.race, entry.name, entry.rank)
+		required = ShopMsgs.build_sp_fusion_required(entry.ingredients)
+		emote = Emotes.ICON.value
+		return title, required, emote
+
+
 class RagsShopView(BaseShopView[ShopItemData | ShopItemGroup]):
 	def _build_layout(self) -> None:
 		"""Function to build Rag's Shop view layout."""
@@ -129,100 +176,6 @@ class RagsShopView(BaseShopView[ShopItemData | ShopItemGroup]):
 		desc = ShopMsgs.build_item_cost(item_options)
 		emote = entry.emote.value or Emotes.GEM.value
 		return title, desc, emote
-
-
-class SpecialFusionView(BaseShopView[SpecialFusionShopData]):
-	def _build_layout(self) -> None:
-		"""Function to build Special Fusion's Shop view layout."""
-
-		container = discord.ui.Container(accent_color=self.colour)
-		page_entries = self._get_page_entries()
-
-		container = self._build_header(container)
-		for entry in page_entries:
-			title, desc, emote = self._get_title_desc(entry)
-			container = self._build_page_entry(container, entry, title, desc, emote)
-		container = self._build_footer(container)
-
-		self.add_item(container)
-
-	def _build_header(self, container: discord.ui.Container) -> discord.ui.Container:
-		# Build banner at top of view.
-		container.add_item(
-			discord.ui.MediaGallery(
-				discord.MediaGalleryItem(
-					Banners.SP_FUSION.value,
-					description="Special Fusion",
-				),
-			)
-		)
-
-		# Build information button with section.
-		info_button = self.InfoButton(self.show_info)
-		section = discord.ui.Section(accessory=info_button)
-		section.add_item(discord.ui.TextDisplay(ShopMsgs.mido_dialogue()))
-		container.add_item(section)
-
-		# Show information if needed.
-		if self.show_info:
-			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
-			container.add_item(discord.ui.TextDisplay(ShopMsgs.special_fusion_info()))
-			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
-		else:
-			container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.large))
-
-		return container
-
-	def _get_title_desc(self, entry: SpecialFusionShopData) -> tuple[str, ...]:
-		title = ShopMsgs.build_sp_fusion_title(entry.race, entry.name, entry.rank)
-		required = ShopMsgs.build_sp_fusion_required(entry.ingredients)
-		emote = Emotes.ICON.value
-		return title, required, emote
-
-
-# class RagsShopModal(discord.ui.Modal):
-# 	def __init__(
-# 		self,
-# 		entries: list[ShopItemData],
-# 		title: str,
-# 		*,
-# 		timeout: int = 180,
-# 		ephemeral_response: bool = True,
-# 	):
-# 		super().__init__(title=title, timeout=timeout)
-
-# 		self.entries = sorted(entries, key=lambda i: i.item_id)
-# 		self.ephemeral_response = ephemeral_response
-# 		self._build_modal()
-
-# 	async def on_submit(self, interaction: discord.Interaction):
-# 		await interaction.response.send_message(f"Test {self.option.label}", ephemeral=self.ephemeral_response)
-
-# 	def _build_modal(self):
-# 		# TODO: Build an image with Emotes here.
-# 		self.add_item(
-# 			discord.ui.TextDisplay(
-# 				content=f"{Emotes.GEM.value}{Emotes.GEM.value}{Emotes.GEM.value} How many would you like?"
-# 			)
-# 		)
-
-# 		if len(self.entries) > 1:
-# 			options = [
-# 				discord.SelectOption(label=i.name, description=i.description, value=str(i.item_id)) for i in self.entries
-# 			]
-# 			select = discord.ui.Select(options=options)
-# 			self.add_item(discord.ui.Label(text="Select The Item", component=select))
-
-# 		option = discord.ui.TextInput(
-# 			style=discord.TextStyle.short,
-# 			default="1",
-# 			required=True,
-# 			max_length=2,
-# 		)
-# 		self.add_item(discord.ui.Label(text="Quantity", component=option))
-# 		self.add_item(discord.ui.TextDisplay(content="-# That'll cost you ."))
-
-# 		self.option = option
 
 
 class RagsBuyView(ResponseView):
