@@ -1,5 +1,7 @@
 import re
 
+from better_profanity import profanity
+
 from entities.demon_data import DemonData
 from shared_enums import Emotes
 
@@ -56,3 +58,11 @@ def sanitise_input(message: str, max_length: int) -> str | None:
 			return None
 
 	return message
+
+
+def check_server_name_bad(name: str) -> bool:
+	return profanity.contains_profanity(name)
+
+
+def sanitise_server_name(name: str) -> str:
+	return re.sub(r"[^a-zA-Z0-9 \n\.]", "", name)

@@ -8,12 +8,14 @@ from entities import tutorial_data
 from entities.command_data import UTILITY_COMMANDS, command_kwargs
 from entities.demon_data import TOO_WEAK_LEEWAY
 from entities.player_data import DAILY_COOLDOWN, ENCOUNTER_WINDOW
-from helpers import checks, gets, utils
+from entities.server_data import TOGGLE_RANKINGS_COOLDOWN
+from helpers import checks, format_utils, gets, utils
 from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
 from queries import currency_queries, demon_queries, item_queries, player_queries, server_level_queries, server_queries
-from views.common_view import MessageView
+from views.common_view import ConfirmationView, MessageView
 from views.goal_view import GoalView
+from views.modals import JoinRankingsModal
 
 
 class PlayerUtil(commands.Cog):
@@ -108,6 +110,57 @@ class ServerUtil(commands.Cog):
 			server_queries.set_dedicated_channel(server_id, channel_id),
 			MessageView.send(ctx.channel, Messages.set_dedicated_channel(channel_id)),
 		)
+
+	@checks.is_admin()
+	@checks.has_server_profile()
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "join_rankings"))
+	async def join_rankings_command(self, ctx: commands.Context) -> None:
+		# Send a confirmation view as modals cannot be sent outside of an interaction response.
+		user_id = gets.get_user_id(ctx)
+		view = await ConfirmationView.send_view(
+			ctx, Messages.join_rankings(), user_id, return_interaction=True, confirm_label="Update", deny_label=None
+		)
+		join_clicked = await view.wait_for_response()
+		view_interaction = view.response_interaction
+
+		if not join_clicked or view_interaction is None:
+			return
+
+		# Pop modal requesting server name/nickname.
+		server = gets.get_server(ctx)
+		modal = JoinRankingsModal(server.name)
+		await view_interaction.response.send_modal(modal)
+		await modal.wait()
+
+		confirmed = modal.checkbox.value
+		name = modal.name if confirmed else None  # If not confirmed, remove the name from the table.
+
+		# Filter name/reject it.
+		if confirmed and name is not None:
+			# Check if we're on cooldown.
+			last_updated = await server_queries.get_last_updated_server_name(server.id)
+			time_until = utils.get_time_until(last_updated, TOGGLE_RANKINGS_COOLDOWN)
+
+			if time_until is not None:
+				await MessageView.reply(view_interaction, Messages.server_name_on_cooldown(time_until))
+				return
+
+			# Remove symbols.
+			name = format_utils.sanitise_server_name(name)
+
+			# Bad name, exit.
+			if format_utils.check_server_name_bad(name):
+				await MessageView.reply(view_interaction, Messages.server_name_is_evil(name))
+				return
+
+			# Passed name check, will join.
+			await MessageView.reply(view_interaction, Messages.join_rankings_submit(name))
+		else:
+			# Confirmed was false, removing name.
+			await MessageView.reply(view_interaction, Messages.disable_rankings_submit())
+
+		# Update servers table.
+		await server_queries.toggle_server_rankings(server.id, name, confirmed)
 
 
 class DevUtil(commands.Cog):

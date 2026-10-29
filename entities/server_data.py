@@ -2,6 +2,9 @@ from dataclasses import dataclass
 
 from shared_enums import LevelRewardType
 
+# 2 days * 24 hours * hour in minutes
+TOGGLE_RANKINGS_COOLDOWN = 2 * 24 * 3600
+
 
 @dataclass
 class ServerStats:

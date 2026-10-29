@@ -290,9 +290,14 @@ UTILITY_COMMANDS = {
 		help="-# **Developer Only**. Give MAG to self.",
 		usage=">give_mag | gm {number}",
 	),
+	"join_rankings": CommandData(
+		name="join_rankings",
+		help="-# **Admin Only**. Opt-in to the server showing up in ranking related commands.",
+		usage=">join_rankings",
+	),
 	"set_channel": CommandData(
 		name="set_channel",
-		help="-# Set the dedicated channel for encounters and alerts.",
+		help="-# **Admin Only**. Set the dedicated channel for encounters and alerts.",
 		usage=">set_channel {channel_id}",
 	),
 	"stuff": CommandData(
