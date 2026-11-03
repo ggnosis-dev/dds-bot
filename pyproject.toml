@@ -3,7 +3,7 @@ name = "dds-bot"
 version = "0.8.0"
 description = ""
 authors = [
-    { name = "ggnosis-dev", email = "<ggnosis.var@pm.me>" }
+    { name = "ggnosis-dev", email = "<gg.bot.material710@passinbox.com>" }
 ]
 license = "GPL-3.0"
 requires-python = ">=3.14"
