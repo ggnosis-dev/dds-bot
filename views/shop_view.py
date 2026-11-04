@@ -181,8 +181,8 @@ class RagsShopView(BaseShopView[ShopItemData | ShopItemGroup]):
 class RagsBuyView(ResponseView):
 	def __init__(self, entries: list[ShopItemData], exclusive_to: int):
 		super().__init__(exclusive_to=exclusive_to, timeout=180.0)
-		self.entries = entries
-		self.item = entries[0]
+		self.entries = sorted(entries, key=lambda e: e.name, reverse=True)
+		self.item = self.entries[0]
 		self.qty = 1
 
 		# These ui items will get updated.
@@ -197,10 +197,11 @@ class RagsBuyView(ResponseView):
 						description=i.description,
 						value=str(i.item_id),
 					)
-					for i in entries
+					for i in self.entries
 				],
 			)
 			self.select.callback = self.on_select
+			self.select.options[0].default = True
 
 		self.minus_btn = discord.ui.Button(label="-")
 		self.minus_btn.callback = self.on_minus
@@ -215,9 +216,15 @@ class RagsBuyView(ResponseView):
 		# Changes to specific UI elements.
 		self.cost_text.content = self._cost()
 		self.minus_btn.style = discord.ButtonStyle.primary if self.qty > 1 else discord.ButtonStyle.secondary
+		self.minus_btn.disabled = self.qty <= 1
 		self.plus_btn.style = discord.ButtonStyle.primary if self.qty < 99 else discord.ButtonStyle.secondary
+		self.plus_btn.disabled = self.qty >= 99
 
 		container = discord.ui.Container(accent_color=EmbedColours.RAGS.value)
+		# section = discord.ui.Section(accessory=discord.ui.Thumbnail(media=Banners.RAGS.value))
+		container.add_item(discord.ui.TextDisplay(f"### {self.item.name}\n-# *{self.item.description}*"))
+		# container.add_item(section)
+		container.add_item(discord.ui.Separator(spacing=discord.SeparatorSpacing.small))
 		container.add_item(self.cost_text)
 
 		if self.select is not None:
@@ -238,16 +245,24 @@ class RagsBuyView(ResponseView):
 			gems_required_parts.append(f"{i.amount * self.qty} {i.name}")
 
 		cost = " + ".join(gems_required_parts)
-		return f"{self.qty}x **{self.item.name}** will cost you...\n-# {cost}"
+		return f"-# **{self.qty}** of these will cost you:\n-# **{cost}**"
 
 	async def on_select(self, interaction: discord.Interaction):
 		assert self.select, "Can't reach here with a None select."
 
 		selected_id = int(self.select.values[0])
+
+		# Because we're editing the view to show updated costs, the select box loses its
+		# declared value. To fix this, set the default on select so that it shows up.
+		for o in self.select.options:
+			o.default = int(o.value) == selected_id
+
+		# Get item from selection.
 		for e in self.entries:
 			if e.item_id == selected_id:
 				self.item = e
 				break
+
 		await self.refresh(interaction)
 
 	async def on_plus(self, interaction):
