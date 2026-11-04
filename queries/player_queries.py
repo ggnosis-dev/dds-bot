@@ -238,3 +238,28 @@ async def next_tutorial_step(player_id: int) -> bool:
 		(player_id,),
 	)
 	return rows_affected > 0
+
+
+async def get_gem_notifs_enabled(player_id: int) -> bool:
+	"""True if enabled, False otherwise."""
+	row = query_one(
+		"""
+			SELECT gem_notif FROM players
+			WHERE player_id = ?
+		""",
+		(player_id,),
+	)
+	return row[0] if row else False
+
+
+async def set_gem_notifs_enabled(player_id: int) -> bool:
+	"""True if enabled, False otherwise."""
+	rows_affected = query_write(
+		"""
+			UPDATE players
+			SET gem_notif = NOT gem_notif
+			WHERE player_id = ?
+		""",
+		(player_id,),
+	)
+	return rows_affected > 0
