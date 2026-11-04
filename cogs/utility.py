@@ -12,8 +12,9 @@ from helpers import checks, gets, utils
 from helpers.costs import daily_mag
 from helpers.messages import UtilityMsgs as Messages
 from queries import currency_queries, demon_queries, item_queries, player_queries, server_level_queries, server_queries
-from views.common_view import MessageView
+from views.common_view import ConfirmationView, MessageView
 from views.goal_view import GoalView
+from views.modals import NotificationsModal
 
 
 class PlayerUtil(commands.Cog):
@@ -73,6 +74,36 @@ class PlayerUtil(commands.Cog):
 			player_queries.set_daily_timer(player_data.player_id),
 			MessageView.send(ctx.channel, message),
 		)
+
+	@checks.has_profile()
+	@commands.command(**command_kwargs(UTILITY_COMMANDS, "notifications"))
+	async def notifications_command(self, ctx: commands.Context) -> None:
+		player_id = gets.get_player_id(ctx)
+		gem_notifs_on = await player_queries.get_gem_notifs_enabled(player_id)
+		settings = {"gem_notifs": gem_notifs_on}
+
+		user_id = gets.get_user_id(ctx)
+		view = await ConfirmationView.send_view(
+			ctx,
+			Messages.update_notification_settings(settings),
+			user_id,
+			return_interaction=True,
+			confirm_label="Update",
+			deny_label=None,
+		)
+		update_clicked = await view.wait_for_response()
+		view_interaction = view.response_interaction
+
+		if not update_clicked or view_interaction is None:
+			return
+
+		# Pop notification modal.
+		modal = NotificationsModal(settings)
+		await view_interaction.response.send_modal(modal)
+		await modal.wait()
+
+		onoff = modal.checkboxes[0].value
+		await player_queries.set_gem_notifs_enabled(player_id, onoff)
 
 
 class ServerUtil(commands.Cog):

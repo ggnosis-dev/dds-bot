@@ -290,6 +290,12 @@ UTILITY_COMMANDS = {
 		help="-# **Developer Only**. Give MAG to self.",
 		usage=">give_mag | gm {number}",
 	),
+	"notifications": CommandData(
+		name="notifications",
+		aliases=["notifs"],
+		help="-# Update your notification settings.",
+		usage=">notifications | notifs {number}",
+	),
 	"set_channel": CommandData(
 		name="set_channel",
 		help="-# Set the dedicated channel for encounters and alerts.",

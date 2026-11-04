@@ -252,14 +252,14 @@ async def get_gem_notifs_enabled(player_id: int) -> bool:
 	return row[0] if row else False
 
 
-async def set_gem_notifs_enabled(player_id: int) -> bool:
+async def set_gem_notifs_enabled(player_id: int, onoff: bool) -> bool:
 	"""True if enabled, False otherwise."""
 	rows_affected = query_write(
 		"""
 			UPDATE players
-			SET gem_notif = NOT gem_notif
+			SET gem_notif = ?
 			WHERE player_id = ?
 		""",
-		(player_id,),
+		(onoff, player_id),
 	)
 	return rows_affected > 0

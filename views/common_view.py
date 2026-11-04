@@ -78,6 +78,7 @@ class ResponseView(discord.ui.LayoutView):
 		self.timed_out: bool = False
 		self.confirmed: bool | None = None
 		self.msg: discord.Message | None = None
+		self.response_interaction: discord.Interaction | None = None
 		self._event = asyncio.Event()
 
 		# Subclasses call self._build_layout() once setup.
@@ -98,6 +99,16 @@ class ResponseView(discord.ui.LayoutView):
 		view = cls(*args, **kwargs)
 		view.msg = await destination.send(view=view)
 		return await view.wait_for_response()
+
+	@classmethod
+	async def send_view(cls, destination: discord.abc.Messageable, *args, **kwargs) -> ResponseView:
+		"""
+		Send view without starting the wait. Command returns the view so it can read the interaction afterwards,
+		thus allowing followups like Modals.
+		"""
+		view = cls(*args, **kwargs)
+		view.msg = await destination.send(view=view)
+		return view
 
 	@classmethod
 	async def reply(cls, interaction: discord.Interaction, *args, ephemeral: bool = False, **kwargs) -> bool | None:
@@ -134,9 +145,10 @@ class ResponseView(discord.ui.LayoutView):
 		self._build_layout()
 		self._disable_buttons()
 
-	def on_finish(self, confirmed: bool = True) -> None:
+	def on_finish(self, confirmed: bool = True, interaction: discord.Interaction | None = None) -> None:
 		"""Clean up view, set self.confirmed."""
 		self.confirmed = confirmed
+		self.response_interaction = interaction
 		self._event.set()
 		self.stop()  # Stop listening to future interactions.
 		self._disable_buttons()
@@ -163,9 +175,10 @@ class ConfirmationView(ResponseView):
 		message: str,
 		exclusive_to: int,
 		*,
+		return_interaction: bool = False,
 		trigger_id: str | None = None,
 		confirm_label: str = "Confirm",
-		deny_label: str = "Deny",
+		deny_label: str | None = "Deny",
 		confirm_colour: discord.ButtonStyle = discord.ButtonStyle.success,
 		deny_colour: discord.ButtonStyle = discord.ButtonStyle.danger,
 		thumbnail: str | None = None,
@@ -175,6 +188,7 @@ class ConfirmationView(ResponseView):
 		super().__init__(exclusive_to=exclusive_to, timeout=timeout)
 
 		self.message = message
+		self.return_interaction = return_interaction
 		self.trigger_id = trigger_id  # Used for tutorials and eventually challenges.
 		self.confirm_label = confirm_label
 		self.deny_label = deny_label
@@ -198,10 +212,10 @@ class ConfirmationView(ResponseView):
 
 		container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-		action_row = ui.ActionRow(
-			self.ConfirmButton(self.confirm_label, True, self.confirm_colour),
-			self.ConfirmButton(self.deny_label, False, self.deny_colour),
-		)
+		buttons = [self.ConfirmButton(self.confirm_label, True, self.confirm_colour)]
+		if self.deny_label is not None:
+			buttons.append(self.ConfirmButton(self.deny_label, False, self.deny_colour))
+		action_row = ui.ActionRow(*buttons)
 
 		container.add_item(action_row)
 
@@ -222,8 +236,11 @@ class ConfirmationView(ResponseView):
 			if not view.interaction_excl_check(interaction):
 				return
 
-			view.on_finish(self.value)
-			await interaction.response.edit_message(view=view)
+			if view.return_interaction and self.value:
+				view.on_finish(self.value, interaction)
+			else:
+				view.on_finish(self.value)
+				await interaction.response.edit_message(view=view)
 
 			if view.trigger_id is not None:
 				# Calls on_tutorial_trigger (discord.py prefixes the on_).
