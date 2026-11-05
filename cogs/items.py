@@ -1,5 +1,3 @@
-import asyncio
-
 from typing import cast
 
 import discord
@@ -155,23 +153,21 @@ class GemCommands(commands.Cog):
 		# Increase exp towards finding a gem.
 		gem_found = await gem_queries.increase_gem_meter(player_id, selected_demon_id)
 
-		if gem_found and await player_queries.get_gem_notifs_enabled(player_id):
-			d = cast(DemonData, demon_queries.get_demon_by_id(player_id, selected_demon_id))
+		if gem_found:
+			d = cast(DemonData, await demon_queries.get_demon_by_id(player_id, selected_demon_id))
 			server_id = gets.get_server_id(ctx)
+			new_gem = await gem_queries.add_gem(player_id, d.gems)
 
-			new_gem, set_channel = await asyncio.gather(
-				gem_queries.add_gem(player_id, d.gems),
-				server_queries.get_dedicated_channel(server_id),
-			)
+			if await player_queries.get_gem_notifs_enabled(player_id):
+				set_channel = await server_queries.get_dedicated_channel(server_id)
+				send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
 
-			send_to_channel = self.bot.get_channel(set_channel) if set_channel else ctx.channel
-
-			await MessageView.send(
-				send_to_channel,
-				ItemMsg.found_gem(player_id, d.name, new_gem),
-				d.design_data.profile_img,
-				d.design_data.colour,
-			)
+				await MessageView.send(
+					send_to_channel,
+					ItemMsg.found_gem(user_id, d.name, new_gem),
+					thumbnail=d.design_data.profile_img,
+					colour=d.design_data.colour,
+				)
 
 
 class Items(InventoryCommands, GemCommands):

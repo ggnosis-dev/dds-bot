@@ -187,11 +187,15 @@ class LeaderCommands(commands.Cog):
 		)
 
 		# Get gems player can get with demon. Needs demon first.
-		gems = await gem_queries.get_possible_gems(demon.race_id)
+		gems, gem_counts = await asyncio.gather(
+			gem_queries.get_possible_gems(demon.race_id),
+			gem_queries.get_leader_session_gem_counts(player_id),
+		)
+		gem_count_dict = dict(zip(gems, gem_counts))
 
 		await MessageView.send(
 			ctx.channel,
-			PartyMsg.leader_stats(mag_mult, gems, gem_progress, demon),
+			PartyMsg.leader_stats(mag_mult, gem_count_dict, gem_progress, demon),
 			thumbnail=demon.design_data.profile_img,
 			colour=demon.design_data.colour,
 		)

@@ -1,12 +1,9 @@
 import random
 
 from entities.demon_data import RaceGems
-from entities.item_data import ItemEntry, convert_row_to_item_entry
+from entities.item_data import GEM_EXP_MULTIPLIER, GEM_METER_FULL, ItemEntry, convert_row_to_item_entry
 from helpers.db import query_all, query_one, query_write, transaction
 from queries import player_demons_queries
-
-GEM_EXP_MULTIPLIER = 0.1
-GEM_METER_FULL = 100
 
 
 async def get_possible_gems(race_id: int) -> tuple[str, str]:
@@ -88,19 +85,34 @@ async def add_gem(player_id: int, gems: tuple[RaceGems, ...], number: int = 1) -
 	"""Insert or update gem quantity."""
 
 	# Get gem type.
-	gem = random.choice(gems)
+	index = random.randrange(len(gems))
+	gem = gems[index]
+	count_column = ("leader_gem_1_count", "leader_gem_2_count")[index]
 
-	query_write(
-		"""
-			INSERT INTO player_gems (player_id, gem_id, quantity)
-			VALUES (?, ?, ?)
-			ON CONFLICT (player_id, gem_id) DO
-			UPDATE SET quantity = quantity + excluded.quantity
-		""",
-		(player_id, gem.gem_id, number),
-	)
+	with transaction() as conn:
+		query_write(
+			"""
+				INSERT INTO player_gems (player_id, gem_id, quantity)
+				VALUES (?, ?, ?)
+				ON CONFLICT (player_id, gem_id) DO
+				UPDATE SET quantity = quantity + excluded.quantity
+			""",
+			(player_id, gem.gem_id, number),
+			conn=conn,
+		)
 
-	return gem.name
+		# Update the count column with how many gems have been found in this session.
+		query_write(
+			f"""
+				UPDATE players
+				SET {count_column} = {count_column} + ?
+				WHERE player_id = ?
+			""",
+			(number, player_id),
+			conn=conn,
+		)
+
+		return gem.name
 
 
 async def get_player_gems(player_id: int) -> list[ItemEntry]:
@@ -129,3 +141,24 @@ async def get_player_gems(player_id: int) -> list[ItemEntry]:
 	for row in rows:
 		entries.append(convert_row_to_item_entry(row))
 	return entries
+
+
+async def get_leader_session_gem_counts(player_id: int) -> tuple[int, int]:
+	"""Get how many gems have been hunted since the leader has changed."""
+
+	rows = query_all(
+		"""
+			SELECT
+				leader_gem_1_count,
+				leader_gem_2_count
+			FROM players
+			WHERE player_id = ?
+		""",
+		(player_id,),
+	)
+
+	if not rows:
+		return (0, 0)
+
+	row = rows[0]
+	return (row["leader_gem_1_count"], row["leader_gem_2_count"])

@@ -218,7 +218,9 @@ async def set_selected_demon(player_id: int, demon_id: int) -> None:
 	query_write(
 		"""
 			UPDATE players
-			SET selected_demon_id = ?
+			SET selected_demon_id = ?,
+				leader_gem_1_count = 0,
+				leader_gem_2_count = 0
 			WHERE player_id = ?
 		""",
 		(demon_id, player_id),

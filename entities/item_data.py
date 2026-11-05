@@ -46,6 +46,8 @@ class ItemUseRules:
 	race_locked: bool = True
 
 
+GEM_EXP_MULTIPLIER = 0.05
+GEM_METER_FULL = 100
 INCENSE_RANK_INCREASE = 1
 MINIMUM_COST = 500
 MAX_RANK = 100
