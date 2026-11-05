@@ -34,7 +34,7 @@ class Columns:
 
 	PLAYER_DEFAULT = [REGISTRY, RACE, NAME, STORED_RANK]
 	COMP_DEFAULT = PLAYER_DEFAULT
-	SERVER_DEFAULT = COMP_DEFAULT + [EXP, OWNER]
+	SERVER_DEFAULT = COMP_DEFAULT + [OWNER]
 
 	# Item/Gem Collection Exclusive.
 	EMOTE = ColumnConfig(key="emote", label=Emotes.BLANK.value)

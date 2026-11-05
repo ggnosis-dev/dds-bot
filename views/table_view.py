@@ -101,7 +101,13 @@ class BaseCompendiumView(BaseTableView[DemonTableRow]):
 		async def callback(self, interaction: discord.Interaction) -> None:
 			"""Callback for when a race is selected from the filter menu."""
 			view = cast(BaseCompendiumView, self.view)
-			self.filtered_race = self.values[0]
+			view.filtered_race = self.values[0]
+
+			# Set default to the value we clicked on so that it shows up in Select after edit.
+			for o in self.options:
+				o.default = o.value == view.filtered_race
+
+			# Reset pages.
 			view.page = 1
 			view.total_pages = 1
 			view.refresh()
@@ -129,10 +135,10 @@ class BaseCompendiumView(BaseTableView[DemonTableRow]):
 		page_entries = []
 
 		for entry in self.entries:
-			selected_race = entry.race.lower()
+			race_name = entry.race.lower()
 
-			# Check filtered_race against selected race and only add to page entries if it matches.
-			if self.filtered_race == "all" or selected_race == self.filtered_race:
+			# Check filtered_race against race name and only add to page entries if it matches.
+			if self.filtered_race == "all" or race_name == self.filtered_race:
 				page_entries.append(entry)
 
 		return page_entries
